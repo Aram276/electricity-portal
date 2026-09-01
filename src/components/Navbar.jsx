@@ -4,7 +4,7 @@ import RoonakiLogo from './RoonakiLogo';
 
 export default function Navbar({ currentView, setCurrentView, isAdmin, onOpenAdminLogin, onAdminLogout, isDarkMode, onToggleTheme }) {
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-amber-500/20 bg-white/95 dark:bg-[#070b16]/95 backdrop-blur-xl transition-colors duration-300 shadow-sm">
+    <header className="relative z-40 w-full border-b border-amber-500/20 bg-white/95 dark:bg-[#070b16]/95 backdrop-blur-xl transition-colors duration-300 shadow-sm">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 sm:h-20 gap-2">
           
