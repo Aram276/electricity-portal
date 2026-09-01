@@ -55,7 +55,7 @@ export default function SettingsTab({ onResetData, records }) {
   // ── Change PIN handler ──
   const handleChangePIN = (e) => {
     e.preventDefault();
-    const storedPin = localStorage.getItem('electricity_portal_pin') || '1234';
+    const storedPin = localStorage.getItem('electricity_portal_pin') || '075075';
 
     if (currentPin !== storedPin) {
       setPinStatus('wrong-current');

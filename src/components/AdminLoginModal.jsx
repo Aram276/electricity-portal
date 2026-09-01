@@ -9,7 +9,7 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const storedPin = localStorage.getItem('electricity_portal_pin') || '1234';
+    const storedPin = localStorage.getItem('electricity_portal_pin') || '075075';
     if (pin === storedPin) {
       setError(false);
       onLoginSuccess();
