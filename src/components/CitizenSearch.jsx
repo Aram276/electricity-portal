@@ -313,10 +313,13 @@ export default function CitizenSearch({ records, onOpenPrintModal }) {
           </form>
 
           {/* Quick Examples */}
-          <div className="p-3 sm:p-4 rounded-2xl bg-amber-50/80 dark:bg-amber-500/8 border border-amber-200 dark:border-amber-500/20 max-w-2xl mx-auto text-xs text-amber-900 dark:text-amber-300 flex items-start gap-2.5 text-right">
-            <HelpCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-            <p className="leading-relaxed">
-              <strong>نموونە:</strong> ئەگەر بەس بنووسیت <span className="font-bold underline">ڕێبین</span> یان بەس چەند ژمارەیەکی مۆبایلەکەت وەک <span className="font-bold font-mono underline">0750494</span> بنووسیت، سیستەمەکە دەستبەجێ هەموو فایلە پەیوەندیدارەکانت پێشان دەدات.
+          <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-100/90 dark:bg-[#0c1322] border border-slate-200 dark:border-amber-500/30 max-w-2xl mx-auto text-xs sm:text-sm text-slate-800 dark:text-slate-200 flex items-center gap-3 text-right shadow-sm">
+            <div className="w-7 h-7 rounded-xl bg-amber-500/15 dark:bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0">
+              <HelpCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+            </div>
+            <p className="leading-relaxed flex-1">
+              <span className="font-black text-amber-700 dark:text-amber-400">💡 شێوازی گەڕانی زیرەک: </span>
+              ئەگەر تەنها بەشێکی ناو وەک <span className="font-bold text-slate-950 dark:text-white bg-amber-500/20 dark:bg-amber-500/30 px-1.5 py-0.5 rounded border border-amber-500/30">ڕێبین</span> یان بەشێکی مۆبایل وەک <span className="font-bold font-mono text-slate-950 dark:text-white bg-amber-500/20 dark:bg-amber-500/30 px-1.5 py-0.5 rounded border border-amber-500/30">0750494</span> بنووسیت، ڕاستەوخۆ دەیدۆزێتەوە.
             </p>
           </div>
 
