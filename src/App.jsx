@@ -16,7 +16,8 @@ import {
   isAdminAuthenticated, 
   setAdminAuthenticated 
 } from './utils/storage';
-import { CheckCircle2, Info } from 'lucide-react';
+import { subscribeToCloudRecords, saveRecordsToCloud } from './utils/cloudSync';
+import { CheckCircle2, Info, Cloud } from 'lucide-react';
 
 export default function App() {
   const [records, setRecords] = useState(() => getStoredRecords());
@@ -40,6 +41,17 @@ export default function App() {
 
   useEffect(() => {
     setIsAdmin(isAdminAuthenticated());
+
+    // Live Cloud Subscription to Firebase Firestore
+    const unsubscribe = subscribeToCloudRecords((cloudRecords) => {
+      if (cloudRecords && cloudRecords.length > 0) {
+        setRecords(cloudRecords);
+      }
+    });
+
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
   }, []);
 
   // Sync theme with DOM
@@ -92,7 +104,7 @@ export default function App() {
       updated = [...records, ...filteredNew];
     }
     setRecords(updated);
-    saveRecords(updated);
+    saveRecordsToCloud(updated);
     showToast(`${newRecords.length} مامەڵە بە سەرکەوتوویی لە فایلی ئێکسڵەوە هاوردە کرا`, 'success');
   };
 
@@ -109,25 +121,25 @@ export default function App() {
 
     if (recordId) {
       updated = records.map(r => r.id === recordId ? { ...r, ...processedData } : r);
-      showToast('زانیارییەکانی مامەڵەکە بە سەرکەوتوویی نوێکرایەوە', 'success');
+      showToast('زانیارییەکانی مامەڵەکە لە کڵاود و سێرڤەر بە سەرکەوتوویی نوێکرایەوە', 'success');
     } else {
       const newRec = {
         id: 'rec-' + Date.now(),
         ...processedData
       };
       updated = [newRec, ...records];
-      showToast('مامەڵەی نوێ بە سەرکەوتوویی تۆمار کرا', 'success');
+      showToast('مامەڵەی نوێ لە سێرڤەری گشتی بە سەرکەوتوویی تۆمار کرا', 'success');
     }
     setRecords(updated);
-    saveRecords(updated);
+    saveRecordsToCloud(updated);
   };
 
   // Delete record (single)
   const handleDeleteRecord = (id) => {
     const updated = records.filter(r => r.id !== id);
     setRecords(updated);
-    saveRecords(updated);
-    showToast('مامەڵەکە بە سەرکەوتوویی سڕایەوە', 'info');
+    saveRecordsToCloud(updated);
+    showToast('مامەڵەکە بە سەرکەوتوویی لە سێرڤەر سڕایەوە', 'info');
   };
 
   // Bulk / Batch Delete records
@@ -135,8 +147,8 @@ export default function App() {
     const idSet = new Set(ids);
     const updated = records.filter(r => !idSet.has(r.id));
     setRecords(updated);
-    saveRecords(updated);
-    showToast(`${ids.length} فایل بە سەرکەوتوویی سڕانەوە`, 'info');
+    saveRecordsToCloud(updated);
+    showToast(`${ids.length} فایل بە سەرکەوتوویی لە کڵاود سڕانەوە`, 'info');
   };
 
   // Bulk Status update
@@ -160,8 +172,8 @@ export default function App() {
     });
 
     setRecords(updated);
-    saveRecords(updated);
-    showToast(`دۆخی ${ids.length} فایل بە سەرکەوتوویی گۆڕدرا`, 'success');
+    saveRecordsToCloud(updated);
+    showToast(`دۆخی ${ids.length} فایل بە سەرکەوتوویی لە کڵاود گۆڕدرا`, 'success');
   };
 
   // Inline Status update from table
@@ -180,8 +192,8 @@ export default function App() {
       return r;
     });
     setRecords(updated);
-    saveRecords(updated);
-    showToast('دۆخی مامەڵە گۆڕدرا', 'success');
+    saveRecordsToCloud(updated);
+    showToast('دۆخی مامەڵە لە سێرڤەر گۆڕدرا', 'success');
   };
 
   // Toggle single record file type (Yellow Folder vs Paper)
@@ -194,8 +206,8 @@ export default function App() {
       return r;
     });
     setRecords(updated);
-    saveRecords(updated);
-    showToast('جۆری دۆسیەکە گۆڕدرا', 'info');
+    saveRecordsToCloud(updated);
+    showToast('جۆری دۆسیەکە لە کڵاود گۆڕدرا', 'info');
   };
 
   // Bulk File Type update
@@ -208,7 +220,7 @@ export default function App() {
       return r;
     });
     setRecords(updated);
-    saveRecords(updated);
+    saveRecordsToCloud(updated);
     showToast(`جۆری ${ids.length} فایل گۆڕدرا بۆ ${newFileType === 'YELLOW_FOLDER' ? 'فایلی زەرد' : 'ئەوراق'}`, 'success');
   };
 
@@ -218,9 +230,9 @@ export default function App() {
     if (note) {
       const rec = updated.find(r => r.id === id);
       if (rec) rec.notes = (rec.notes ? rec.notes + ' | ' : '') + note;
-      saveRecords(updated);
     }
     setRecords(updated);
+    saveRecordsToCloud(updated);
     setDeliveryModalRecord(null);
     showToast(`فایل بە فەرمی تەسلیمی (${receiverName || 'هاووڵاتی'}) کرا لە [${customDate}]`, 'success');
   };
@@ -230,7 +242,8 @@ export default function App() {
     if (window.confirm('ئایا دڵنیایت لە گەڕاندنەوەی داتاکان بۆ داتای سەرەتایی نموونەیی؟')) {
       const reset = resetToDemoRecords();
       setRecords(reset);
-      showToast('داتاکان گەڕێندرانەوە بۆ دۆخی سەرەتایی', 'info');
+      saveRecordsToCloud(reset);
+      showToast('داتاکان لە سێرڤەر گەڕێندرانەوە بۆ دۆخی سەرەتایی', 'info');
     }
   };
 
@@ -263,7 +276,7 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
         {currentView === 'citizen' ? (
           <CitizenSearch
             records={records}
@@ -292,38 +305,42 @@ export default function App() {
       {/* Footer */}
       <Footer />
 
-      {/* Modals */}
+      {/* Admin Login Modal */}
       <AdminLoginModal
         isOpen={isLoginOpen}
         onClose={() => setIsLoginOpen(false)}
         onLoginSuccess={handleAdminLogin}
       />
 
+      {/* Add / Edit Record Modal */}
+      <RecordModal
+        isOpen={isRecordModalOpen}
+        onClose={() => { setIsRecordModalOpen(false); setEditingRecord(null); }}
+        onSave={handleSaveRecord}
+        editingRecord={editingRecord}
+        records={records}
+      />
+
+      {/* Excel Import Modal */}
       <ExcelModal
         isOpen={isExcelOpen}
         onClose={() => setIsExcelOpen(false)}
         onImportSuccess={handleImportSuccess}
       />
 
-      <RecordModal
-        isOpen={isRecordModalOpen}
-        onClose={() => setIsRecordModalOpen(false)}
-        onSave={handleSaveRecord}
-        editingRecord={editingRecord}
-        records={records}
-      />
-
+      {/* Delivery Confirmation Modal */}
       <DeliveryModal
-        isOpen={!!deliveryModalRecord}
-        record={deliveryModalRecord}
+        isOpen={Boolean(deliveryModalRecord)}
         onClose={() => setDeliveryModalRecord(null)}
+        record={deliveryModalRecord}
         onConfirm={handleConfirmDelivery}
       />
 
+      {/* Print Slip / Receipt Modal */}
       <PrintReceiptModal
-        isOpen={!!printModalRecord}
-        record={printModalRecord}
+        isOpen={Boolean(printModalRecord)}
         onClose={() => setPrintModalRecord(null)}
+        record={printModalRecord}
       />
 
     </div>
