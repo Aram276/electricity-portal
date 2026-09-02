@@ -83,6 +83,7 @@ export default function CitizenSearch({ records, onOpenPrintModal }) {
     const cleanPhoneNoZeroQ = cleanDigitsQ.replace(/^0+/, '');
 
     const matches = records.filter(r => {
+      const hasValidName = Boolean(r.citizenName && r.citizenName !== 'هاوبەشی کارەبا' && r.citizenName.trim() !== '');
       const fuzzyName = normalizeKurdishFuzzy(r.citizenName || '');
       const compactFuzzyName = fuzzyName.replace(/\s+/g, '');
       const fileStr = String(r.fileNumber || '').trim().toLowerCase();
@@ -92,7 +93,7 @@ export default function CitizenSearch({ records, onOpenPrintModal }) {
 
       // ── MODE: NAME ────────────────────────────────
       if (currentMode === 'NAME') {
-        if (!r.hasRealName) return false;
+        if (!hasValidName) return false;
         return fuzzyName.includes(fuzzyQ) || compactFuzzyName.includes(compactFuzzyQ);
       }
 
@@ -115,22 +116,22 @@ export default function CitizenSearch({ records, onOpenPrintModal }) {
 
       // ── GENERAL MODE: ALL (Fuzzy Matching on All Fields) ──
       // 1. Partial Kurdish Name (e.g. typing "ڕێبین" matches "ڕێبین قادر", "ریبین علی", etc.)
-      if (r.hasRealName && (fuzzyName.includes(fuzzyQ) || compactFuzzyName.includes(compactFuzzyQ))) {
+      if (hasValidName && (fuzzyName.includes(fuzzyQ) || compactFuzzyName.includes(compactFuzzyQ))) {
         return true;
       }
 
-      // 2. Partial or Exact File Number (e.g. "19", "246")
-      if (cleanDigitsQ && (fileStr === cleanDigitsQ || fileStr === compactFuzzyQ || (cleanDigitsQ.length >= 2 && fileStr.includes(cleanDigitsQ)))) {
+      // 2. Partial or Exact File Number (e.g. "841", "19", "246")
+      if (cleanDigitsQ && (fileStr === cleanDigitsQ || fileStr === compactFuzzyQ || fileStr.includes(cleanDigitsQ))) {
         return true;
       }
 
       // 3. Partial Phone Number (e.g. typing "0750494" or "٠٧٥٠٤٩٤" or "494")
-      if (cleanDigitsQ && cleanDigitsQ.length >= 3 && (phoneDigits.includes(cleanDigitsQ) || phoneNoZero.includes(cleanPhoneNoZeroQ))) {
+      if (cleanDigitsQ && (phoneDigits.includes(cleanDigitsQ) || phoneNoZero.includes(cleanPhoneNoZeroQ))) {
         return true;
       }
 
       // 4. Partial Account ID (e.g. "63450")
-      if (cleanDigitsQ && cleanDigitsQ.length >= 3 && accStr.includes(cleanDigitsQ)) {
+      if (cleanDigitsQ && accStr.includes(cleanDigitsQ)) {
         return true;
       }
 
@@ -472,7 +473,7 @@ export default function CitizenSearch({ records, onOpenPrintModal }) {
                       <span>ناوی بەشداربوو / هاووڵاتی</span>
                     </div>
                     <div className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
-                      {result.hasRealName ? result.citizenName : 'هاوبەشی کارەبا'}
+                      {(result.citizenName && result.citizenName !== 'هاوبەشی کارەبا' && result.citizenName.trim() !== '') ? result.citizenName : 'هاوبەشی کارەبا'}
                     </div>
                   </div>
 
