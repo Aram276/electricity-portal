@@ -19,9 +19,9 @@ import {
 import { CheckCircle2, Info } from 'lucide-react';
 
 export default function App() {
-  const [records, setRecords] = useState([]);
+  const [records, setRecords] = useState(() => getStoredRecords());
   const [currentView, setCurrentView] = useState('citizen'); // 'citizen' | 'admin'
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(() => isAdminAuthenticated());
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('electricity_portal_theme');
     return saved !== 'light'; // default dark
@@ -39,8 +39,6 @@ export default function App() {
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
-    const loaded = getStoredRecords();
-    setRecords(loaded);
     setIsAdmin(isAdminAuthenticated());
   }, []);
 
