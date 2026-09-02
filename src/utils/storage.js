@@ -15,27 +15,7 @@ export function getStoredRecords() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_RECORDS));
       return INITIAL_RECORDS;
     }
-
-    // Map initial real records by fileNumber and accountNumber
-    const initialMap = new Map();
-    INITIAL_RECORDS.forEach(r => {
-      if (r.fileNumber) initialMap.set(String(r.fileNumber).trim(), r.fileType);
-      if (r.accountNumber) initialMap.set(String(r.accountNumber).trim(), r.fileType);
-    });
-
-    // Sync fileType accurately based on Excel data
-    const synced = parsed.map(r => {
-      const fileKey = String(r.fileNumber || '').trim();
-      const accKey = String(r.accountNumber || '').trim();
-      const exactType = initialMap.get(fileKey) || (accKey ? initialMap.get(accKey) : null) || r.fileType || 'PAPER';
-      return {
-        ...r,
-        fileType: exactType
-      };
-    });
-
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(synced));
-    return synced;
+    return parsed;
   } catch (error) {
     console.error('Failed to load from storage, using fallback:', error);
     return INITIAL_RECORDS;
@@ -81,9 +61,5 @@ export function isAdminAuthenticated() {
 }
 
 export function setAdminAuthenticated(val) {
-  if (val) {
-    sessionStorage.setItem(ADMIN_KEY, 'true');
-  } else {
-    sessionStorage.removeItem(ADMIN_KEY);
-  }
+  sessionStorage.setItem(ADMIN_KEY, val ? 'true' : 'false');
 }
