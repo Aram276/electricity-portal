@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Settings, 
   Shield, 
@@ -21,6 +21,7 @@ import {
   LayoutTemplate
 } from 'lucide-react';
 import RoonakiLogo from './RoonakiLogo';
+import { saveFooterSettingsToCloud, subscribeToFooterSettings } from '../utils/cloudSync';
 
 export default function SettingsTab({ onResetData, records }) {
   // ── Password / PIN State ──
@@ -41,16 +42,25 @@ export default function SettingsTab({ onResetData, records }) {
   // ── Footer Texts State ──
   const [footerData, setFooterData] = useState(() => ({
     description: localStorage.getItem('footer_description') || 'پڕۆژەی نیشتمانیی ڕووناکی؛ پڕۆژەی حکومەتی هەرێمی کوردستان و وەزارەتی کارەبا بۆ دابینکردنی کارەبای ٢٤ کاتژمێری و مۆدێرنکردنی خزمەتگوزارییەکانی هاووڵاتیان.',
-    hotline: localStorage.getItem('footer_hotline') || '122',
-    phone: localStorage.getItem('footer_phone') || '066 123 4567',
-    hours: localStorage.getItem('footer_hours') || 'یەکشەممە - پێنجشەممە (٨:٣٠ بەیانی - ٢:٠٠ پاشنیوەڕۆ)',
-    location: localStorage.getItem('footer_location') || 'هەرێمی کوردستان - سەرجەم بەڕێوەبەرایەتییەکان',
+    hotline: localStorage.getItem('footer_hotline') || '1992',
+    phone: localStorage.getItem('footer_phone') || 'نیە',
+    hours: localStorage.getItem('footer_hours') || 'یەکشەممە - پێنجشەممە (٨:٣٠ بەیانی - ١:٣٠ پاشنیوەڕۆ)',
+    location: localStorage.getItem('footer_location') || 'هەرێمی کوردستان - هەولێر - فرۆشیاری وزە ٢',
     websiteName: localStorage.getItem('footer_website_name') || 'runaki.gov.krd',
     websiteUrl: localStorage.getItem('footer_website_url') || 'https://runaki.gov.krd',
     copyright: localStorage.getItem('footer_copyright') || `مافی ئەم سیستەمە پارێزراوە بۆ پڕۆژەی ڕووناکی - حکومەتی هەرێمی کوردستان © ${new Date().getFullYear()}`,
     bottomNote: localStorage.getItem('footer_bottom_note') || 'سیستەمی ئەلیکترۆنی پشکنین و بەڕێوەبردنی دۆسیەکانی هاوبەشان'
   }));
   const [footerSaved, setFooterSaved] = useState(false);
+
+  useEffect(() => {
+    const unsub = subscribeToFooterSettings((cloudSettings) => {
+      if (cloudSettings) {
+        setFooterData(cloudSettings);
+      }
+    });
+    return () => unsub();
+  }, []);
 
   // ── Change PIN handler ──
   const handleChangePIN = (e) => {
@@ -86,20 +96,10 @@ export default function SettingsTab({ onResetData, records }) {
     setTimeout(() => setDirSaved(false), 2500);
   };
 
-  // ── Save Footer Settings ──
+  // ── Save Footer Settings to Cloud ──
   const handleSaveFooter = (e) => {
     e.preventDefault();
-    localStorage.setItem('footer_description', footerData.description);
-    localStorage.setItem('footer_hotline', footerData.hotline);
-    localStorage.setItem('footer_phone', footerData.phone);
-    localStorage.setItem('footer_hours', footerData.hours);
-    localStorage.setItem('footer_location', footerData.location);
-    localStorage.setItem('footer_website_name', footerData.websiteName);
-    localStorage.setItem('footer_website_url', footerData.websiteUrl);
-    localStorage.setItem('footer_copyright', footerData.copyright);
-    localStorage.setItem('footer_bottom_note', footerData.bottomNote);
-
-    window.dispatchEvent(new Event('footer_settings_updated'));
+    saveFooterSettingsToCloud(footerData);
     setFooterSaved(true);
     setTimeout(() => setFooterSaved(false), 3000);
   };

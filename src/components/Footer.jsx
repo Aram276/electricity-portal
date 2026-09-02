@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Phone, MapPin, Clock, Globe, ExternalLink } from 'lucide-react';
 import RoonakiLogo from './RoonakiLogo';
+import { subscribeToFooterSettings } from '../utils/cloudSync';
 
 export default function Footer({ footerSettings }) {
   const [settings, setSettings] = useState(() => {
     return {
       description: localStorage.getItem('footer_description') || 'پڕۆژەی نیشتمانیی ڕووناکی؛ پڕۆژەی حکومەتی هەرێمی کوردستان و وەزارەتی کارەبا بۆ دابینکردنی کارەبای ٢٤ کاتژمێری و مۆدێرنکردنی خزمەتگوزارییەکانی هاووڵاتیان.',
-      hotline: localStorage.getItem('footer_hotline') || '122',
-      phone: localStorage.getItem('footer_phone') || '066 123 4567',
-      hours: localStorage.getItem('footer_hours') || 'یەکشەممە - پێنجشەممە (٨:٣٠ بەیانی - ٢:٠٠ پاشنیوەڕۆ)',
-      location: localStorage.getItem('footer_location') || 'هەرێمی کوردستان - سەرجەم بەڕێوەبەرایەتییەکان',
+      hotline: localStorage.getItem('footer_hotline') || '1992',
+      phone: localStorage.getItem('footer_phone') || 'نیە',
+      hours: localStorage.getItem('footer_hours') || 'یەکشەممە - پێنجشەممە (٨:٣٠ بەیانی - ١:٣٠ پاشنیوەڕۆ)',
+      location: localStorage.getItem('footer_location') || 'هەرێمی کوردستان - هەولێر - فرۆشیاری وزە ٢',
       websiteName: localStorage.getItem('footer_website_name') || 'runaki.gov.krd',
       websiteUrl: localStorage.getItem('footer_website_url') || 'https://runaki.gov.krd',
       copyright: localStorage.getItem('footer_copyright') || `مافی ئەم سیستەمە پارێزراوە بۆ پڕۆژەی ڕووناکی - حکومەتی هەرێمی کوردستان © ${new Date().getFullYear()}`,
@@ -18,22 +19,32 @@ export default function Footer({ footerSettings }) {
   });
 
   useEffect(() => {
-    const handleFooterUpdate = () => {
+    // Live Cloud Subscription to Firestore Footer Settings
+    const unsubscribe = subscribeToFooterSettings((cloudSettings) => {
+      if (cloudSettings) {
+        setSettings(cloudSettings);
+      }
+    });
+
+    const handleLocalFooterUpdate = () => {
       setSettings({
-        description: localStorage.getItem('footer_description') || 'پڕۆژەی نیشتمانیی ڕووناکی؛ پڕۆژەی حکومەتی هەرێمی کوردستان و وەزارەتی کارەبا بۆ دابینکردنی کارەبای ٢٤ کاتژمێری و مۆدێرنکردنی خزمەتگوزارییەکانی هاووڵاتیان.',
-        hotline: localStorage.getItem('footer_hotline') || '122',
-        phone: localStorage.getItem('footer_phone') || '066 123 4567',
-        hours: localStorage.getItem('footer_hours') || 'یەکشەممە - پێنجشەممە (٨:٣٠ بەیانی - ٢:٠٠ پاشنیوەڕۆ)',
-        location: localStorage.getItem('footer_location') || 'هەرێمی کوردستان - سەرجەم بەڕێوەبەرایەتییەکان',
+        description: localStorage.getItem('footer_description') || '',
+        hotline: localStorage.getItem('footer_hotline') || '1992',
+        phone: localStorage.getItem('footer_phone') || 'نیە',
+        hours: localStorage.getItem('footer_hours') || '',
+        location: localStorage.getItem('footer_location') || '',
         websiteName: localStorage.getItem('footer_website_name') || 'runaki.gov.krd',
         websiteUrl: localStorage.getItem('footer_website_url') || 'https://runaki.gov.krd',
-        copyright: localStorage.getItem('footer_copyright') || `مافی ئەم سیستەمە پارێزراوە بۆ پڕۆژەی ڕووناکی - حکومەتی هەرێمی کوردستان © ${new Date().getFullYear()}`,
-        bottomNote: localStorage.getItem('footer_bottom_note') || 'سیستەمی ئەلیکترۆنی پشکنین و بەڕێوەبردنی دۆسیەکانی هاوبەشان'
+        copyright: localStorage.getItem('footer_copyright') || '',
+        bottomNote: localStorage.getItem('footer_bottom_note') || ''
       });
     };
 
-    window.addEventListener('footer_settings_updated', handleFooterUpdate);
-    return () => window.removeEventListener('footer_settings_updated', handleFooterUpdate);
+    window.addEventListener('footer_settings_updated', handleLocalFooterUpdate);
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+      window.removeEventListener('footer_settings_updated', handleLocalFooterUpdate);
+    };
   }, []);
 
   return (
