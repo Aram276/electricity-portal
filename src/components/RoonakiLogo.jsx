@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import logoImg from '../assets/logo.png';
+import runakiLogo from '../assets/runaki-logo.png';
 import { Zap } from 'lucide-react';
 
 export default function RoonakiLogo({ className = 'h-14 w-auto', showText = true, textClassName = '' }) {
@@ -10,7 +10,7 @@ export default function RoonakiLogo({ className = 'h-14 w-auto', showText = true
       <div className="relative flex items-center justify-center">
         {!imgError ? (
           <img
-            src={logoImg || '/logo.png'}
+            src={runakiLogo}
             alt="پڕۆژەی نیشتمانیی ڕووناکی"
             className={`${className} object-contain filter drop-shadow-[0_0_16px_rgba(245,158,11,0.45)] transition-transform hover:scale-105 duration-200`}
             onError={() => setImgError(true)}

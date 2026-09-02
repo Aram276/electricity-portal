@@ -2,6 +2,7 @@ import React from 'react';
 import { X, Printer, Zap, CheckCircle2, Building2, User, Hash, Phone, Calendar, Archive } from 'lucide-react';
 import { STATUS_CONFIG } from '../constants/status';
 import RoonakiLogo from './RoonakiLogo';
+import runakiLogo from '../assets/runaki-logo.png';
 
 export default function PrintReceiptModal({ record, isOpen, onClose }) {
   if (!isOpen || !record) return null;
@@ -45,7 +46,7 @@ export default function PrintReceiptModal({ record, isOpen, onClose }) {
           {/* Header */}
           <div className="border-b-2 border-slate-900 pb-4 text-center space-y-1">
             <div className="flex justify-center mb-1">
-              <img src="/logo.png" alt="ڕووناکی" className="h-14 w-auto object-contain" onError={(e) => { e.target.style.display = 'none'; }} />
+              <img src={runakiLogo} alt="ڕووناکی" className="h-14 w-auto object-contain" onError={(e) => { e.target.style.display = 'none'; }} />
             </div>
             <div className="text-xs font-bold text-slate-600">حکومەتی هەرێمی کوردستان - وەزارەتی کارەبا | پڕۆژەی ڕووناکی</div>
             <div className="text-lg font-black text-slate-900">{record.department || 'بەڕێوەبەرایەتی دابەشکردنی کارەبا'}</div>
