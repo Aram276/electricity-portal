@@ -244,54 +244,36 @@ export default function DailyIntake({ records, onSaveRecord, onDeleteRecord }) {
                 />
               </div>
 
-              {/* Status */}
+              {/* Submission Date (Auto-filled for Today) */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
+                  <span>بەرواری تۆمارکردن (ئەمڕۆ - ئۆتۆماتیکی):</span>
+                </label>
+                <div className="w-full px-3.5 py-2.5 rounded-xl bg-amber-50/70 dark:bg-slate-950 border border-amber-300 dark:border-amber-500/30 text-amber-900 dark:text-amber-300 font-mono font-bold text-sm flex items-center justify-between">
+                  <span>{todayStr}</span>
+                  <span className="text-[11px] font-normal px-2 py-0.5 rounded bg-amber-200/60 dark:bg-amber-500/20 text-amber-950 dark:text-amber-200">ئۆتۆماتیک</span>
+                </div>
+              </div>
+
+              {/* Initial Status (Not Done / Archive) */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
                   <CheckCircle2 className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
-                  <span>دۆخی مامەڵە (Status):</span>
+                  <span>دۆخی سەرەتایی دۆسیە:</span>
                 </label>
-                <select
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs sm:text-sm focus:outline-none focus:border-amber-500 font-semibold"
-                >
-                  <option value="IN_PROGRESS">پێنەدراوەتەوە - لەلای ئێمەیە (Not Done)</option>
-                  <option value="COMPLETED">وەرگیراوەتەوە (Done)</option>
-                  <option value="DELIVERED">تەسلیم کرا (Delivered)</option>
-                </select>
-              </div>
-
-              {/* date */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-blue-500" />
-                  <span>بەرواری تەسلیم (date):</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="بۆ نموونە: 1\9\2026"
-                  value={formData.deliveredDate}
-                  onChange={(e) => setFormData({ ...formData, deliveredDate: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-mono text-sm focus:outline-none focus:border-blue-500"
-                />
+                <div className="w-full px-3.5 py-2.5 rounded-xl bg-amber-100/50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-500/30 text-amber-950 dark:text-amber-300 text-xs sm:text-sm font-bold flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                  <span>پێنەدراوەتەوە - لەلای ئێمەیە لە ئەرشیف (Not Done)</span>
+                </div>
               </div>
 
             </div>
 
-            {/* name of recive */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
-                <UserCheck className="w-3.5 h-3.5 text-blue-500" />
-                <span>ناوی وەرگرەوە (name of recive):</span>
-              </label>
-              <input
-                type="text"
-                placeholder="ناوی ئەو کەسەی فایلەکەی وەرگرتەوە..."
-                value={formData.receiverName}
-                onChange={(e) => setFormData({ ...formData, receiverName: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-blue-500"
-              />
-            </div>
+            {/* Note below fields */}
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              💡 تێبینی: بەرواری ئەمڕۆ خۆکارانە دادەنرێت. کاتێک هاووڵاتی لە داهاتوودا سەردانی کرد، لە لیستی سەرەکی دوگمەی «تەسلیمکردن» دادەگریت.
+            </p>
 
             {/* Submit Button */}
             <button
@@ -299,7 +281,7 @@ export default function DailyIntake({ records, onSaveRecord, onDeleteRecord }) {
               className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-sm shadow-xl shadow-amber-500/25 transition-all flex items-center justify-center gap-2 active:scale-98"
             >
               <Save className="w-5 h-5" />
-              <span>تۆمارکردنی دۆسیە و ئامادەکردنی فایلی دواتر (Enter)</span>
+              <span>تۆمارکردنی دۆسیەی ئەمڕۆ (Enter)</span>
             </button>
           </form>
         </div>
