@@ -69,7 +69,13 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, re
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave(formData, editingRecord ? editingRecord.id : null);
+    const rawName = (formData.citizenName || '').trim();
+    const hasRealName = Boolean(rawName && rawName !== 'هاوبەشی کارەبا' && !rawName.startsWith('مانگی '));
+    onSave({
+      ...formData,
+      citizenName: hasRealName ? rawName : 'هاوبەشی کارەبا',
+      hasRealName: hasRealName
+    }, editingRecord ? editingRecord.id : null);
     onClose();
   };
 

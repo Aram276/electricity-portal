@@ -822,7 +822,7 @@ export default function AdminDashboard({
 
                           {/* Name */}
                           <td className="p-3">
-                            {record.hasRealName ? (
+                            {(record.citizenName && record.citizenName !== 'هاوبەشی کارەبا' && record.citizenName.trim() !== '') ? (
                               <span className="font-bold text-slate-900 dark:text-white">{record.citizenName}</span>
                             ) : (
                               <span className="text-slate-400 italic text-xs">هاوبەشی کارەبا</span>
@@ -1012,7 +1012,7 @@ export default function AdminDashboard({
                         <div className="col-span-2 flex items-center justify-between border-b border-slate-200/60 dark:border-slate-800/60 pb-1.5">
                           <span className="text-slate-500 dark:text-slate-400">ناوی هاووڵاتی:</span>
                           <span className="font-bold text-slate-900 dark:text-white">
-                            {record.hasRealName ? record.citizenName : <span className="text-slate-400 italic">هاوبەشی کارەبا</span>}
+                            {(record.citizenName && record.citizenName !== 'هاوبەشی کارەبا' && record.citizenName.trim() !== '') ? record.citizenName : <span className="text-slate-400 italic">هاوبەشی کارەبا</span>}
                           </span>
                         </div>
 

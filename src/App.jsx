@@ -101,13 +101,21 @@ export default function App() {
   // Add / Edit record
   const handleSaveRecord = (formData, recordId) => {
     let updated;
+    const rawName = (formData.citizenName || '').trim();
+    const hasRealName = Boolean(rawName && rawName !== 'هاوبەشی کارەبا' && !rawName.startsWith('مانگی '));
+    const processedData = {
+      ...formData,
+      citizenName: hasRealName ? rawName : 'هاوبەشی کارەبا',
+      hasRealName: hasRealName
+    };
+
     if (recordId) {
-      updated = records.map(r => r.id === recordId ? { ...r, ...formData } : r);
+      updated = records.map(r => r.id === recordId ? { ...r, ...processedData } : r);
       showToast('زانیارییەکانی مامەڵەکە بە سەرکەوتوویی نوێکرایەوە', 'success');
     } else {
       const newRec = {
         id: 'rec-' + Date.now(),
-        ...formData
+        ...processedData
       };
       updated = [newRec, ...records];
       showToast('مامەڵەی نوێ بە سەرکەوتوویی تۆمار کرا', 'success');
