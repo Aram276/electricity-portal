@@ -37,7 +37,10 @@ import { STATUS_CONFIG, FILE_TYPES } from '../constants/status';
 import { exportToExcel } from '../utils/excelHelper';
 import DailyIntake from './DailyIntake';
 import SettingsTab from './SettingsTab';
+import AnalyticsTab from './AnalyticsTab';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
+import { generateWhatsAppUrl } from '../utils/whatsappHelper';
+import { MessageSquare, BarChart3, ExternalLink } from 'lucide-react';
 
 // Convert Arabic & Persian / Kurdish numerals (٠-٩, ۰-۹) to standard Latin digits (0-9)
 function toLatinDigits(str) {
@@ -359,6 +362,18 @@ export default function AdminDashboard({
           >
             <PlusCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             <span>داخڵکردنی خێرا</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('analytics')}
+            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-black whitespace-nowrap transition-all ${
+              activeTab === 'analytics'
+                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white'
+            }`}
+          >
+            <BarChart3 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span>ئامار و شیکاری</span>
           </button>
 
           <button
@@ -809,14 +824,28 @@ export default function AdminDashboard({
                             )}
                           </td>
 
-                          {/* Phone */}
+                          {/* Phone & WhatsApp */}
                           <td className="p-3 font-mono text-xs">
                             {isPhoneMissing ? (
                               <span className="text-rose-600 dark:text-rose-400 px-2 py-0.5 rounded bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 font-bold">
                                 نیە
                               </span>
                             ) : (
-                              <span className="text-slate-700 dark:text-slate-300">{record.phoneNumber}</span>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-slate-700 dark:text-slate-300 font-semibold">{record.phoneNumber}</span>
+                                {generateWhatsAppUrl(record) && (
+                                  <a
+                                    href={generateWhatsAppUrl(record)}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    title="ناردنی نامەی فەرمی بە واتسئاپ بۆ هاووڵاتی"
+                                    className="p-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/30 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 inline-flex items-center gap-1 transition-all active:scale-95 shadow-sm"
+                                  >
+                                    <MessageSquare className="w-3.5 h-3.5" />
+                                    <span className="text-[10px] font-bold hidden xl:inline">واتسئاپ</span>
+                                  </a>
+                                )}
+                              </div>
                             )}
                           </td>
 
@@ -1024,9 +1053,23 @@ export default function AdminDashboard({
                           </span>
                         </div>
 
-                        {/* Phone */}
+                        {/* Phone & WhatsApp */}
                         <div className="flex flex-col">
-                          <span className="text-[11px] text-slate-500 dark:text-slate-400">مۆبایل:</span>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] text-slate-500 dark:text-slate-400">مۆبایل:</span>
+                            {generateWhatsAppUrl(record) && (
+                              <a
+                                href={generateWhatsAppUrl(record)}
+                                target="_blank"
+                                rel="noreferrer"
+                                title="ناردنی نامەی واتسئاپ"
+                                className="px-1.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-bold flex items-center gap-1"
+                              >
+                                <MessageSquare className="w-3 h-3" />
+                                <span>واتسئاپ</span>
+                              </a>
+                            )}
+                          </div>
                           <span className="font-mono text-slate-800 dark:text-slate-200 mt-0.5">
                             {isPhoneMissing ? <span className="text-rose-500 font-bold">نیە</span> : record.phoneNumber}
                           </span>
@@ -1183,7 +1226,14 @@ export default function AdminDashboard({
         </div>
       )}
 
-      {/* View 3: Settings & Logo */}
+      {/* View 3: Analytics & Reports */}
+      {activeTab === 'analytics' && (
+        <AnalyticsTab
+          records={records}
+        />
+      )}
+
+      {/* View 4: Settings & Logo */}
       {activeTab === 'settings' && (
         <SettingsTab
           records={records}

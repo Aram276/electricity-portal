@@ -24,10 +24,12 @@ import {
   CheckCheck,
   HelpCircle,
   Folder,
-  X
+  X,
+  MessageSquare
 } from 'lucide-react';
 import { STATUS_CONFIG } from '../constants/status';
 import RoonakiLogo from './RoonakiLogo';
+import { generateWhatsAppUrl } from '../utils/whatsappHelper';
 
 // Convert Arabic & Persian / Kurdish numerals (٠-٩, ۰-۹) to standard Latin digits (0-9)
 function toLatinDigits(str) {
@@ -494,8 +496,22 @@ export default function CitizenSearch({ records, onOpenPrintModal }) {
                       <Phone className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                       <span>ژمارەی مۆبایل</span>
                     </div>
-                    <div className="text-sm sm:text-base font-mono text-slate-800 dark:text-slate-200 font-semibold">
-                      {result.phoneNumber}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm sm:text-base font-mono text-slate-800 dark:text-slate-200 font-semibold">
+                        {result.phoneNumber}
+                      </span>
+                      {generateWhatsAppUrl(result) && (
+                        <a
+                          href={generateWhatsAppUrl(result)}
+                          target="_blank"
+                          rel="noreferrer"
+                          title="نامەی واتسئاپ بنێرە"
+                          className="px-2 py-0.5 rounded-lg bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/30 text-[11px] font-bold inline-flex items-center gap-1 transition-all"
+                        >
+                          <MessageSquare className="w-3 h-3" />
+                          <span>واتسئاپ</span>
+                        </a>
+                      )}
                     </div>
                   </div>
 

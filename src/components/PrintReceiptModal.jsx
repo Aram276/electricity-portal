@@ -1,10 +1,31 @@
-import React from 'react';
-import { X, Printer, Zap, CheckCircle2, Building2, User, Hash, Phone, Calendar, Archive } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Printer, Zap, CheckCircle2, Building2, User, Hash, Phone, Calendar, Archive, QrCode } from 'lucide-react';
 import { STATUS_CONFIG } from '../constants/status';
 import RoonakiLogo from './RoonakiLogo';
 import runakiLogo from '../assets/runaki-logo.png';
+import QRCode from 'qrcode';
 
 export default function PrintReceiptModal({ record, isOpen, onClose }) {
+  const [qrDataUrl, setQrDataUrl] = useState('');
+
+  useEffect(() => {
+    if (record) {
+      const qrText = `پڕۆژەی ڕووناکی - فرۆشیاری وزە ٢\nژمارەی فایل: ${record.fileNumber}\nژمارەی ئەژمار: ${record.accountNumber || 'نیە'}\nناوی هاووڵاتی: ${record.citizenName}\nدۆخی دۆسیە: ${record.status}\nشوێنی ئەرشیف: ${record.archiveLocation || 'سندوقی ' + record.fileNumber}`;
+      QRCode.toDataURL(qrText, {
+        width: 140,
+        margin: 1,
+        color: {
+          dark: '#000000',
+          light: '#ffffff'
+        }
+      }).then(url => {
+        setQrDataUrl(url);
+      }).catch(err => {
+        console.error('Error generating QR code:', err);
+      });
+    }
+  }, [record]);
+
   if (!isOpen || !record) return null;
 
   const status = STATUS_CONFIG[record.status] || STATUS_CONFIG.IN_PROGRESS;
@@ -41,7 +62,7 @@ export default function PrintReceiptModal({ record, isOpen, onClose }) {
         </div>
 
         {/* Printable Card Area */}
-        <div id="printable-receipt" className="bg-white text-slate-900 p-6 sm:p-8 rounded-2xl border-2 border-dashed border-slate-300 space-y-6 font-kurdish">
+        <div id="printable-receipt" className="bg-white text-slate-900 p-6 sm:p-8 rounded-2xl border-2 border-dashed border-slate-300 space-y-5 font-kurdish">
           
           {/* Header */}
           <div className="border-b-2 border-slate-900 pb-4 text-center space-y-1">
@@ -55,15 +76,24 @@ export default function PrintReceiptModal({ record, isOpen, onClose }) {
             </div>
           </div>
 
-          {/* Core Highlight: File Number */}
-          <div className="bg-slate-50 border-2 border-slate-800 rounded-xl p-4 text-center space-y-2">
-            <div className="text-xs font-bold text-slate-600">ژمارەی تایبەتی فایل لە ئەرشیف (ئەم ژمارەیە بدە بە فەرمانبەر):</div>
-            <div className="text-3xl font-black font-mono text-slate-950 tracking-wider">
-              {record.fileNumber}
+          {/* Core Highlight: File Number & Smart QR Code */}
+          <div className="bg-slate-50 border-2 border-slate-800 rounded-xl p-4 flex items-center justify-between gap-4">
+            <div className="space-y-1.5 text-right flex-1">
+              <div className="text-xs font-bold text-slate-600">ژمارەی تایبەتی فایل لە ئەرشیف (ئەم ژمارەیە بدە بە فەرمانبەر):</div>
+              <div className="text-3xl sm:text-4xl font-black font-mono text-slate-950 tracking-wider">
+                {record.fileNumber}
+              </div>
+              <div className="text-xs font-bold text-amber-800">
+                شوێنی فایل: {record.archiveLocation || `سندوقی ${record.fileNumber}`}
+              </div>
             </div>
-            <div className="text-xs font-semibold text-slate-700">
-              شوێنی فایل: {record.archiveLocation || 'ئەرشیفی سەرەکی'}
-            </div>
+
+            {qrDataUrl && (
+              <div className="flex flex-col items-center justify-center p-2 bg-white rounded-xl border border-slate-300 shadow-sm shrink-0">
+                <img src={qrDataUrl} alt="QR Code" className="w-20 h-20 object-contain" />
+                <span className="text-[9px] font-bold text-slate-500 mt-0.5">سکان بە مۆبایل</span>
+              </div>
+            )}
           </div>
 
           {/* Details Table */}
@@ -74,7 +104,7 @@ export default function PrintReceiptModal({ record, isOpen, onClose }) {
             </div>
             <div>
               <span className="text-slate-500 block">ژمارەی ئەژمار (Account):</span>
-              <span className="font-mono font-bold text-slate-900 text-sm">{record.accountNumber}</span>
+              <span className="font-mono font-bold text-slate-900 text-sm">{record.accountNumber || 'نیە'}</span>
             </div>
             <div>
               <span className="text-slate-500 block">ژمارەی مۆبایل:</span>
@@ -86,7 +116,7 @@ export default function PrintReceiptModal({ record, isOpen, onClose }) {
             </div>
             <div>
               <span className="text-slate-500 block">بەرواری پێشکەشکردن:</span>
-              <span className="font-mono text-slate-800">{record.submissionDate}</span>
+              <span className="font-mono text-slate-800">{record.submissionDate || new Date().toISOString().slice(0, 10)}</span>
             </div>
             <div>
               <span className="text-slate-500 block">جۆری دۆسیە (شێوازی پاراستن):</span>
@@ -97,6 +127,10 @@ export default function PrintReceiptModal({ record, isOpen, onClose }) {
             <div>
               <span className="text-slate-500 block">دۆخی تەواوبوون:</span>
               <span className="font-bold text-emerald-700">{status.shortLabel}</span>
+            </div>
+            <div>
+              <span className="text-slate-500 block">فەرمانگە:</span>
+              <span className="font-medium text-slate-800">فرۆشیاری وزە ٢</span>
             </div>
           </div>
 
