@@ -93,19 +93,58 @@ export default function App() {
     showToast('دەرچوویت لە پەنێڵی ئادمین', 'info');
   };
 
-  // Excel Import handler
+  // Smart Excel Import handler
   const handleImportSuccess = (newRecords, mode) => {
     let updated;
     if (mode === 'replace') {
       updated = newRecords;
+      showToast(`${newRecords.length} دۆسیە بە سەرکەوتوویی لە جێگەی هەموو داتاکان دانران`, 'success');
     } else {
-      const existingIds = new Set(records.map(r => r.fileNumber));
-      const filteredNew = newRecords.filter(r => !existingIds.has(r.fileNumber));
-      updated = [...records, ...filteredNew];
+      // Smart Merge: Deduplicate strictly by fileNumber and ID, NEVER drop files just because phone number is identical!
+      // A person can have 12 files with the same phone number, and all 12 are properly accepted.
+      const existingFileMap = new Map();
+      records.forEach(r => {
+        if (r.fileNumber) existingFileMap.set(String(r.fileNumber).trim(), r);
+      });
+
+      let addedCount = 0;
+      let updatedCount = 0;
+      const combined = [...records];
+
+      newRecords.forEach(newRec => {
+        const fileKey = String(newRec.fileNumber || '').trim();
+        const existing = fileKey ? existingFileMap.get(fileKey) : null;
+
+        if (existing) {
+          // Merge/update existing file without creating a duplicated row
+          const idx = combined.findIndex(r => r.id === existing.id);
+          if (idx !== -1) {
+            combined[idx] = {
+              ...combined[idx],
+              citizenName: (newRec.hasRealName && newRec.citizenName !== 'هاوبەشی کارەبا') ? newRec.citizenName : combined[idx].citizenName,
+              hasRealName: (newRec.hasRealName || combined[idx].hasRealName),
+              phoneNumber: (newRec.phoneNumber && newRec.phoneNumber !== 'نیە') ? newRec.phoneNumber : combined[idx].phoneNumber,
+              status: (newRec.status !== 'IN_PROGRESS' || combined[idx].status === 'IN_PROGRESS') ? newRec.status : combined[idx].status,
+              deliveredDate: newRec.deliveredDate || combined[idx].deliveredDate,
+              receiverName: newRec.receiverName || combined[idx].receiverName,
+              fileType: newRec.fileType || combined[idx].fileType
+            };
+            updatedCount++;
+          }
+        } else {
+          // Brand new distinct file! Add it to the database
+          combined.push(newRec);
+          if (fileKey) existingFileMap.set(fileKey, newRec);
+          addedCount++;
+        }
+      });
+
+      updated = combined;
+      showToast(`${addedCount} فایلی نوێ زیادکران، ${updatedCount} فایل زانیارییەکانیان نوێکرانەوە بەبێ دووبارەبوونەوە`, 'success');
     }
+
     setRecords(updated);
     saveRecordsToCloud(updated);
-    showToast(`${newRecords.length} مامەڵە بە سەرکەوتوویی لە فایلی ئێکسڵەوە هاوردە کرا`, 'success');
   };
 
   // Add / Edit record
