@@ -1,18 +1,7 @@
-const CACHE_NAME = 'roonaki-portal-v1';
-const urlsToCache = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/logo.png'
-];
+const CACHE_NAME = 'roonaki-portal-v2-live';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(urlsToCache);
-    })
-  );
 });
 
 self.addEventListener('activate', (event) => {
@@ -31,10 +20,24 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  // Do not intercept Firestore / Google APIs / Firebase requests
+  if (
+    event.request.url.includes('firestore') || 
+    event.request.url.includes('googleapis') || 
+    event.request.url.includes('firebase')
+  ) {
+    return;
+  }
+
   if (event.request.method !== 'GET') return;
+
   event.respondWith(
-    fetch(event.request).catch(() => {
-      return caches.match(event.request);
-    })
+    fetch(event.request)
+      .then((networkResponse) => {
+        return networkResponse;
+      })
+      .catch(() => {
+        return caches.match(event.request);
+      })
   );
 });

@@ -80,6 +80,15 @@ export default function Navbar({ currentView, setCurrentView, isAdmin, onOpenAdm
                 </button>
               )}
 
+              {/* Live Cloud Status Indicator */}
+              <div 
+                title="پەیوەستە بە داتابەیسی گشتی گووگڵ فایەربەیس (Realtime Cloud Sync Active)"
+                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[11px] font-bold"
+              >
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>کڵاود چالاکە</span>
+              </div>
+
               {/* Theme Toggle Button (Light/Dark) */}
               <button
                 onClick={onToggleTheme}
