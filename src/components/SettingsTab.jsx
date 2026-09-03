@@ -1,4 +1,3 @@
-import React, { useState, useEffect } from 'react';
 import { 
   Settings, 
   Shield, 
@@ -18,10 +17,22 @@ import {
   MapPin,
   Globe,
   FileText,
-  LayoutTemplate
+  LayoutTemplate,
+  Users,
+  UserPlus,
+  Trash2,
+  ShieldCheck,
+  User
 } from 'lucide-react';
 import RoonakiLogo from './RoonakiLogo';
-import { saveFooterSettingsToCloud, subscribeToFooterSettings } from '../utils/cloudSync';
+import { 
+  saveFooterSettingsToCloud, 
+  subscribeToFooterSettings, 
+  subscribeToStaffAccounts, 
+  saveStaffAccountsToCloud, 
+  DEFAULT_STAFF, 
+  logActivity 
+} from '../utils/cloudSync';
 
 export default function SettingsTab({ onResetData, records }) {
   // ── Password / PIN State ──
@@ -32,6 +43,14 @@ export default function SettingsTab({ onResetData, records }) {
   const [showNew, setShowNew]         = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [pinStatus, setPinStatus]     = useState(null);
+
+  // ── Staff Accounts State ──
+  const [staffList, setStaffList] = useState(DEFAULT_STAFF);
+  const [newStaffName, setNewStaffName] = useState('');
+  const [newStaffTitle, setNewStaffTitle] = useState('فەرمانبەری ژووری ١٩');
+  const [newStaffPin, setNewStaffPin] = useState('');
+  const [newStaffRole, setNewStaffRole] = useState('STAFF');
+  const [staffMsg, setStaffMsg] = useState('');
 
   // ── Directorate Title State ──
   const [directorateName, setDirectorateName] = useState(
@@ -54,13 +73,59 @@ export default function SettingsTab({ onResetData, records }) {
   const [footerSaved, setFooterSaved] = useState(false);
 
   useEffect(() => {
-    const unsub = subscribeToFooterSettings((cloudSettings) => {
+    const unsubFooter = subscribeToFooterSettings((cloudSettings) => {
       if (cloudSettings) {
         setFooterData(cloudSettings);
       }
     });
-    return () => unsub();
+
+    const unsubStaff = subscribeToStaffAccounts((cloudStaff) => {
+      if (cloudStaff && cloudStaff.length > 0) {
+        setStaffList(cloudStaff);
+      }
+    });
+
+    return () => {
+      unsubFooter();
+      unsubStaff();
+    };
   }, []);
+
+  // ── Staff Add Handler ──
+  const handleAddStaff = (e) => {
+    e.preventDefault();
+    if (!newStaffName.trim() || !newStaffPin.trim()) return;
+
+    const newStaff = {
+      id: 'staff-' + Date.now(),
+      name: newStaffName.trim(),
+      title: newStaffTitle.trim() || 'فەرمانبەری ژووری ١٩',
+      pin: newStaffPin.trim(),
+      role: newStaffRole
+    };
+
+    const updated = [...staffList, newStaff];
+    setStaffList(updated);
+    saveStaffAccountsToCloud(updated);
+    logActivity('STATUS_CHANGE', `زیادکردنی ئەکاونتی نوێی فەرمانبەر: [${newStaff.name}] (${newStaff.title})`);
+
+    setNewStaffName('');
+    setNewStaffPin('');
+    setStaffMsg('فەرمانبەری نوێ بە سەرکەوتوویی لە کڵاود تۆمار کرا ✓');
+    setTimeout(() => setStaffMsg(''), 3000);
+  };
+
+  // ── Staff Delete Handler ──
+  const handleDeleteStaff = (staffId, staffName) => {
+    if (staffList.length <= 1) {
+      alert('ناتوانیت هەموو فەرمانبەرەکان بسڕیتەوە! لانیکەم دەبێت یەک ئەکاونت بمێنێتەوە.');
+      return;
+    }
+    const updated = staffList.filter(s => s.id !== staffId);
+    setStaffList(updated);
+    saveStaffAccountsToCloud(updated);
+    logActivity('STATUS_CHANGE', `سڕینەوەی ئەکاونتی فەرمانبەر: [${staffName}]`);
+  };
 
   // ── Change PIN handler ──
   const handleChangePIN = (e) => {
@@ -338,6 +403,146 @@ export default function SettingsTab({ onResetData, records }) {
           </div>
         </div>
 
+      </div>
+
+      {/* ── NEW: Staff Accounts Management Card ── */}
+      <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-xl space-y-6 transition-colors">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-3 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400">
+              <Users className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+                  بەڕێوەبردنی ئەکاونتی فەرمانبەران (Staff Accounts)
+                </h3>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                  {staffList.length} فەرمانبەر
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                زیادکردنی کارمەندان (وەک ڕەعد، ئارام، ...) تا لە کاتی تەسلیمکردنەوە یان دەستکاری دۆسیە، ناوی هەر فەرمانبەرێک بە جیا دیاری بکرێت
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Existing Staff List */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {staffList.map((staff) => (
+            <div 
+              key={staff.id} 
+              className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 shadow-sm"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 font-black flex items-center justify-center shrink-0 shadow-sm">
+                  <User className="w-5 h-5" />
+                </div>
+                <div className="truncate">
+                  <div className="text-sm font-bold text-slate-900 dark:text-white truncate flex items-center gap-1.5">
+                    <span>{staff.name}</span>
+                    <span className={`px-2 py-0.2 rounded-md text-[9px] font-black border ${
+                      staff.role === 'ADMIN' 
+                        ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-300' 
+                        : 'bg-blue-100 dark:bg-blue-500/20 text-blue-800 dark:text-blue-300 border-blue-300'
+                    }`}>
+                      {staff.role === 'ADMIN' ? 'بەڕێوەبەر' : 'فەرمانبەر'}
+                    </span>
+                  </div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                    {staff.title || 'ژووری ١٩'} • پاسۆرد: <span className="font-mono text-amber-600 font-bold">{staff.pin}</span>
+                  </div>
+                </div>
+              </div>
+
+              {staffList.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => handleDeleteStaff(staff.id, staff.name)}
+                  title={`سڕینەوەی ئەکاونتی ${staff.name}`}
+                  className="p-2 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors shrink-0"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Add New Staff Form */}
+        <form onSubmit={handleAddStaff} className="p-5 rounded-2xl bg-amber-500/5 dark:bg-amber-950/20 border-2 border-dashed border-amber-500/40 space-y-4">
+          <div className="text-xs font-black text-amber-900 dark:text-amber-300 flex items-center gap-1.5">
+            <UserPlus className="w-4 h-4 text-amber-500" />
+            <span>زیادکردنی فەرمانبەری نوێ بۆ ژووری ١٩:</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">ناوی فەرمانبەر:</label>
+              <input
+                type="text"
+                required
+                placeholder="نموونە: ڕەعد"
+                value={newStaffName}
+                onChange={(e) => setNewStaffName(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-amber-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">ناونیشانی کار:</label>
+              <input
+                type="text"
+                required
+                placeholder="نموونە: فەرمانبەری ژووری ١٩"
+                value={newStaffTitle}
+                onChange={(e) => setNewStaffTitle(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-amber-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">پاسۆردی تایبەت (PIN):</label>
+              <input
+                type="text"
+                required
+                placeholder="نموونە: 1919"
+                value={newStaffPin}
+                onChange={(e) => setNewStaffPin(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-mono font-bold focus:outline-none focus:border-amber-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">دەسەڵات:</label>
+              <select
+                value={newStaffRole}
+                onChange={(e) => setNewStaffRole(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-amber-500"
+              >
+                <option value="STAFF">فەرمانبەر (Staff)</option>
+                <option value="ADMIN">بەڕێوەبەر (Admin)</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-1">
+            <button
+              type="submit"
+              className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md transition-all flex items-center gap-1.5 active:scale-95"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>تۆمارکردنی فەرمانبەر</span>
+            </button>
+
+            {staffMsg && (
+              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 animate-fadeIn">
+                {staffMsg}
+              </span>
+            )}
+          </div>
+        </form>
       </div>
 
       {/* ── NEW: Comprehensive Footer Texts Customization Card ───────────────── */}

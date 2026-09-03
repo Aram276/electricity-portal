@@ -184,13 +184,16 @@ export async function logActivity(type, title, details = {}) {
       currentLogs = JSON.parse(localStorage.getItem('electricity_activity_logs') || '[]');
     } catch (e) {}
 
+    const activeStaff = JSON.parse(localStorage.getItem('electricity_active_staff') || 'null');
+    const userName = activeStaff?.name ? `${activeStaff.name} (${activeStaff.title || 'ژووری ١٩'})` : 'کارمەندی ژووری ١٩';
+
     const newLog = {
       id: 'log-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
       type, // 'STATUS_CHANGE' | 'CREATE' | 'DELETE' | 'EXCEL_IMPORT' | 'WHATSAPP_BROADCAST' | 'DELIVERY'
       title,
       details,
       timestamp: new Date().toISOString().replace('T', ' ').slice(0, 19),
-      user: 'کارمەندی ژووری ١٩'
+      user: userName
     };
 
     const updated = [newLog, ...currentLogs].slice(0, 500); // Keep last 500 logs
@@ -204,4 +207,64 @@ export async function logActivity(type, title, details = {}) {
     console.error('Failed to log activity to cloud:', err);
   }
 }
+
+const STAFF_DOC_REF = doc(db, 'portal_data', 'staff_accounts');
+
+export const DEFAULT_STAFF = [
+  { id: 'staff-1', name: 'ئارام', role: 'ADMIN', pin: '075075', title: 'بەڕێوەبەری سەرەکی' },
+  { id: 'staff-2', name: 'ڕەعد', role: 'STAFF', pin: '1919', title: 'فەرمانبەری ژووری ١٩' }
+];
+
+/**
+ * Subscribe to Staff accounts list from Firestore Cloud.
+ */
+export function subscribeToStaffAccounts(onUpdateCallback) {
+  try {
+    const unsubscribe = onSnapshot(STAFF_DOC_REF, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        if (data && Array.isArray(data.staff) && data.staff.length > 0) {
+          localStorage.setItem('electricity_staff_list', JSON.stringify(data.staff));
+          onUpdateCallback(data.staff);
+          return;
+        }
+      }
+      try {
+        const cached = JSON.parse(localStorage.getItem('electricity_staff_list') || 'null');
+        onUpdateCallback(cached || DEFAULT_STAFF);
+      } catch (e) {
+        onUpdateCallback(DEFAULT_STAFF);
+      }
+    }, (err) => {
+      console.warn('Staff accounts subscription error:', err);
+      try {
+        const cached = JSON.parse(localStorage.getItem('electricity_staff_list') || 'null');
+        onUpdateCallback(cached || DEFAULT_STAFF);
+      } catch (e) {
+        onUpdateCallback(DEFAULT_STAFF);
+      }
+    });
+
+    return unsubscribe;
+  } catch (err) {
+    console.error('Failed to subscribe to staff accounts:', err);
+    return () => {};
+  }
+}
+
+/**
+ * Save staff accounts to Firestore Cloud.
+ */
+export async function saveStaffAccountsToCloud(staffList) {
+  try {
+    localStorage.setItem('electricity_staff_list', JSON.stringify(staffList));
+    await setDoc(STAFF_DOC_REF, {
+      staff: staffList,
+      lastUpdated: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('Failed to save staff accounts to cloud:', err);
+  }
+}
+
 

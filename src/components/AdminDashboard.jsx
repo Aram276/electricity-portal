@@ -933,13 +933,20 @@ export default function AdminDashboard({
                             )}
                           </td>
 
-                          {/* name of recive */}
+                          {/* name of recive & staff handler */}
                           <td className="p-3 text-xs">
                             {record.receiverName ? (
-                              <span className="font-bold text-slate-900 dark:text-white flex items-center gap-1">
-                                <UserCheck className="w-3.5 h-3.5 text-blue-500" />
-                                <span>{record.receiverName}</span>
-                              </span>
+                              <div className="space-y-1">
+                                <span className="font-bold text-slate-900 dark:text-white flex items-center gap-1">
+                                  <UserCheck className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                                  <span>{record.receiverName}</span>
+                                </span>
+                                {(record.deliveredBy || record.handledBy) && (
+                                  <span className="inline-block px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-800 dark:text-amber-300 text-[10px] font-bold border border-amber-500/20">
+                                    لەلایەن: {record.deliveredBy || record.handledBy}
+                                  </span>
+                                )}
+                              </div>
                             ) : (
                               <span className="text-slate-400">-</span>
                             )}

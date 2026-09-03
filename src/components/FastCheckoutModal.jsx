@@ -91,12 +91,15 @@ export default function FastCheckoutModal({ isOpen, onClose, records = [], onDel
 
     const finalReceiver = receiverName.trim() || selectedRecord.citizenName || 'هاوبەشی کارەبا';
     const nowTime = new Date().toISOString().replace('T', ' ').slice(0, 16);
+    const activeStaff = JSON.parse(localStorage.getItem('electricity_active_staff') || 'null');
+    const staffName = activeStaff?.name ? `${activeStaff.name}` : 'کارمەندی ژووری ١٩';
 
     onDeliverRecord(selectedRecord.id, {
       status: 'DELIVERED',
       deliveredDate: nowTime,
       receiverName: finalReceiver,
-      handledBy: 'ژووری ژمارە ١٩'
+      handledBy: staffName,
+      deliveredBy: staffName
     });
 
     // Confetti celebration

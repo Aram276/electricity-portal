@@ -23,6 +23,13 @@ export default function App() {
   const [records, setRecords] = useState(() => getStoredRecords());
   const [currentView, setCurrentView] = useState('citizen'); // 'citizen' | 'admin'
   const [isAdmin, setIsAdmin] = useState(() => isAdminAuthenticated());
+  const [activeStaff, setActiveStaff] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('electricity_active_staff') || 'null');
+    } catch (e) {
+      return null;
+    }
+  });
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('electricity_portal_theme');
     return saved !== 'light'; // default dark
@@ -79,18 +86,26 @@ export default function App() {
     }, 4000);
   };
 
-  const handleAdminLogin = () => {
-    setAdminAuthenticated(true);
+  // Handle Staff login success
+  const handleLoginSuccess = (staffUser) => {
     setIsAdmin(true);
+    setAdminAuthenticated(true);
+    if (staffUser) {
+      setActiveStaff(staffUser);
+      localStorage.setItem('electricity_active_staff', JSON.stringify(staffUser));
+    }
     setCurrentView('admin');
-    showToast('بە سەرکەوتوویی وەک بەڕێوەبەر چوویە ژوورەوە', 'success');
+    showToast(`بەخێربێیت ${staffUser?.name || 'فەرمانبەر'}! چوونەژوورەوەت سەرکەوتوو بوو`, 'success');
   };
 
+  // Handle Staff logout
   const handleAdminLogout = () => {
-    setAdminAuthenticated(false);
     setIsAdmin(false);
+    setAdminAuthenticated(false);
+    setActiveStaff(null);
+    localStorage.removeItem('electricity_active_staff');
     setCurrentView('citizen');
-    showToast('دەرچوویت لە پەنێڵی ئادمین', 'info');
+    showToast('دەرچوون لە ئەژمێری ئادمین ئەنجامدرا', 'info');
   };
 
   // Smart Excel Import handler
@@ -322,6 +337,7 @@ export default function App() {
         currentView={currentView}
         setCurrentView={setCurrentView}
         isAdmin={isAdmin}
+        activeStaff={activeStaff}
         onOpenAdminLogin={() => setIsLoginOpen(true)}
         onAdminLogout={handleAdminLogout}
         isDarkMode={isDarkMode}
@@ -338,6 +354,7 @@ export default function App() {
         ) : (
           <AdminDashboard
             records={records}
+            activeStaff={activeStaff}
             onOpenExcelImport={() => setIsExcelOpen(true)}
             onOpenAddModal={() => { setEditingRecord(null); setIsRecordModalOpen(true); }}
             onOpenEditModal={(rec) => { setEditingRecord(rec); setIsRecordModalOpen(true); }}
@@ -362,7 +379,7 @@ export default function App() {
       <AdminLoginModal
         isOpen={isLoginOpen}
         onClose={() => setIsLoginOpen(false)}
-        onLoginSuccess={handleAdminLogin}
+        onLoginSuccess={handleLoginSuccess}
       />
 
       {/* Add / Edit Record Modal */}
