@@ -35,7 +35,7 @@ import {
   logActivity 
 } from '../utils/cloudSync';
 
-export default function SettingsTab({ onResetData, records }) {
+export default function SettingsTab({ onResetData, records = [] }) {
   // ── Password / PIN State ──
   const [currentPin, setCurrentPin]   = useState('');
   const [newPin, setNewPin]           = useState('');
@@ -47,6 +47,7 @@ export default function SettingsTab({ onResetData, records }) {
 
   // ── Staff Accounts State ──
   const [staffList, setStaffList] = useState(DEFAULT_STAFF);
+  const [newStaffUsername, setNewStaffUsername] = useState('');
   const [newStaffName, setNewStaffName] = useState('');
   const [newStaffTitle, setNewStaffTitle] = useState('فەرمانبەری ژووری ١٩');
   const [newStaffPin, setNewStaffPin] = useState('');
@@ -81,14 +82,14 @@ export default function SettingsTab({ onResetData, records }) {
     });
 
     const unsubStaff = subscribeToStaffAccounts((cloudStaff) => {
-      if (cloudStaff && cloudStaff.length > 0) {
+      if (cloudStaff && Array.isArray(cloudStaff) && cloudStaff.length > 0) {
         setStaffList(cloudStaff);
       }
     });
 
     return () => {
-      unsubFooter();
-      unsubStaff();
+      if (typeof unsubFooter === 'function') unsubFooter();
+      if (typeof unsubStaff === 'function') unsubStaff();
     };
   }, []);
 
@@ -106,7 +107,8 @@ export default function SettingsTab({ onResetData, records }) {
       role: newStaffRole
     };
 
-    const updated = [...staffList, newStaff];
+    const currentList = Array.isArray(staffList) ? staffList : DEFAULT_STAFF;
+    const updated = [...currentList, newStaff];
     setStaffList(updated);
     saveStaffAccountsToCloud(updated);
     logActivity('STATUS_CHANGE', `زیادکردنی یوزەری نوێ: [${newStaff.name}] (@${newStaff.username})`);
@@ -120,11 +122,12 @@ export default function SettingsTab({ onResetData, records }) {
 
   // ── Staff Delete Handler ──
   const handleDeleteStaff = (staffId, staffName) => {
-    if (staffList.length <= 1) {
+    const currentList = Array.isArray(staffList) ? staffList : DEFAULT_STAFF;
+    if (currentList.length <= 1) {
       alert('ناتوانیت هەموو فەرمانبەرەکان بسڕیتەوە! لانیکەم دەبێت یەک ئەکاونت بمێنێتەوە.');
       return;
     }
-    const updated = staffList.filter(s => s.id !== staffId);
+    const updated = currentList.filter(s => s.id !== staffId);
     setStaffList(updated);
     saveStaffAccountsToCloud(updated);
     logActivity('STATUS_CHANGE', `سڕینەوەی ئەکاونتی فەرمانبەر: [${staffName}]`);
@@ -176,10 +179,10 @@ export default function SettingsTab({ onResetData, records }) {
   const handleResetFooter = () => {
     const defaults = {
       description: 'پڕۆژەی نیشتمانیی ڕووناکی؛ پڕۆژەی حکومەتی هەرێمی کوردستان و وەزارەتی کارەبا بۆ دابینکردنی کارەبای ٢٤ کاتژمێری و مۆدێرنکردنی خزمەتگوزارییەکانی هاووڵاتیان.',
-      hotline: '122',
-      phone: '066 123 4567',
-      hours: 'یەکشەممە - پێنجشەممە (٨:٣٠ بەیانی - ٢:٠٠ پاشنیوەڕۆ)',
-      location: 'هەرێمی کوردستان - سەرجەم بەڕێوەبەرایەتییەکان',
+      hotline: '1992',
+      phone: 'نیە',
+      hours: 'یەکشەممە - پێنجشەممە (٨:٣٠ بەیانی - ١:٣٠ پاشنیوەڕۆ)',
+      location: 'هەرێمی کوردستان - هەولێر - فرۆشیاری وزە ٢',
       websiteName: 'runaki.gov.krd',
       websiteUrl: 'https://runaki.gov.krd',
       copyright: `مافی ئەم سیستەمە پارێزراوە بۆ پڕۆژەی ڕووناکی - حکومەتی هەرێمی کوردستان © ${new Date().getFullYear()}`,
@@ -187,17 +190,14 @@ export default function SettingsTab({ onResetData, records }) {
     };
 
     setFooterData(defaults);
-    Object.keys(defaults).forEach(key => {
-      const storageKey = 'footer_' + key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
-      localStorage.setItem(storageKey, defaults[key]);
-    });
-    window.dispatchEvent(new Event('footer_settings_updated'));
+    saveFooterSettingsToCloud(defaults);
     setFooterSaved(true);
     setTimeout(() => setFooterSaved(false), 3000);
   };
 
   const handleBackupJSON = () => {
-    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(records, null, 2));
+    const dataList = Array.isArray(records) ? records : [];
+    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(dataList, null, 2));
     const a = document.createElement('a');
     a.setAttribute('href', dataStr);
     a.setAttribute('download', `Electricity_Records_Backup_${new Date().toISOString().slice(0, 10)}.json`);
@@ -205,6 +205,9 @@ export default function SettingsTab({ onResetData, records }) {
     a.click();
     a.remove();
   };
+
+  const currentStaffArray = Array.isArray(staffList) ? staffList : DEFAULT_STAFF;
+  const recordsCount = Array.isArray(records) ? records.length : 0;
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-fadeIn">
@@ -229,8 +232,8 @@ export default function SettingsTab({ onResetData, records }) {
               <Lock className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-black text-slate-900 dark:text-white">گۆڕینی پاسۆردی ئادمین</h3>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">پاسۆردی تایبەتی خۆت دابنێ</p>
+              <h3 className="text-base font-black text-slate-900 dark:text-white">گۆڕینی پاسۆردی سەرەکی</h3>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">پاسۆردی تایبەتی بەڕێوەبەر دابنێ</p>
             </div>
           </div>
 
@@ -338,11 +341,6 @@ export default function SettingsTab({ onResetData, records }) {
                   }
                 </p>
               )}
-              {pinStatus === 'mismatch' && !confirmPin && (
-                <p className="text-rose-600 dark:text-rose-400 text-xs mt-1.5 flex items-center gap-1">
-                  <AlertTriangle className="w-3.5 h-3.5" /> دوو پاسۆردەکە یەکسان نین
-                </p>
-              )}
             </div>
 
             <button
@@ -421,7 +419,7 @@ export default function SettingsTab({ onResetData, records }) {
                   بەڕێوەبردنی ئەکاونتی فەرمانبەران (Staff Accounts)
                 </h3>
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">
-                  {staffList.length} فەرمانبەر
+                  {currentStaffArray.length} فەرمانبەر
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -433,9 +431,9 @@ export default function SettingsTab({ onResetData, records }) {
 
         {/* Existing Staff List */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {staffList.map((staff) => (
+          {currentStaffArray.map((staff) => (
             <div 
-              key={staff.id} 
+              key={staff.id || staff.username || Math.random()} 
               className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 shadow-sm"
             >
               <div className="flex items-center gap-3 min-w-0">
@@ -460,7 +458,7 @@ export default function SettingsTab({ onResetData, records }) {
                 </div>
               </div>
 
-              {staffList.length > 1 && (
+              {currentStaffArray.length > 1 && (
                 <button
                   type="button"
                   onClick={() => handleDeleteStaff(staff.id, staff.name)}
@@ -599,7 +597,7 @@ export default function SettingsTab({ onResetData, records }) {
               </label>
               <textarea
                 rows="2"
-                value={footerData.description}
+                value={footerData?.description || ''}
                 onChange={(e) => setFooterData({ ...footerData, description: e.target.value })}
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs sm:text-sm focus:outline-none focus:border-amber-500"
               />
@@ -613,9 +611,9 @@ export default function SettingsTab({ onResetData, records }) {
               </label>
               <input
                 type="text"
-                value={footerData.hotline}
+                value={footerData?.hotline || ''}
                 onChange={(e) => setFooterData({ ...footerData, hotline: e.target.value })}
-                placeholder="122"
+                placeholder="1992"
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-mono text-sm focus:outline-none focus:border-amber-500"
               />
             </div>
@@ -628,9 +626,9 @@ export default function SettingsTab({ onResetData, records }) {
               </label>
               <input
                 type="text"
-                value={footerData.phone}
+                value={footerData?.phone || ''}
                 onChange={(e) => setFooterData({ ...footerData, phone: e.target.value })}
-                placeholder="066 123 4567"
+                placeholder="نیە"
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-mono text-sm focus:outline-none focus:border-amber-500"
               />
             </div>
@@ -643,9 +641,9 @@ export default function SettingsTab({ onResetData, records }) {
               </label>
               <input
                 type="text"
-                value={footerData.hours}
+                value={footerData?.hours || ''}
                 onChange={(e) => setFooterData({ ...footerData, hours: e.target.value })}
-                placeholder="یەکشەممە - پێنجشەممە (٨:٣٠ بەیانی - ٢:٠٠ پاشنیوەڕۆ)"
+                placeholder="یەکشەممە - پێنجشەممە (٨:٣٠ بەیانی - ١:٣٠ پاشنیوەڕۆ)"
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs sm:text-sm focus:outline-none focus:border-amber-500"
               />
             </div>
@@ -658,9 +656,9 @@ export default function SettingsTab({ onResetData, records }) {
               </label>
               <input
                 type="text"
-                value={footerData.location}
+                value={footerData?.location || ''}
                 onChange={(e) => setFooterData({ ...footerData, location: e.target.value })}
-                placeholder="هەرێمی کوردستان - سەرجەم بەڕێوەبەرایەتییەکان"
+                placeholder="هەرێمی کوردستان - هەولێر - فرۆشیاری وزە ٢"
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs sm:text-sm focus:outline-none focus:border-amber-500"
               />
             </div>
@@ -673,7 +671,7 @@ export default function SettingsTab({ onResetData, records }) {
               </label>
               <input
                 type="text"
-                value={footerData.websiteName}
+                value={footerData?.websiteName || ''}
                 onChange={(e) => setFooterData({ ...footerData, websiteName: e.target.value })}
                 placeholder="runaki.gov.krd"
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-mono text-sm focus:outline-none focus:border-amber-500"
@@ -688,7 +686,7 @@ export default function SettingsTab({ onResetData, records }) {
               </label>
               <input
                 type="text"
-                value={footerData.websiteUrl}
+                value={footerData?.websiteUrl || ''}
                 onChange={(e) => setFooterData({ ...footerData, websiteUrl: e.target.value })}
                 placeholder="https://runaki.gov.krd"
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-mono text-sm focus:outline-none focus:border-amber-500"
@@ -703,8 +701,9 @@ export default function SettingsTab({ onResetData, records }) {
               </label>
               <input
                 type="text"
-                value={footerData.copyright}
+                value={footerData?.copyright || ''}
                 onChange={(e) => setFooterData({ ...footerData, copyright: e.target.value })}
+                placeholder="مافی ئەم سیستەمە پارێزراوە..."
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs sm:text-sm focus:outline-none focus:border-amber-500"
               />
             </div>
@@ -717,8 +716,9 @@ export default function SettingsTab({ onResetData, records }) {
               </label>
               <input
                 type="text"
-                value={footerData.bottomNote}
+                value={footerData?.bottomNote || ''}
                 onChange={(e) => setFooterData({ ...footerData, bottomNote: e.target.value })}
+                placeholder="سیستەمی ئەلیکترۆنی پشکنین..."
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs sm:text-sm focus:outline-none focus:border-amber-500"
               />
             </div>
@@ -750,7 +750,7 @@ export default function SettingsTab({ onResetData, records }) {
             <span>پاڵپشتی و پاراستنی زانیارییەکان (Cloud Backup & Restore)</span>
           </div>
           <span className="text-[11px] text-slate-400 font-mono">
-            کۆی فایلەکان: {records.length}
+            کۆی فایلەکان: {recordsCount}
           </span>
         </div>
 
