@@ -309,11 +309,8 @@ export default function App() {
     });
     setRecords(updated);
     saveRecordsToCloud(updated);
-    logActivity('STATUS_CHANGE', `گۆڕینی جۆری فایلی (${target?.fileNumber || id}) (لەلایەن: ${staffName})`, { fileNumber: target?.fileNumber });
-  };
-    setRecords(updated);
-    saveRecordsToCloud(updated);
     showToast('جۆری دۆسیەکە لە کڵاود گۆڕدرا', 'info');
+    logActivity('STATUS_CHANGE', `گۆڕینی جۆری فایلی (${target?.fileNumber || id}) (لەلایەن: ${staffName})`, { fileNumber: target?.fileNumber });
   };
 
   // Bulk File Type update
