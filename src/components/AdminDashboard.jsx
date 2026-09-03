@@ -790,7 +790,7 @@ export default function AdminDashboard({
                     </th>
                     <th className="p-3">دۆخی ئێستا (Status)</th>
                     <th className="p-3">بەرواری تەسلیم</th>
-                    <th className="p-3">ناوی وەرگرەوە</th>
+                    <th className="p-3">وەرگرەوە / فەرمانبەر</th>
                     <th className="p-3 text-center pl-4 sm:pl-6">کردارەکان</th>
                   </tr>
                 </thead>
@@ -935,21 +935,24 @@ export default function AdminDashboard({
 
                           {/* name of recive & staff handler */}
                           <td className="p-3 text-xs">
-                            {record.receiverName ? (
-                              <div className="space-y-1">
+                            <div className="space-y-1">
+                              {record.receiverName ? (
                                 <span className="font-bold text-slate-900 dark:text-white flex items-center gap-1">
                                   <UserCheck className="w-3.5 h-3.5 text-blue-500 shrink-0" />
                                   <span>{record.receiverName}</span>
                                 </span>
-                                {(record.deliveredBy || record.handledBy) && (
-                                  <span className="inline-block px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-800 dark:text-amber-300 text-[10px] font-bold border border-amber-500/20">
-                                    لەلایەن: {record.deliveredBy || record.handledBy}
+                              ) : (
+                                !record.deliveredBy && !record.handledBy && <span className="text-slate-400">-</span>
+                              )}
+                              {(record.deliveredBy || record.handledBy) && (
+                                <div>
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-900 dark:text-amber-300 text-[10px] font-bold border border-amber-500/30">
+                                    <span>👤</span>
+                                    <span>{record.deliveredBy || record.handledBy}</span>
                                   </span>
-                                )}
-                              </div>
-                            ) : (
-                              <span className="text-slate-400">-</span>
-                            )}
+                                </div>
+                              )}
+                            </div>
                           </td>
 
                           {/* Actions */}
@@ -1127,11 +1130,20 @@ export default function AdminDashboard({
                           </span>
                         </div>
 
-                        {/* Delivered Info if available */}
-                        {record.deliveredDate && (
-                          <div className="col-span-2 flex items-center justify-between pt-1 border-t border-slate-200/60 dark:border-slate-800/60 text-blue-700 dark:text-blue-400 text-[11px]">
-                            <span>بەرواری تەسلیم: {record.deliveredDate}</span>
-                            {record.receiverName && <span>وەرگرەوە: {record.receiverName}</span>}
+                        {/* Delivered Info / Staff if available */}
+                        {(record.deliveredDate || record.receiverName || record.deliveredBy || record.handledBy) && (
+                          <div className="col-span-2 flex items-center justify-between pt-1.5 border-t border-slate-200/60 dark:border-slate-800/60 text-[11px] flex-wrap gap-1">
+                            {record.deliveredDate && (
+                              <span className="text-blue-700 dark:text-blue-400 font-mono">بەروار: {record.deliveredDate}</span>
+                            )}
+                            {record.receiverName && (
+                              <span className="font-bold text-slate-800 dark:text-slate-200">وەرگرەوە: {record.receiverName}</span>
+                            )}
+                            {(record.deliveredBy || record.handledBy) && (
+                              <span className="px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-800 dark:text-amber-300 font-bold border border-amber-500/30">
+                                👤 {record.deliveredBy || record.handledBy}
+                              </span>
+                            )}
                           </div>
                         )}
                       </div>

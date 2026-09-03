@@ -163,23 +163,37 @@ export default function App() {
     saveRecordsToCloud(updated);
   };
 
+  const getActiveStaffName = () => {
+    try {
+      const active = JSON.parse(localStorage.getItem('electricity_active_staff') || 'null');
+      return active?.name || 'ئارام';
+    } catch (e) {
+      return 'ئارام';
+    }
+  };
+
   // Add / Edit record
   const handleSaveRecord = (formData, recordId) => {
+    const staffName = getActiveStaffName();
     let updated;
     const rawName = (formData.citizenName || '').trim();
     const hasRealName = Boolean(rawName && rawName !== 'هاوبەشی کارەبا' && !rawName.startsWith('مانگی '));
+    const isDelivered = formData.status === 'DELIVERED';
+
     const processedData = {
       ...formData,
       citizenName: hasRealName ? rawName : 'هاوبەشی کارەبا',
-      hasRealName: hasRealName
+      hasRealName: hasRealName,
+      handledBy: formData.handledBy || staffName,
+      ...(isDelivered ? { deliveredBy: formData.deliveredBy || formData.handledBy || staffName } : {})
     };
 
     if (recordId) {
       updated = records.map(r => r.id === recordId ? { ...r, ...processedData } : r);
       showToast('زانیارییەکانی مامەڵەکە لە کڵاود و سێرڤەر بە سەرکەوتوویی نوێکرایەوە', 'success');
       logActivity(
-        processedData.status === 'DELIVERED' ? 'DELIVERY' : 'STATUS_CHANGE',
-        `دەستکاریکردنی فایلی (${processedData.fileNumber}) [${processedData.citizenName}]`,
+        isDelivered ? 'DELIVERY' : 'STATUS_CHANGE',
+        `دەستکاریکردنی فایلی (${processedData.fileNumber}) [${processedData.citizenName}] (لەلایەن: ${staffName})`,
         { fileNumber: processedData.fileNumber, citizenName: processedData.citizenName, status: processedData.status }
       );
     } else {
@@ -189,7 +203,7 @@ export default function App() {
       };
       updated = [newRec, ...records];
       showToast('مامەڵەی نوێ لە سێرڤەری گشتی بە سەرکەوتوویی تۆمار کرا', 'success');
-      logActivity('CREATE', `تۆمارکردنی فایلی نوێی (${processedData.fileNumber}) بە ناوی [${processedData.citizenName}]`, {
+      logActivity('CREATE', `تۆمارکردنی فایلی نوێی (${processedData.fileNumber}) بە ناوی [${processedData.citizenName}] (لەلایەن: ${staffName})`, {
         fileNumber: processedData.fileNumber,
         citizenName: processedData.citizenName
       });
@@ -200,38 +214,45 @@ export default function App() {
 
   // Delete record (single)
   const handleDeleteRecord = (id) => {
+    const staffName = getActiveStaffName();
     const target = records.find(r => r.id === id);
     const updated = records.filter(r => r.id !== id);
     setRecords(updated);
     saveRecordsToCloud(updated);
     showToast('مامەڵەکە بە سەرکەوتوویی لە سێرڤەر سڕایەوە', 'info');
-    logActivity('DELETE', `سڕینەوەی فایلی (${target?.fileNumber || id}) [${target?.citizenName || ''}]`, { fileNumber: target?.fileNumber });
+    logActivity('DELETE', `سڕینەوەی فایلی (${target?.fileNumber || id}) [${target?.citizenName || ''}] (لەلایەن: ${staffName})`, { fileNumber: target?.fileNumber });
   };
 
   // Bulk / Batch Delete records
   const handleBatchDelete = (ids) => {
+    const staffName = getActiveStaffName();
     const idSet = new Set(ids);
     const updated = records.filter(r => !idSet.has(r.id));
     setRecords(updated);
     saveRecordsToCloud(updated);
     showToast(`${ids.length} فایل بە سەرکەوتوویی لە کڵاود سڕانەوە`, 'info');
-    logActivity('DELETE', `سڕینەوەی بەکۆمەڵ: (${ids.length}) فایل بە یەکەوە سڕانەوە`, { count: ids.length });
+    logActivity('DELETE', `سڕینەوەی بەکۆمەڵ: (${ids.length}) فایل بە یەکەوە سڕانەوە (لەلایەن: ${staffName})`, { count: ids.length });
   };
 
   // Bulk Status update
   const handleBatchUpdateStatus = (ids, newStatus) => {
+    const staffName = getActiveStaffName();
     const idSet = new Set(ids);
     const today = new Date().toISOString().slice(0, 10);
     const nowTime = new Date().toISOString().replace('T', ' ').slice(0, 16);
 
     const updated = records.map(r => {
       if (idSet.has(r.id)) {
-        const changes = { status: newStatus };
+        const changes = { 
+          status: newStatus,
+          handledBy: staffName
+        };
         if (newStatus === 'COMPLETED' && !r.completionDate) {
           changes.completionDate = today;
         }
         if (newStatus === 'DELIVERED' && !r.deliveredDate) {
           changes.deliveredDate = nowTime;
+          changes.deliveredBy = staffName;
         }
         return { ...r, ...changes };
       }
@@ -241,19 +262,25 @@ export default function App() {
     setRecords(updated);
     saveRecordsToCloud(updated);
     showToast(`دۆخی ${ids.length} فایل بە سەرکەوتوویی لە کڵاود گۆڕدرا`, 'success');
-    logActivity('STATUS_CHANGE', `گۆڕینی بەکۆمەڵی دۆخی (${ids.length}) فایل بۆ (${newStatus})`, { count: ids.length, status: newStatus });
+    logActivity('STATUS_CHANGE', `گۆڕینی بەکۆمەڵی دۆخی (${ids.length}) فایل بۆ (${newStatus}) (لەلایەن: ${staffName})`, { count: ids.length, status: newStatus });
   };
 
   // Inline Status update from table
   const handleUpdateStatus = (id, newStatus) => {
+    const staffName = getActiveStaffName();
+    const target = records.find(r => r.id === id);
     const updated = records.map(r => {
       if (r.id === id) {
-        const changes = { status: newStatus };
+        const changes = { 
+          status: newStatus,
+          handledBy: staffName
+        };
         if (newStatus === 'COMPLETED' && !r.completionDate) {
           changes.completionDate = new Date().toISOString().slice(0, 10);
         }
         if (newStatus === 'DELIVERED' && !r.deliveredDate) {
           changes.deliveredDate = new Date().toISOString().replace('T', ' ').slice(0, 16);
+          changes.deliveredBy = staffName;
         }
         return { ...r, ...changes };
       }
@@ -262,17 +289,28 @@ export default function App() {
     setRecords(updated);
     saveRecordsToCloud(updated);
     showToast('دۆخی مامەڵە لە سێرڤەر گۆڕدرا', 'success');
+    logActivity('STATUS_CHANGE', `گۆڕینی دۆخی فایلی (${target?.fileNumber || id}) بۆ (${newStatus}) (لەلایەن: ${staffName})`, {
+      fileNumber: target?.fileNumber,
+      citizenName: target?.citizenName,
+      status: newStatus
+    });
   };
 
   // Toggle single record file type (Yellow Folder vs Paper)
   const handleToggleFileType = (id) => {
+    const staffName = getActiveStaffName();
+    const target = records.find(r => r.id === id);
     const updated = records.map(r => {
       if (r.id === id) {
         const nextType = r.fileType === 'YELLOW_FOLDER' ? 'PAPER' : 'YELLOW_FOLDER';
-        return { ...r, fileType: nextType };
+        return { ...r, fileType: nextType, handledBy: staffName };
       }
       return r;
     });
+    setRecords(updated);
+    saveRecordsToCloud(updated);
+    logActivity('STATUS_CHANGE', `گۆڕینی جۆری فایلی (${target?.fileNumber || id}) (لەلایەن: ${staffName})`, { fileNumber: target?.fileNumber });
+  };
     setRecords(updated);
     saveRecordsToCloud(updated);
     showToast('جۆری دۆسیەکە لە کڵاود گۆڕدرا', 'info');
