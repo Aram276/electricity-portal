@@ -686,14 +686,25 @@ export default function CitizenSearch({ records, onOpenPrintModal }) {
 
       {/* Not Found State */}
       {hasSearched && searchResults.length === 0 && (
-        <div className="rounded-2xl sm:rounded-[32px] roonaki-card border-rose-400 dark:border-rose-500/30 p-6 sm:p-10 text-center space-y-4 shadow-xl animate-fadeIn">
-          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-rose-100 dark:bg-rose-500/10 border border-rose-300 dark:border-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto">
+        <div className="rounded-2xl sm:rounded-[32px] roonaki-card border-amber-400 dark:border-amber-500/40 p-6 sm:p-10 text-center space-y-4 shadow-xl animate-fadeIn">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-amber-100 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto">
             <AlertCircle className="w-7 h-7 sm:w-8 sm:h-8" />
           </div>
-          <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">هیچ دۆسیەیەک نەدۆزرایەوە!</h3>
+          <h3 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white">هیچ دۆسیەیەک نەدۆزرایەوە!</h3>
           <p className="text-slate-600 dark:text-slate-300 text-xs sm:text-sm max-w-md mx-auto leading-relaxed">
-            هیچ فایلێک بەم زانیارییە ({query}) لە سیستەمدا نەدۆزرایەوە. تکایە دڵنیابە لە دروستی نووسینی ناوەکەت یان کەمێکی تر لە ژمارەی مۆبایلەکەت بنووسە.
+            هیچ فایلێک بەم زانیارییە (<strong className="text-amber-600 dark:text-amber-400 font-mono">{query}</strong>) لە سیستەمدا تۆمار نەکراوە.
           </p>
+
+          {/* Official Citizen Reassurance Notice */}
+          <div className="p-4 sm:p-5 rounded-2xl bg-amber-500/15 border-2 border-amber-500/50 text-amber-950 dark:text-amber-200 text-xs sm:text-sm max-w-lg mx-auto text-right space-y-1.5 shadow-sm">
+            <div className="font-black text-amber-900 dark:text-amber-300 flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
+              <span>تێبینی گرنگ بۆ هاووڵاتیی بەڕێز:</span>
+            </div>
+            <p className="leading-relaxed">
+              ئەگەر ناوت یان ژمارەکەت لە سیستەمەکەدا نەبوو، مانای ئەوەیە هێشتا مامەڵەکەت لە قۆناغی کارپێکردندایە و <strong>تەلەفۆنت بۆ نەکراوە، با چاوەڕێ بکات</strong> تا لەلایەن بەڕێوەبەرایەتی کارەباوە پەیوەندیت پێوە دەکرێت.
+            </p>
+          </div>
         </div>
       )}
 
