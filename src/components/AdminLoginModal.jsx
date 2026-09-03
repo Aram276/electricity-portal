@@ -103,7 +103,7 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess }) {
           <div>
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
               <User className="w-4 h-4 text-amber-500" />
-              <span>ناوی بەکارهێنەر (Username / ناو):</span>
+              <span>ناوی بەکارهێنەر:</span>
             </label>
             <input
               type="text"
@@ -111,7 +111,7 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess }) {
               required
               value={username}
               onChange={(e) => { setUsername(e.target.value); setError(false); }}
-              placeholder="نموونە: aram یان raad یان ناوت..."
+              placeholder="ناو بنووسە"
               className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border-2 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm font-bold focus:outline-none focus:border-amber-500 transition-colors"
             />
           </div>
@@ -120,7 +120,7 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess }) {
           <div>
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
               <KeyRound className="w-4 h-4 text-amber-500" />
-              <span>پاسۆرد (Password):</span>
+              <span>پاسۆرد:</span>
             </label>
             <div className="relative">
               <input
@@ -128,7 +128,7 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess }) {
                 required
                 value={password}
                 onChange={(e) => { setPassword(e.target.value); setError(false); }}
-                placeholder="••••••••"
+                placeholder="پاسۆرد بنووسە"
                 className="w-full pr-4 pl-11 py-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border-2 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-mono text-base focus:outline-none focus:border-amber-500 transition-colors"
               />
               <button

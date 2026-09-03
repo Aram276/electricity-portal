@@ -486,7 +486,7 @@ export default function SettingsTab({ onResetData, records }) {
               <input
                 type="text"
                 required
-                placeholder="نموونە: raad یان aram"
+                placeholder="ناوی بەکارهێنەر بنووسە"
                 value={newStaffUsername}
                 onChange={(e) => setNewStaffUsername(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-amber-500 font-mono"
@@ -498,7 +498,7 @@ export default function SettingsTab({ onResetData, records }) {
               <input
                 type="text"
                 required
-                placeholder="نموونە: ڕەعد"
+                placeholder="ناو بنووسە"
                 value={newStaffName}
                 onChange={(e) => setNewStaffName(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-amber-500"
@@ -510,7 +510,7 @@ export default function SettingsTab({ onResetData, records }) {
               <input
                 type="text"
                 required
-                placeholder="نموونە: فەرمانبەری ژووری ١٩"
+                placeholder="ناونیشانی کار بنووسە"
                 value={newStaffTitle}
                 onChange={(e) => setNewStaffTitle(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-amber-500"
@@ -522,7 +522,7 @@ export default function SettingsTab({ onResetData, records }) {
               <input
                 type="text"
                 required
-                placeholder="نموونە: 1919"
+                placeholder="پاسۆرد بنووسە"
                 value={newStaffPin}
                 onChange={(e) => setNewStaffPin(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-mono font-bold focus:outline-none focus:border-amber-500"
