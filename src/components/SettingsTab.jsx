@@ -22,6 +22,8 @@ import {
   Users,
   UserPlus,
   Trash2,
+  Edit3,
+  X,
   ShieldCheck,
   User
 } from 'lucide-react';
@@ -47,6 +49,7 @@ export default function SettingsTab({ onResetData, records = [] }) {
 
   // ── Staff Accounts State ──
   const [staffList, setStaffList] = useState(DEFAULT_STAFF);
+  const [editingStaffId, setEditingStaffId] = useState(null);
   const [newStaffUsername, setNewStaffUsername] = useState('');
   const [newStaffName, setNewStaffName] = useState('');
   const [newStaffTitle, setNewStaffTitle] = useState('فەرمانبەری ژووری ١٩');
@@ -93,31 +96,81 @@ export default function SettingsTab({ onResetData, records = [] }) {
     };
   }, []);
 
-  // ── Staff Add Handler ──
-  const handleAddStaff = (e) => {
+  // ── Start Editing a Staff User ──
+  const handleStartEditStaff = (staff) => {
+    setEditingStaffId(staff.id);
+    setNewStaffUsername(staff.username || staff.name || '');
+    setNewStaffName(staff.name || '');
+    setNewStaffTitle(staff.title || 'فەرمانبەری ژووری ١٩');
+    setNewStaffPin(staff.pin || '');
+    setNewStaffRole(staff.role || 'STAFF');
+  };
+
+  // ── Cancel Editing ──
+  const handleCancelEditStaff = () => {
+    setEditingStaffId(null);
+    setNewStaffUsername('');
+    setNewStaffName('');
+    setNewStaffTitle('فەرمانبەری ژووری ١٩');
+    setNewStaffPin('');
+    setNewStaffRole('STAFF');
+  };
+
+  // ── Staff Add or Update Handler ──
+  const handleSaveStaff = (e) => {
     e.preventDefault();
     if (!newStaffName.trim() || !newStaffPin.trim()) return;
 
-    const newStaff = {
-      id: 'staff-' + Date.now(),
-      username: (newStaffUsername.trim() || newStaffName.trim()).toLowerCase(),
-      name: newStaffName.trim(),
-      title: newStaffTitle.trim() || 'فەرمانبەری ژووری ١٩',
-      pin: newStaffPin.trim(),
-      role: newStaffRole
-    };
-
     const currentList = Array.isArray(staffList) ? staffList : DEFAULT_STAFF;
-    const updated = [...currentList, newStaff];
-    setStaffList(updated);
-    saveStaffAccountsToCloud(updated);
-    logActivity('STATUS_CHANGE', `زیادکردنی یوزەری نوێ: [${newStaff.name}] (@${newStaff.username})`);
 
-    setNewStaffUsername('');
-    setNewStaffName('');
-    setNewStaffPin('');
-    setStaffMsg('یوزەری نوێ بە سەرکەوتوویی لە کڵاود تۆمار کرا ✓');
-    setTimeout(() => setStaffMsg(''), 3000);
+    if (editingStaffId) {
+      // Update existing staff
+      const updated = currentList.map(s => {
+        if (s.id === editingStaffId) {
+          return {
+            ...s,
+            username: (newStaffUsername.trim() || newStaffName.trim()).toLowerCase(),
+            name: newStaffName.trim(),
+            title: newStaffTitle.trim() || 'فەرمانبەری ژووری ١٩',
+            pin: newStaffPin.trim(),
+            role: newStaffRole
+          };
+        }
+        return s;
+      });
+
+      setStaffList(updated);
+      saveStaffAccountsToCloud(updated);
+      logActivity('STATUS_CHANGE', `دەستکاریکردنی زانیارییەکانی یوزەر: [${newStaffName.trim()}] (@${newStaffUsername.trim().toLowerCase()})`);
+
+      setEditingStaffId(null);
+      setNewStaffUsername('');
+      setNewStaffName('');
+      setNewStaffPin('');
+      setStaffMsg('گۆڕانکارییەکانی یوزەر بە سەرکەوتوویی لە کڵاود پاشەکەوت کران ✓');
+      setTimeout(() => setStaffMsg(''), 3000);
+    } else {
+      // Add new staff
+      const newStaff = {
+        id: 'staff-' + Date.now(),
+        username: (newStaffUsername.trim() || newStaffName.trim()).toLowerCase(),
+        name: newStaffName.trim(),
+        title: newStaffTitle.trim() || 'فەرمانبەری ژووری ١٩',
+        pin: newStaffPin.trim(),
+        role: newStaffRole
+      };
+
+      const updated = [...currentList, newStaff];
+      setStaffList(updated);
+      saveStaffAccountsToCloud(updated);
+      logActivity('STATUS_CHANGE', `زیادکردنی یوزەری نوێ: [${newStaff.name}] (@${newStaff.username})`);
+
+      setNewStaffUsername('');
+      setNewStaffName('');
+      setNewStaffPin('');
+      setStaffMsg('یوزەری نوێ بە سەرکەوتوویی لە کڵاود تۆمار کرا ✓');
+      setTimeout(() => setStaffMsg(''), 3000);
+    }
   };
 
   // ── Staff Delete Handler ──
@@ -458,25 +511,53 @@ export default function SettingsTab({ onResetData, records = [] }) {
                 </div>
               </div>
 
-              {currentStaffArray.length > 1 && (
+              <div className="flex items-center gap-1 shrink-0">
                 <button
                   type="button"
-                  onClick={() => handleDeleteStaff(staff.id, staff.name)}
-                  title={`سڕینەوەی ئەکاونتی ${staff.name}`}
-                  className="p-2 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors shrink-0"
+                  onClick={() => handleStartEditStaff(staff)}
+                  title={`دەستکاریکردنی زانیارییەکانی ${staff.name}`}
+                  className="p-2 rounded-xl text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-colors"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Edit3 className="w-4 h-4" />
                 </button>
-              )}
+
+                {currentStaffArray.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteStaff(staff.id, staff.name)}
+                    title={`سڕینەوەی ئەکاونتی ${staff.name}`}
+                    className="p-2 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>
 
-        {/* Add New Staff Form */}
-        <form onSubmit={handleAddStaff} className="p-5 rounded-2xl bg-amber-500/5 dark:bg-amber-950/20 border-2 border-dashed border-amber-500/40 space-y-4">
-          <div className="text-xs font-black text-amber-900 dark:text-amber-300 flex items-center gap-1.5">
-            <UserPlus className="w-4 h-4 text-amber-500" />
-            <span>زیادکردنی فەرمانبەری نوێ (یوزەر و پاسۆرد):</span>
+        {/* Add / Edit Staff Form */}
+        <form onSubmit={handleSaveStaff} className={`p-5 rounded-2xl border-2 transition-all space-y-4 ${
+          editingStaffId 
+            ? 'bg-amber-500/10 dark:bg-amber-950/30 border-amber-500'
+            : 'bg-amber-500/5 dark:bg-amber-950/20 border-dashed border-amber-500/40'
+        }`}>
+          <div className="flex items-center justify-between">
+            <div className="text-xs font-black text-amber-900 dark:text-amber-300 flex items-center gap-1.5">
+              {editingStaffId ? <Edit3 className="w-4 h-4 text-amber-500" /> : <UserPlus className="w-4 h-4 text-amber-500" />}
+              <span>{editingStaffId ? `دەستکاریکردنی یوزەری (${newStaffName || 'فەرمانبەر'}):` : 'زیادکردنی فەرمانبەری نوێ (یوزەر و پاسۆرد):'}</span>
+            </div>
+
+            {editingStaffId && (
+              <button
+                type="button"
+                onClick={handleCancelEditStaff}
+                className="text-xs text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1 font-bold"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>پاشگەزبوونەوە</span>
+              </button>
+            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
@@ -542,13 +623,25 @@ export default function SettingsTab({ onResetData, records = [] }) {
           </div>
 
           <div className="flex items-center justify-between pt-1">
-            <button
-              type="submit"
-              className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md transition-all flex items-center gap-1.5 active:scale-95"
-            >
-              <UserPlus className="w-4 h-4" />
-              <span>تۆمارکردنی یوزەری نوێ</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="submit"
+                className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md transition-all flex items-center gap-1.5 active:scale-95"
+              >
+                {editingStaffId ? <Save className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
+                <span>{editingStaffId ? 'پاشەکەوتکردنی گۆڕانکارییەکان' : 'تۆمارکردنی یوزەری نوێ'}</span>
+              </button>
+
+              {editingStaffId && (
+                <button
+                  type="button"
+                  onClick={handleCancelEditStaff}
+                  className="px-4 py-2.5 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs hover:bg-slate-300 dark:hover:bg-slate-700 transition-all"
+                >
+                  پاشگەزبوونەوە
+                </button>
+              )}
+            </div>
 
             {staffMsg && (
               <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 animate-fadeIn">
