@@ -450,102 +450,86 @@ export default function SettingsTab({ onResetData, records = [] }) {
             </div>
             <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 flex flex-col items-center text-center space-y-2">
               <RoonakiLogo className="h-16 w-auto" showText={false} />
-              <p className="text-[11px] text-slate-400">
-                لۆگۆ لە <code className="text-amber-600 dark:text-amber-400 font-mono">public/logo.png</code> دانراوە
-              </p>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      {/* ── NEW: Staff Accounts Management Card ── */}
-      <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-xl space-y-6 transition-colors">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="p-3 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400">
-              <Users className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
-                  بەڕێوەبردنی ئەکاونتی فەرمانبەران (Staff Accounts)
-                </h3>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">
-                  {currentStaffArray.length} فەرمانبەر
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                زیادکردنی کارمەندان (وەک ڕەعد، ئارام، ...) تا لە کاتی تەسلیمکردنەوە یان دەستکاری دۆسیە، ناوی هەر فەرمانبەرێک بە جیا دیاری بکرێت
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Existing Staff List */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {/* Existing Staff List */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {currentStaffArray.map((staff) => (
             <div 
               key={staff.id || staff.username || Math.random()} 
-              className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 shadow-sm"
+              className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col justify-between gap-3.5 shadow-sm hover:border-amber-500/50 hover:shadow-md transition-all"
             >
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 font-black flex items-center justify-center shrink-0 shadow-sm">
-                  <User className="w-5 h-5" />
-                </div>
-                <div className="truncate">
-                  <div className="text-sm font-bold text-slate-900 dark:text-white truncate flex items-center gap-1.5">
-                    <span>{staff.name}</span>
-                    <span className="font-mono text-[11px] text-amber-600 dark:text-amber-400 font-normal">(@{staff.username || staff.name})</span>
-                    <span className={`px-2 py-0.2 rounded-md text-[9px] font-black border ${
-                      staff.role === 'ADMIN' 
-                        ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-300' 
-                        : 'bg-blue-100 dark:bg-blue-500/20 text-blue-800 dark:text-blue-300 border-blue-300'
-                    }`}>
-                      {staff.role === 'ADMIN' ? 'بەڕێوەبەر' : 'فەرمانبەر'}
-                    </span>
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 text-slate-950 font-black flex items-center justify-center shrink-0 shadow-md shadow-amber-500/20">
+                    <User className="w-5 h-5" />
                   </div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                    {staff.title || 'ژووری ١٩'} • پاسۆرد: <span className="font-mono text-amber-600 font-bold">{staff.pin}</span>
+                  <div>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-sm font-black text-slate-900 dark:text-white">{staff.name}</span>
+                      <span className="font-mono text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10 px-1.5 py-0.5 rounded-md border border-amber-500/20">
+                        @{staff.username || staff.name}
+                      </span>
+                    </div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
+                      {staff.title || 'ژووری ١٩'}
+                    </div>
                   </div>
                 </div>
+
+                <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black border shrink-0 ${
+                  staff.role === 'ADMIN' 
+                    ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-900 dark:text-amber-200 border-amber-300 dark:border-amber-500/40' 
+                    : 'bg-blue-100 dark:bg-blue-500/20 text-blue-900 dark:text-blue-200 border-blue-300 dark:border-blue-500/40'
+                }`}>
+                  {staff.role === 'ADMIN' ? '👑 بەڕێوەبەر' : '👤 فەرمانبەر'}
+                </span>
               </div>
 
-              <div className="flex items-center gap-1 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => handleStartEditStaff(staff)}
-                  title={`دەستکاریکردنی زانیارییەکانی ${staff.name}`}
-                  className="p-2 rounded-xl text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-colors"
-                >
-                  <Edit3 className="w-4 h-4" />
-                </button>
+              {/* Card Bottom: Password + Action Buttons */}
+              <div className="flex items-center justify-between pt-2.5 border-t border-slate-100 dark:border-slate-800/80 text-xs">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-slate-500 dark:text-slate-400 font-bold">پاسۆرد:</span>
+                  <span className="font-mono font-black text-amber-800 dark:text-amber-300 bg-amber-100/80 dark:bg-amber-500/15 px-2 py-0.5 rounded-md border border-amber-400/40">
+                    {staff.pin}
+                  </span>
+                </div>
 
-                {currentStaffArray.length > 1 && (
+                <div className="flex items-center gap-1.5">
                   <button
                     type="button"
-                    onClick={() => handleDeleteStaff(staff.id, staff.name)}
-                    title={`سڕینەوەی ئەکاونتی ${staff.name}`}
-                    className="p-2 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                    onClick={() => handleStartEditStaff(staff)}
+                    title={`دەستکاریکردنی زانیارییەکانی ${staff.name}`}
+                    className="px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-700 dark:text-slate-300 transition-colors flex items-center gap-1 text-xs font-bold shadow-sm"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Edit3 className="w-3.5 h-3.5" />
+                    <span>دەستکاری</span>
                   </button>
-                )}
+
+                  {currentStaffArray.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteStaff(staff.id, staff.name)}
+                      title={`سڕینەوەی ئەکاونتی ${staff.name}`}
+                      className="p-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white transition-colors border border-rose-200 dark:border-rose-500/30"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           ))}
         </div>
 
         {/* Add / Edit Staff Form */}
-        <form onSubmit={handleSaveStaff} className={`p-5 rounded-2xl border-2 transition-all space-y-4 ${
+        <form onSubmit={handleSaveStaff} className={`p-5 sm:p-6 rounded-2xl sm:rounded-3xl border-2 transition-all space-y-4 ${
           editingStaffId 
-            ? 'bg-amber-500/10 dark:bg-amber-950/30 border-amber-500'
-            : 'bg-amber-500/5 dark:bg-amber-950/20 border-dashed border-amber-500/40'
+            ? 'bg-amber-500/10 dark:bg-amber-950/30 border-amber-500 shadow-lg' 
+            : 'bg-slate-50 dark:bg-slate-900/60 border-dashed border-amber-500/40'
         }`}>
-          <div className="flex items-center justify-between">
-            <div className="text-xs font-black text-amber-900 dark:text-amber-300 flex items-center gap-1.5">
+          <div className="flex items-center justify-between border-b border-amber-500/20 pb-3">
+            <div className="text-xs sm:text-sm font-black text-amber-900 dark:text-amber-300 flex items-center gap-2">
               {editingStaffId ? <Edit3 className="w-4 h-4 text-amber-500" /> : <UserPlus className="w-4 h-4 text-amber-500" />}
-              <span>{editingStaffId ? `دەستکاریکردنی یوزەری (${newStaffName || 'فەرمانبەر'}):` : 'زیادکردنی فەرمانبەری نوێ (یوزەر و پاسۆرد):'}</span>
+              <span>{editingStaffId ? `دەستکاریکردنی یوزەری (${newStaffName || 'فەرمانبەر'}):` : 'فۆرمی زیادکردنی فەرمانبەری نوێ:'}</span>
             </div>
 
             {editingStaffId && (
@@ -560,83 +544,83 @@ export default function SettingsTab({ onResetData, records = [] }) {
             )}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
             <div>
-              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">ناوی بەکارهێنەر (یوزەر):</label>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">ناوی بەکارهێنەر (Username):</label>
               <input
                 type="text"
                 required
-                placeholder="ناوی بەکارهێنەر بنووسە"
+                placeholder="ناوی یوزەر (بۆ نموونە: raad)"
                 value={newStaffUsername}
                 onChange={(e) => setNewStaffUsername(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-amber-500 font-mono"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-amber-500 font-mono shadow-sm"
               />
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">ناوی فەرمانبەر (کوردی):</label>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">ناوی فەرمانبەر (کوردی):</label>
               <input
                 type="text"
                 required
-                placeholder="ناو بنووسە"
+                placeholder="ناوی فەرمانبەر (بۆ نموونە: ڕەعد)"
                 value={newStaffName}
                 onChange={(e) => setNewStaffName(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-amber-500"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-amber-500 shadow-sm"
               />
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">ناونیشانی کار:</label>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">ناونیشانی کار (بەش/ژوور):</label>
               <input
                 type="text"
                 required
-                placeholder="ناونیشانی کار بنووسە"
+                placeholder="وەک: فەرمانبەری ژووری ١٩"
                 value={newStaffTitle}
                 onChange={(e) => setNewStaffTitle(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-amber-500"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-amber-500 shadow-sm"
               />
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">پاسۆرد (Password):</label>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">پاسۆرد (Password):</label>
               <input
                 type="text"
                 required
-                placeholder="پاسۆرد بنووسە"
+                placeholder="پاسۆرد بۆ چوونەژوورەوە"
                 value={newStaffPin}
                 onChange={(e) => setNewStaffPin(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-mono font-bold focus:outline-none focus:border-amber-500"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-mono font-bold focus:outline-none focus:border-amber-500 shadow-sm"
               />
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">دەسەڵات:</label>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">دەسەڵاتی سیستەم:</label>
               <select
                 value={newStaffRole}
                 onChange={(e) => setNewStaffRole(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-amber-500"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-amber-500 shadow-sm"
               >
-                <option value="STAFF">فەرمانبەر (Staff)</option>
-                <option value="ADMIN">بەڕێوەبەر (Admin)</option>
+                <option value="STAFF">👤 فەرمانبەر (Staff)</option>
+                <option value="ADMIN">👑 بەڕێوەبەر (Admin)</option>
               </select>
             </div>
           </div>
 
-          <div className="flex items-center justify-between pt-1">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
             <div className="flex items-center gap-2">
               <button
                 type="submit"
-                className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md transition-all flex items-center gap-1.5 active:scale-95"
+                className="px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs sm:text-sm shadow-md shadow-amber-500/25 transition-all flex items-center justify-center gap-2 active:scale-95"
               >
                 {editingStaffId ? <Save className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
-                <span>{editingStaffId ? 'پاشەکەوتکردنی گۆڕانکارییەکان' : 'تۆمارکردنی یوزەری نوێ'}</span>
+                <span>{editingStaffId ? 'پاشەکەوتکردنی گۆڕانکارییەکان' : 'تۆمارکردنی فەرمانبەری نوێ'}</span>
               </button>
 
               {editingStaffId && (
                 <button
                   type="button"
                   onClick={handleCancelEditStaff}
-                  className="px-4 py-2.5 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs hover:bg-slate-300 dark:hover:bg-slate-700 transition-all"
+                  className="px-4 py-3 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs hover:bg-slate-300 dark:hover:bg-slate-700 transition-all"
                 >
                   پاشگەزبوونەوە
                 </button>
@@ -644,7 +628,7 @@ export default function SettingsTab({ onResetData, records = [] }) {
             </div>
 
             {staffMsg && (
-              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 animate-fadeIn">
+              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1.5 rounded-xl border border-emerald-300 dark:border-emerald-500/30">
                 {staffMsg}
               </span>
             )}
