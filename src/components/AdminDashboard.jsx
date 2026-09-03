@@ -45,7 +45,7 @@ import ConfirmDeleteModal from './ConfirmDeleteModal';
 import FileTimelineModal from './FileTimelineModal';
 import { generateWhatsAppUrl } from '../utils/whatsappHelper';
 import { logActivity } from '../utils/cloudSync';
-import { MessageSquare, BarChart3, ExternalLink, Send, ShieldCheck, History, Clock } from 'lucide-react';
+import { MessageSquare, BarChart3, ExternalLink, Send, ShieldCheck, History } from 'lucide-react';
 
 // Convert Arabic & Persian / Kurdish numerals (٠-٩, ۰-۹) to standard Latin digits (0-9)
 function toLatinDigits(str) {
