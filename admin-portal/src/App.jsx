@@ -298,6 +298,21 @@ export default function App() {
     logActivity('BATCH_STATUS', `گۆڕینی بەکۆمەڵی دۆخی (${ids.length}) دۆسیە بۆ (${newStatus}) (لەلایەن: ${staffName})`, { count: ids.length, status: newStatus });
   };
 
+  // Bulk File Type update
+  const handleBatchUpdateFileType = (ids, newFileType) => {
+    const staffName = getActiveStaffName();
+    const updated = records.map(r => {
+      if (ids.includes(r.id)) {
+        return { ...r, fileType: newFileType, handledBy: staffName };
+      }
+      return r;
+    });
+    setRecords(updated);
+    saveRecordsToCloud(updated);
+    showToast(`جۆری ${ids.length} دۆسیە گۆڕدرا بۆ (${newFileType === 'YELLOW_FOLDER' ? 'فایلی زەرد' : 'ئەوراق'})`, 'success');
+    logActivity('BATCH_STATUS', `گۆڕینی بەکۆمەڵی جۆری دۆسیەی (${ids.length}) فایل بۆ (${newFileType}) (لەلایەن: ${staffName})`, { count: ids.length, fileType: newFileType });
+  };
+
   // Reset to demo
   const handleResetData = () => {
     if (window.confirm('ئایا دڵنیایت لە گەڕاندنەوەی داتاکان بۆ داتای سەرەتایی نموونەیی؟')) {
@@ -309,7 +324,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col font-kurdish antialiased bg-slate-50 dark:bg-[#080d1a] text-slate-900 dark:text-slate-100 transition-colors duration-300">
+    <div className="min-h-screen flex flex-col font-kurdish antialiased bg-slate-50 dark:bg-[#080d1a] text-slate-900 dark:text-slate-100 transition-colors duration-300 overflow-x-hidden w-full max-w-[100vw]">
       
       {/* Toast Notification */}
       {toast && (
@@ -343,23 +358,25 @@ export default function App() {
         {isAdmin ? (
           <AdminDashboard
             records={records}
+            activeStaff={activeStaff}
             onOpenExcelImport={() => setIsExcelOpen(true)}
-            onOpenWhatsAppBroadcast={() => {}}
-            onOpenAddRecord={() => {
+            onOpenAddModal={() => {
               setEditingRecord(null);
               setIsRecordModalOpen(true);
             }}
-            onOpenEditRecord={(record) => {
+            onOpenEditModal={(record) => {
               setEditingRecord(record);
               setIsRecordModalOpen(true);
             }}
             onOpenDeliveryModal={(record) => setDeliveryModalRecord(record)}
             onOpenPrintModal={(record) => setPrintModalRecord(record)}
             onDeleteRecord={handleDeleteRecord}
-            onUpdateStatus={handleUpdateStatus}
-            onToggleFileType={handleToggleFileType}
             onBatchDelete={handleBatchDelete}
             onBatchUpdateStatus={handleBatchUpdateStatus}
+            onBatchUpdateFileType={handleBatchUpdateFileType}
+            onToggleFileType={handleToggleFileType}
+            onUpdateStatus={handleUpdateStatus}
+            onSaveRecord={handleSaveRecord}
             onResetData={handleResetData}
             onOpenStaffLoginModal={() => setIsLoginOpen(true)}
           />
