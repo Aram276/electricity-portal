@@ -42,9 +42,10 @@ import ActivityLogTab from './ActivityLogTab';
 import FastCheckoutModal from './FastCheckoutModal';
 import BulkWhatsAppModal from './BulkWhatsAppModal';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
+import FileTimelineModal from './FileTimelineModal';
 import { generateWhatsAppUrl } from '../utils/whatsappHelper';
 import { logActivity } from '../utils/cloudSync';
-import { MessageSquare, BarChart3, ExternalLink, Send, ShieldCheck } from 'lucide-react';
+import { MessageSquare, BarChart3, ExternalLink, Send, ShieldCheck, History, Clock } from 'lucide-react';
 
 // Convert Arabic & Persian / Kurdish numerals (٠-٩, ۰-۹) to standard Latin digits (0-9)
 function toLatinDigits(str) {
@@ -76,6 +77,7 @@ function normalizeKurdishFuzzy(str) {
 
 export default function AdminDashboard({
   records,
+  activeStaff,
   onOpenExcelImport,
   onOpenAddModal,
   onOpenEditModal,
@@ -106,8 +108,24 @@ export default function AdminDashboard({
   // Selected IDs for Bulk Actions
   const [selectedIds, setSelectedIds] = useState([]);
   const [deleteTarget, setDeleteTarget] = useState(null); // { id, fileNumber, citizenName, isBulk, count, ids }
+  const [timelineRecord, setTimelineRecord] = useState(null); // File life history modal
   const [isFastCheckoutOpen, setIsFastCheckoutOpen] = useState(false);
   const [isBulkWhatsAppOpen, setIsBulkWhatsAppOpen] = useState(false);
+
+  // Add audit note to file timeline
+  const handleTimelineNote = (recordId, noteObj) => {
+    const target = records.find(r => r.id === recordId);
+    if (!target) return;
+    const existingTimeline = Array.isArray(target.timeline) ? target.timeline : [];
+    const updatedRecord = {
+      ...target,
+      timeline: [...existingTimeline, noteObj]
+    };
+    if (onSaveRecord) {
+      onSaveRecord(updatedRecord, recordId);
+    }
+    setTimelineRecord(updatedRecord);
+  };
 
   // Reset to page 1 whenever filters change
   useEffect(() => {
@@ -975,6 +993,15 @@ export default function AdminDashboard({
                                 </span>
                               )}
 
+                              {/* Timeline / Full History Button */}
+                              <button
+                                onClick={() => setTimelineRecord(record)}
+                                title="مێژووی ژیانی فایل (Full Timeline Audit)"
+                                className="group p-2 rounded-xl bg-purple-50 dark:bg-purple-500/10 hover:bg-purple-100 dark:hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-500/30 hover:border-purple-400 dark:hover:border-purple-400/50 transition-all duration-200 active:scale-95 shadow-sm"
+                              >
+                                <Clock className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                              </button>
+
                               {/* Print Button */}
                               <button
                                 onClick={() => onOpenPrintModal(record)}
@@ -1175,6 +1202,16 @@ export default function AdminDashboard({
                           <span>دەستکاری</span>
                         </button>
 
+                        {/* Timeline Button */}
+                        <button
+                          onClick={() => setTimelineRecord(record)}
+                          title="مێژووی ژیانی فایل"
+                          className="p-2.5 rounded-xl bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-500/30 active:scale-95 flex items-center justify-center gap-1 text-xs font-bold"
+                        >
+                          <Clock className="w-4 h-4" />
+                          <span className="hidden xs:inline">مێژوو</span>
+                        </button>
+
                         {/* Print Button */}
                         <button
                           onClick={() => onOpenPrintModal(record)}
@@ -1361,6 +1398,17 @@ export default function AdminDashboard({
           });
         }}
       />
+
+      {/* File Life History & Audit Timeline Modal */}
+      {timelineRecord && (
+        <FileTimelineModal
+          isOpen={Boolean(timelineRecord)}
+          record={timelineRecord}
+          onClose={() => setTimelineRecord(null)}
+          onAddTimelineNote={handleTimelineNote}
+          activeStaff={activeStaff}
+        />
+      )}
 
     </div>
   );

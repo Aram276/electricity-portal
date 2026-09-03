@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, Save, User, Hash, Phone, Building2, FileText, Archive, Calendar, CheckCircle2, Folder } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { X, Save, User, Hash, Phone, Building2, FileText, Archive, Calendar, CheckCircle2, Folder, AlertTriangle } from 'lucide-react';
 import { STATUS_CONFIG, DEPARTMENTS, TRANSACTION_TYPES } from '../constants/status';
 
 export default function RecordModal({ isOpen, onClose, onSave, editingRecord, records = [] }) {
@@ -20,6 +20,31 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, re
     handledBy: '',
     notes: ''
   });
+
+  // Intelligent Duplicate Detection (Realtime)
+  const duplicates = useMemo(() => {
+    if (!records || !records.length) return [];
+    const currentId = editingRecord?.id;
+    const cleanFileNum = (formData.fileNumber || '').trim();
+    const cleanAccount = (formData.accountNumber || '').trim();
+    const cleanName = (formData.citizenName || '').trim().toLowerCase();
+    const cleanPhone = (formData.phoneNumber || '').replace(/\D/g, '');
+
+    return records.filter(r => {
+      if (r.id === currentId) return false;
+      const rFileNum = (r.fileNumber || '').trim();
+      const rAccount = (r.accountNumber || '').trim();
+      const rName = (r.citizenName || '').trim().toLowerCase();
+      const rPhone = (r.phoneNumber || '').replace(/\D/g, '');
+
+      const isSameFileNum = cleanFileNum && cleanFileNum === rFileNum;
+      const isSameAccount = cleanAccount && cleanAccount === rAccount;
+      const isSamePhone = cleanPhone && cleanPhone.length >= 8 && cleanPhone === rPhone;
+      const isSameName = cleanName && cleanName !== 'هاوبەشی کارەبا' && cleanName.length >= 4 && (cleanName === rName || rName.includes(cleanName));
+
+      return isSameFileNum || isSameAccount || isSamePhone || isSameName;
+    }).slice(0, 2);
+  }, [formData.fileNumber, formData.accountNumber, formData.citizenName, formData.phoneNumber, records, editingRecord]);
 
   useEffect(() => {
     if (editingRecord) {
@@ -81,7 +106,7 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, re
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
-      <div className="relative w-full max-w-3xl rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl p-6 sm:p-8 space-y-6 max-h-[92vh] overflow-y-auto transition-colors">
+      <div className="relative w-full max-w-3xl rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl p-6 sm:p-8 space-y-5 max-h-[92vh] overflow-y-auto transition-colors">
         
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
@@ -103,6 +128,26 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, re
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {/* Duplicate Warning Banner */}
+        {duplicates.length > 0 && (
+          <div className="p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/40 text-amber-900 dark:text-amber-200 text-xs space-y-2 animate-fadeIn">
+            <div className="flex items-center gap-2 font-black">
+              <AlertTriangle className="w-4 h-4 text-amber-500 animate-pulse shrink-0" />
+              <span>⚠️ ئاگاداری: لێکچوونی ئەم دۆسیەیە لەگەڵ ({duplicates.length}) فایلی پێشوو دۆزرایەوە (ڕێگری لە دووبارەبوونەوە):</span>
+            </div>
+            <div className="space-y-1.5 pr-6 text-[11px]">
+              {duplicates.map(d => (
+                <div key={d.id} className="flex items-center justify-between gap-2 bg-white dark:bg-slate-950 p-2.5 rounded-xl border border-amber-500/30">
+                  <span className="font-bold">دۆسیەی #{d.fileNumber} | {d.citizenName} ({d.accountNumber ? `ئەژمار: ${d.accountNumber}` : 'بێ ئەژمار'})</span>
+                  <span className="font-mono font-bold text-amber-600 dark:text-amber-400">
+                    {d.status === 'COMPLETED' ? '✅ تەواوبوو' : '⏳ لەژێر کاردایە'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Form Fields */}
         <form onSubmit={handleSubmit} className="space-y-4">
