@@ -521,38 +521,88 @@ export default function SettingsTab({ onResetData, records }) {
         </form>
       </div>
 
-      {/* Backup and Maintenance */}
+      {/* Backup, Restore and Maintenance */}
       <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 space-y-4 shadow-xl transition-colors">
-        <div className="text-slate-900 dark:text-white font-bold text-sm border-b border-slate-100 dark:border-slate-800 pb-3">
-          پاڵپشتی و پاراستنی زانیارییەکان (Backup & Reset)
+        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+          <div className="flex items-center gap-2 text-slate-900 dark:text-white font-bold text-sm">
+            <Download className="w-4 h-4 text-emerald-500" />
+            <span>پاڵپشتی و پاراستنی زانیارییەکان (Cloud Backup & Restore)</span>
+          </div>
+          <span className="text-[11px] text-slate-400 font-mono">
+            کۆی فایلەکان: {records.length}
+          </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          
+          {/* Download JSON Backup */}
           <button
+            type="button"
             onClick={handleBackupJSON}
-            className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-emerald-500 text-right space-y-1 transition-colors shadow-sm"
+            className="p-4 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/20 border-2 border-emerald-500/30 hover:border-emerald-500 text-right space-y-1 transition-all shadow-sm active:scale-95 group"
           >
-            <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-xs sm:text-sm">
-              <Download className="w-4 h-4" />
-              <span>داگرتنی کۆپی پاڵپشتی داتاکان (JSON Backup)</span>
+            <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-bold text-xs sm:text-sm">
+              <Download className="w-4 h-4 group-hover:translate-y-0.5 transition-transform" />
+              <span>داگرتنی کۆپی یەدەگ (JSON)</span>
             </div>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              دابەزاندنی سەرجەم ({records.length}) مامەڵەکە وەک فایلی پارێزراو
+              دابەزاندنی تەواوی داتابەیس بۆ سەر کۆمپیوتەر
             </p>
           </button>
 
-          <button
-            onClick={onResetData}
-            className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-rose-500 text-right space-y-1 transition-colors shadow-sm"
-          >
-            <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-bold text-xs sm:text-sm">
-              <RefreshCw className="w-4 h-4" />
-              <span>گەڕاندنەوە بۆ دۆخی سەرەتایی بنەڕەت</span>
+          {/* Restore JSON Backup */}
+          <label className="p-4 rounded-2xl bg-blue-50/60 dark:bg-blue-950/20 border-2 border-blue-500/30 hover:border-blue-500 text-right space-y-1 transition-all shadow-sm active:scale-95 cursor-pointer group block">
+            <input
+              type="file"
+              accept=".json"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (!f) return;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                  try {
+                    const parsed = JSON.parse(event.target.result);
+                    const backupList = Array.isArray(parsed) ? parsed : (parsed.records || []);
+                    if (!backupList.length) {
+                      alert('فایلی هەڵبژێردراو هیچ داتایەکی دروستی تێدا نەبوو.');
+                      return;
+                    }
+                    if (window.confirm(`ئایا دڵنیایت لە گەڕاندنەوەی (${backupList.length}) دۆسیە لە کۆپی یەدەگ بۆ ناو کڵاود؟`)) {
+                      if (onResetData) onResetData(backupList);
+                    }
+                  } catch (err) {
+                    alert('هەڵە لە خوێندنەوەی فایلی کۆپی یەدەگ: ' + err.message);
+                  }
+                };
+                reader.readAsText(f);
+                e.target.value = '';
+              }}
+            />
+            <div className="flex items-center gap-2 text-blue-700 dark:text-blue-400 font-bold text-xs sm:text-sm">
+              <RefreshCw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" />
+              <span>گەڕاندنەوەی کۆپی یەدەگ</span>
             </div>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              سڕینەوەی هەموو گۆڕانکارییەکان و گەڕانەوە بۆ داتای نموونەیی
+              ئەپڵۆدکردنی فایلی JSON بۆ گەڕاندنەوە
+            </p>
+          </label>
+
+          {/* Reset to Factory Defaults */}
+          <button
+            type="button"
+            onClick={onResetData}
+            className="p-4 rounded-2xl bg-rose-50/60 dark:bg-rose-950/20 border-2 border-rose-500/30 hover:border-rose-500 text-right space-y-1 transition-all shadow-sm active:scale-95"
+          >
+            <div className="flex items-center gap-2 text-rose-700 dark:text-rose-400 font-bold text-xs sm:text-sm">
+              <AlertTriangle className="w-4 h-4" />
+              <span>گەڕاندنەوە بۆ سەرەتا</span>
+            </div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              سڕینەوەی هەموو داتاکان بە دۆخی پاک
             </p>
           </button>
+
         </div>
       </div>
 

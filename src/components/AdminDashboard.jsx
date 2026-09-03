@@ -38,6 +38,7 @@ import { exportToExcel } from '../utils/excelHelper';
 import DailyIntake from './DailyIntake';
 import SettingsTab from './SettingsTab';
 import AnalyticsTab from './AnalyticsTab';
+import FastCheckoutModal from './FastCheckoutModal';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
 import { generateWhatsAppUrl } from '../utils/whatsappHelper';
 import { MessageSquare, BarChart3, ExternalLink } from 'lucide-react';
@@ -102,6 +103,7 @@ export default function AdminDashboard({
   // Selected IDs for Bulk Actions
   const [selectedIds, setSelectedIds] = useState([]);
   const [deleteTarget, setDeleteTarget] = useState(null); // { id, fileNumber, citizenName, isBulk, count, ids }
+  const [isFastCheckoutOpen, setIsFastCheckoutOpen] = useState(false);
 
   // Reset to page 1 whenever filters change
   useEffect(() => {
@@ -362,6 +364,15 @@ export default function AdminDashboard({
           >
             <PlusCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             <span>داخڵکردنی خێرا</span>
+          </button>
+
+          <button
+            onClick={() => setIsFastCheckoutOpen(true)}
+            title="تەسلیمکردنەوەی خێرای دۆسیەی هاووڵاتی لە کاتی قەرەباڵغی (ژووری ١٩)"
+            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-black bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-md shadow-amber-500/25 whitespace-nowrap transition-all active:scale-95 border border-amber-400/50"
+          >
+            <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" />
+            <span>تەسلیمکردنی خێرا ⚡</span>
           </button>
 
           <button
@@ -1259,6 +1270,19 @@ export default function AdminDashboard({
         count={deleteTarget?.count || 1}
         fileNumber={deleteTarget?.fileNumber}
         citizenName={deleteTarget?.citizenName}
+      />
+
+      {/* Fast Delivery Checkout Modal for Room 19 */}
+      <FastCheckoutModal
+        isOpen={isFastCheckoutOpen}
+        onClose={() => setIsFastCheckoutOpen(false)}
+        records={records}
+        onDeliverRecord={(recordId, deliveryData) => {
+          const target = records.find(r => r.id === recordId);
+          if (target && onSaveRecord) {
+            onSaveRecord({ ...target, ...deliveryData }, recordId);
+          }
+        }}
       />
 
     </div>
