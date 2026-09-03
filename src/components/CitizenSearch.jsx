@@ -57,19 +57,48 @@ function normalizeKurdishFuzzy(str) {
     .trim();
 }
 
+// Levenshtein distance for fuzzy tolerance
+function levenshtein(a, b) {
+  if (!a || !b) return (a || b || '').length;
+  const la = a.length, lb = b.length;
+  const d = Array.from({ length: la + 1 }, () => new Array(lb + 1).fill(0));
+  for (let i = 0; i <= la; i++) d[i][0] = i;
+  for (let j = 0; j <= lb; j++) d[0][j] = j;
+  for (let i = 1; i <= la; i++) {
+    for (let j = 1; j <= lb; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost);
+    }
+  }
+  return d[la][lb];
+}
+
+// Subsequence check (tolerant of missing or extra digits)
+function isSubsequence(sub, str) {
+  if (!sub || !str) return false;
+  let i = 0, j = 0;
+  while (i < sub.length && j < str.length) {
+    if (sub[i] === str[j]) i++;
+    j++;
+  }
+  return i === sub.length;
+}
+
 export default function CitizenSearch({ records, onOpenPrintModal }) {
   const [query, setQuery] = useState('');
   const [searchMode, setSearchMode] = useState('ALL'); // 'ALL' | 'NAME' | 'FILE' | 'PHONE' | 'ID'
   const [searchResults, setSearchResults] = useState([]);
+  const [isFuzzyMatch, setIsFuzzyMatch] = useState(false);
   const [displayLimit, setDisplayLimit] = useState(25);
   const [hasSearched, setHasSearched] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
 
-  // Perform the search (Instant & Partial Matching Engine)
+  // Perform the search (Direct Exact + Smart Fuzzy Closest Tolerance Engine)
   const executeSearch = (searchQuery, currentMode) => {
     const rawQuery = searchQuery.trim();
     if (!rawQuery) {
       setSearchResults([]);
+      setIsFuzzyMatch(false);
       setHasSearched(false);
       return;
     }
@@ -82,7 +111,8 @@ export default function CitizenSearch({ records, onOpenPrintModal }) {
     const cleanDigitsQ = latinQuery.replace(/[^0-9]/g, '');
     const cleanPhoneNoZeroQ = cleanDigitsQ.replace(/^0+/, '');
 
-    const matches = records.filter(r => {
+    // ── STAGE 1: Exact & Substring Matches ──
+    const directMatches = records.filter(r => {
       const hasValidName = Boolean(r.citizenName && r.citizenName !== 'هاوبەشی کارەبا' && r.citizenName.trim() !== '');
       const fuzzyName = normalizeKurdishFuzzy(r.citizenName || '');
       const compactFuzzyName = fuzzyName.replace(/\s+/g, '');
@@ -91,46 +121,39 @@ export default function CitizenSearch({ records, onOpenPrintModal }) {
       const phoneDigits = String(r.phoneNumber || '').replace(/[^0-9]/g, '');
       const phoneNoZero = phoneDigits.replace(/^0+/, '');
 
-      // ── MODE: NAME ────────────────────────────────
+      // ── MODE: NAME ──
       if (currentMode === 'NAME') {
         if (!hasValidName) return false;
         return fuzzyName.includes(fuzzyQ) || compactFuzzyName.includes(compactFuzzyQ);
       }
 
-      // ── MODE: FILE NUMBER ────────────────────────
+      // ── MODE: FILE NUMBER ──
       if (currentMode === 'FILE') {
         return fileStr === cleanDigitsQ || fileStr === compactFuzzyQ || fileStr.includes(cleanDigitsQ);
       }
 
-      // ── MODE: PHONE NUMBER ───────────────────────
+      // ── MODE: PHONE NUMBER ──
       if (currentMode === 'PHONE') {
         if (!cleanDigitsQ || r.phoneNumber === 'نیە') return false;
         return phoneDigits.includes(cleanDigitsQ) || phoneNoZero.includes(cleanPhoneNoZeroQ);
       }
 
-      // ── MODE: ID / ACCOUNT NUMBER ────────────────
+      // ── MODE: ID / ACCOUNT NUMBER ──
       if (currentMode === 'ID') {
         if (!cleanDigitsQ) return false;
         return accStr.includes(cleanDigitsQ);
       }
 
-      // ── GENERAL MODE: ALL (Fuzzy Matching on All Fields) ──
-      // 1. Partial Kurdish Name (e.g. typing "ڕێبین" matches "ڕێبین قادر", "ریبین علی", etc.)
+      // ── GENERAL MODE: ALL ──
       if (hasValidName && (fuzzyName.includes(fuzzyQ) || compactFuzzyName.includes(compactFuzzyQ))) {
         return true;
       }
-
-      // 2. Partial or Exact File Number (e.g. "841", "19", "246")
       if (cleanDigitsQ && (fileStr === cleanDigitsQ || fileStr === compactFuzzyQ || fileStr.includes(cleanDigitsQ))) {
         return true;
       }
-
-      // 3. Partial Phone Number (e.g. typing "0750494" or "٠٧٥٠٤٩٤" or "494")
       if (cleanDigitsQ && (phoneDigits.includes(cleanDigitsQ) || phoneNoZero.includes(cleanPhoneNoZeroQ))) {
         return true;
       }
-
-      // 4. Partial Account ID (e.g. "63450")
       if (cleanDigitsQ && accStr.includes(cleanDigitsQ)) {
         return true;
       }
@@ -138,7 +161,87 @@ export default function CitizenSearch({ records, onOpenPrintModal }) {
       return false;
     });
 
-    setSearchResults(matches);
+    // If direct matches found, return them
+    if (directMatches.length > 0) {
+      setSearchResults(directMatches);
+      setIsFuzzyMatch(false);
+      return;
+    }
+
+    // ── STAGE 2: Closest Fuzzy Match (In case employee or citizen mistyped a digit) ──
+    const fuzzyCandidates = [];
+
+    for (const r of records) {
+      const fileStr = String(r.fileNumber || '').trim();
+      const accStr = String(r.accountNumber || '').trim();
+      const phoneDigits = String(r.phoneNumber || '').replace(/[^0-9]/g, '');
+      const phoneNoZero = phoneDigits.replace(/^0+/, '');
+      const fuzzyName = normalizeKurdishFuzzy(r.citizenName || '');
+      const compactFuzzyName = fuzzyName.replace(/\s+/g, '');
+
+      let minDistance = 999;
+      let matchReason = '';
+
+      // Check Account ID fuzzy distance
+      if (cleanDigitsQ.length >= 4 && accStr && accStr !== 'نیە') {
+        const dAcc = levenshtein(cleanDigitsQ, accStr);
+        if (dAcc <= 2) {
+          minDistance = Math.min(minDistance, dAcc);
+          matchReason = `ژمارەی ئەژماری نزیک: ${accStr}`;
+        } else if (isSubsequence(cleanDigitsQ, accStr) || isSubsequence(accStr, cleanDigitsQ)) {
+          minDistance = Math.min(minDistance, Math.abs(cleanDigitsQ.length - accStr.length));
+          matchReason = `ئەژماری هاوشێوە: ${accStr}`;
+        }
+      }
+
+      // Check Phone Number fuzzy distance
+      if (cleanPhoneNoZeroQ.length >= 6 && phoneNoZero && r.phoneNumber !== 'نیە') {
+        const dPhone = levenshtein(cleanPhoneNoZeroQ, phoneNoZero);
+        if (dPhone <= 2) {
+          minDistance = Math.min(minDistance, dPhone);
+          matchReason = `مۆبایلی نزیک: ${r.phoneNumber}`;
+        }
+      }
+
+      // Check File Number fuzzy distance
+      if (cleanDigitsQ.length >= 2 && fileStr) {
+        const dFile = levenshtein(cleanDigitsQ, fileStr);
+        if (dFile <= 1 && Math.abs(cleanDigitsQ.length - fileStr.length) <= 1) {
+          minDistance = Math.min(minDistance, dFile);
+          matchReason = `ژمارەی فایلی نزیک: ${fileStr}`;
+        }
+      }
+
+      // Check Name fuzzy distance
+      if (compactFuzzyQ.length >= 3 && compactFuzzyName && r.citizenName !== 'هاوبەشی کارەبا') {
+        const dName = levenshtein(compactFuzzyQ, compactFuzzyName);
+        if (dName <= 2) {
+          minDistance = Math.min(minDistance, dName);
+          matchReason = `ناوی نزیک: ${r.citizenName}`;
+        }
+      }
+
+      if (minDistance <= 2) {
+        fuzzyCandidates.push({
+          record: r,
+          distance: minDistance,
+          matchReason
+        });
+      }
+    }
+
+    if (fuzzyCandidates.length > 0) {
+      fuzzyCandidates.sort((a, b) => a.distance - b.distance);
+      const topFuzzy = fuzzyCandidates.slice(0, 15).map(c => ({
+        ...c.record,
+        _fuzzyReason: c.matchReason
+      }));
+      setSearchResults(topFuzzy);
+      setIsFuzzyMatch(true);
+    } else {
+      setSearchResults([]);
+      setIsFuzzyMatch(false);
+    }
   };
 
   // Run instant search whenever query or searchMode changes
@@ -329,20 +432,30 @@ export default function CitizenSearch({ records, onOpenPrintModal }) {
 
       {/* Multiple Results Header Banner (when 1 or more files are found) */}
       {hasSearched && searchResults.length > 0 && (
-        <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border-2 border-amber-500/40 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-3 animate-fadeIn">
+        <div className={`p-4 sm:p-5 rounded-2xl border-2 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-3 animate-fadeIn ${
+          isFuzzyMatch 
+            ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-500 text-amber-950 dark:text-amber-100'
+            : 'bg-white dark:bg-slate-900 border-amber-500/40 text-slate-900 dark:text-white'
+        }`}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
-              <Layers className="w-5 h-5" />
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${
+              isFuzzyMatch 
+                ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md'
+                : 'bg-amber-500/15 border-amber-500/30 text-amber-600 dark:text-amber-400'
+            }`}>
+              {isFuzzyMatch ? <Sparkles className="w-5 h-5" /> : <Layers className="w-5 h-5" />}
             </div>
             <div>
-              <h3 className="font-black text-slate-900 dark:text-white text-sm sm:text-base flex items-center gap-2">
-                <span>ئەنجامی گەڕان:</span>
+              <h3 className="font-black text-sm sm:text-base flex items-center gap-2">
+                <span>{isFuzzyMatch ? 'پێشنیاری نزیکترین ئەنجامەکان:' : 'ئەنجامی گەڕان:'}</span>
                 <span className="font-mono text-amber-600 dark:text-amber-400 font-black">
                   {searchResults.length} فایل دۆزرایەوە
                 </span>
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                لەسەر گەڕان بە دوای ({query}) ئەم دۆسیانە دۆزرانەوە
+              <p className="text-xs text-slate-600 dark:text-slate-400">
+                {isFuzzyMatch 
+                  ? `دۆسیەی تەواو ڕاستەوخۆ نەدۆزرایەوە، بەڵام ئەم دۆسیانە نزیکترینن لە (${query}) لەوانەیە بەهۆی ژمارەیەکی هەڵەوە بێت`
+                  : `لەسەر گەڕان بە دوای (${query}) ئەم دۆسیانە دۆزرانەوە`}
               </p>
             </div>
           </div>
@@ -399,6 +512,13 @@ export default function CitizenSearch({ records, onOpenPrintModal }) {
                           }`}>
                             <span>{result.fileType === 'YELLOW_FOLDER' ? '📁 فایلی زەرد' : '📄 ئەوراق'}</span>
                           </span>
+
+                          {result._fuzzyReason && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-amber-500/20 text-amber-900 dark:text-amber-200 border border-amber-500/40">
+                              <Sparkles className="w-3 h-3 text-amber-500" />
+                              <span>{result._fuzzyReason}</span>
+                            </span>
+                          )}
 
                           {searchResults.length > 1 && (
                             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
