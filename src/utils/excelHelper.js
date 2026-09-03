@@ -97,12 +97,16 @@ export async function parseExcelFile(file) {
     reader.onload = (e) => {
       try {
         const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
+        const workbook = XLSX.read(data, { type: 'array', cellStyles: true });
         
         // Pick 'Records' sheet if exists, otherwise first sheet
         const sheetName = workbook.SheetNames.includes('Records') ? 'Records' : workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         
+        if (!worksheet) {
+          throw new Error('هیچ پەڕەیەک لەناو فایلی ئێکسڵەکەدا نەدۆزرایەوە.');
+        }
+
         const rawJson = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
         
         if (!rawJson || rawJson.length === 0) {
@@ -116,27 +120,37 @@ export async function parseExcelFile(file) {
         let index = 1;
 
         for (const row of rawJson) {
-          const fileVal = String(row[mapping.fileNumber] || row['number file'] || row['ژمارەی فایل'] || row['File'] || '').trim();
-          const accVal = String(row[mapping.accountNumber] || row['ID'] || row['ژمارەی ئەژمار'] || row['Account'] || '').trim();
-          const phoneVal = String(row[mapping.phoneNumber] || row['Phone Number'] || row['ژمارەی مۆبایل'] || row['Phone'] || '').trim();
-          const nameVal = String(row[mapping.citizenName] || row['Name'] || row['ناوی هاووڵاتی'] || row['ناو'] || '').trim();
-          const statusRaw = String(row[mapping.status] || row['Status'] || row['دۆخ'] || '').trim();
-          const dateVal = String(row[mapping.deliveredDate] || row['date'] || row['بەروار'] || '').trim();
-          const recNameVal = String(row[mapping.receiverName] || row['name of recive'] || row['ناوی وەرگرەوە'] || '').trim();
+          const fileVal = String(row[mapping.fileNumber] || row['number file'] || row['Number File'] || row['ژمارەی فایل'] || row['File'] || '').trim();
+          const accVal = String(row[mapping.accountNumber] || row['ID'] || row['id'] || row['ژمارەی ئەژمار'] || row['Account'] || '').trim();
+          const phoneVal = String(row[mapping.phoneNumber] || row['Phone Number'] || row['phone number'] || row['ژمارەی مۆبایل'] || row['Phone'] || '').trim();
+          const nameVal = String(row[mapping.citizenName] || row['Name'] || row['name'] || row['ناوی هاووڵاتی'] || row['ناو'] || '').trim();
+          const statusRaw = String(row[mapping.status] || row['Status'] || row['status'] || row['دۆخ'] || '').trim();
+          const dateVal = String(row[mapping.deliveredDate] || row['date'] || row['Date'] || row['بەروار'] || '').trim();
+          const recNameVal = String(row[mapping.receiverName] || row['name of recive'] || row['Name Of Recive'] || row['ناوی وەرگرەوە'] || '').trim();
 
-          // Skip headers / months metadata
+          // Skip empty or month separator rows (like "مانگی 8")
           if (!fileVal && !accVal && !phoneVal) continue;
-          if (nameVal.startsWith('مانگی ') && !accVal) continue;
+          if ((!fileVal || !accVal) && (nameVal.startsWith('مانگی ') || phoneVal.startsWith('مانگی ') || fileVal.startsWith('مانگی '))) continue;
 
           let cleanPhone = phoneVal;
-          if (/^7[5789]\d{8}$/.test(cleanPhone)) {
+          if (cleanPhone === '0' || cleanPhone === 'نه' || cleanPhone === 'نیە' || cleanPhone === '-' || cleanPhone === 'null') {
+            cleanPhone = 'نیە';
+          } else if (/^7[5789]\d{8}$/.test(cleanPhone)) {
             cleanPhone = '0' + cleanPhone;
           }
+
+          const hasRealName = Boolean(
+            nameVal && 
+            nameVal.trim() !== '' && 
+            nameVal !== 'هاوبەشی کارەبا' && 
+            nameVal !== 'هاوبەش' &&
+            !nameVal.startsWith('مانگی ')
+          );
 
           function isYellowColor(c) {
             if (!c) return false;
             const s = String(c).toUpperCase();
-            return s === 'FFFF99' || s === 'FFFF66' || s === 'FFFF00' || s === 'FFFFCC';
+            return s.includes('FFFF99') || s.includes('FFFF66') || s.includes('FFFF00') || s.includes('FFFFCC') || s.includes('E6B800') || s.includes('FFF2CC');
           }
 
           const rawType = String(row['جۆری دۆسیە'] || row['fileType'] || row['Type'] || row['جۆر'] || '').trim().toLowerCase();
@@ -144,42 +158,46 @@ export async function parseExcelFile(file) {
           if (rawType.includes('زەرد') || rawType.includes('yellow') || rawType.includes('folder') || rawType === 'فایلی زەرد') {
             fileType = 'YELLOW_FOLDER';
           } else {
-            // Scan worksheet for this row's color
-            const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:H1000');
-            for (let R = range.s.r; R <= range.e.r; R++) {
-              const cellE = worksheet[XLSX.utils.encode_cell({ r: R, c: 4 })]; // Col E: number file
-              const cellB = worksheet[XLSX.utils.encode_cell({ r: R, c: 1 })]; // Col B: ID
-              const matchFile = fileVal && cellE && String(cellE.v).trim() === fileVal;
-              const matchAcc = accVal && cellB && String(cellB.v).trim() === accVal;
-              if (matchFile || matchAcc) {
-                const cB = worksheet[XLSX.utils.encode_cell({ r: R, c: 1 })];
-                const cA = worksheet[XLSX.utils.encode_cell({ r: R, c: 0 })];
-                const cC = worksheet[XLSX.utils.encode_cell({ r: R, c: 2 })];
+            // Check worksheet cell color if available
+            try {
+              const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:H1000');
+              for (let R = range.s.r; R <= Math.min(range.e.r, 2000); R++) {
+                const cellE = worksheet[XLSX.utils.encode_cell({ r: R, c: 4 })];
+                const cellB = worksheet[XLSX.utils.encode_cell({ r: R, c: 1 })];
+                const matchFile = fileVal && cellE && String(cellE.v).trim() === fileVal;
+                const matchAcc = accVal && cellB && String(cellB.v).trim() === accVal;
+                if (matchFile || matchAcc) {
+                  const cB = worksheet[XLSX.utils.encode_cell({ r: R, c: 1 })];
+                  const cA = worksheet[XLSX.utils.encode_cell({ r: R, c: 0 })];
+                  const cC = worksheet[XLSX.utils.encode_cell({ r: R, c: 2 })];
 
-                const isY = (cell) => {
-                  if (!cell || !cell.s || cell.s.patternType === 'none') return false;
-                  const fg = cell.s.fgColor?.rgb || '';
-                  const bg = cell.s.bgColor?.rgb || '';
-                  return isYellowColor(fg) || isYellowColor(bg);
-                };
+                  const isY = (cell) => {
+                    if (!cell || !cell.s || cell.s.patternType === 'none') return false;
+                    const fg = cell.s.fgColor?.rgb || '';
+                    const bg = cell.s.bgColor?.rgb || '';
+                    return isYellowColor(fg) || isYellowColor(bg);
+                  };
 
-                if (isY(cB) || isY(cA) || isY(cC)) {
-                  fileType = 'YELLOW_FOLDER';
+                  if (isY(cB) || isY(cA) || isY(cC)) {
+                    fileType = 'YELLOW_FOLDER';
+                  }
+                  break;
                 }
-                break;
               }
+            } catch (err) {
+              // Ignore color detection errors gracefully
             }
           }
 
           records.push({
             id: 'imp-' + Date.now() + '-' + index,
             fileNumber: fileVal || String(index),
-            accountNumber: accVal,
+            accountNumber: accVal || 'نیە',
             citizenName: hasRealName ? nameVal : 'هاوبەشی کارەبا',
             hasRealName: hasRealName,
             phoneNumber: cleanPhone || 'نیە',
             fileType: fileType, // 'YELLOW_FOLDER' | 'PAPER'
-            department: String(row['department'] || row['فەرمانگە'] || 'بەڕێوەبەرایەتی دابەشکردنی کارەبا').trim(),
+            department: String(row['department'] || row['فەرمانگە'] || 'بەڕێوەبەرایەتی دابەشکردنی کارەبا (فرۆشیاری وزە ٢)').trim(),
             transactionType: String(row['transactionType'] || row['جۆری مامەڵە'] || 'پڕۆژەی ڕووناکی - پێوەری زیرەک').trim(),
             status: normalizeStatus(statusRaw, dateVal, recNameVal),
             archiveLocation: String(row['archiveLocation'] || row['شوێنی فایل'] || `سندوقی ${fileVal || index}`).trim(),
@@ -187,7 +205,7 @@ export async function parseExcelFile(file) {
             completionDate: (statusRaw.toLowerCase() === 'done' || dateVal) ? (dateVal || '2024-08-20') : null,
             deliveredDate: dateVal || null,
             receiverName: recNameVal || '',
-            handledBy: 'هۆبەی پەیوەندیدار',
+            handledBy: 'ژووری ژمارە ١٩',
             notes: (cleanPhone === 'نیە' ? 'تەلەفۆنی نیە' : '') + (recNameVal ? ' | وەرگیراوەتەوە: ' + recNameVal : '')
           });
 
@@ -208,55 +226,49 @@ export async function parseExcelFile(file) {
 export function exportToExcel(records, filename = 'co2_file_records.xlsx') {
   const exportData = records.map((r) => ({
     'Name': r.hasRealName ? r.citizenName : '',
-    'ID': r.accountNumber,
-    'Phone Number': r.phoneNumber,
-    'Status': r.status === 'COMPLETED' ? 'Done' : (r.status === 'DELIVERED' ? 'Done' : 'Not Done'),
+    'ID': r.accountNumber !== 'نیە' ? r.accountNumber : '',
+    'Phone Number': r.phoneNumber !== 'نیە' ? r.phoneNumber : '',
+    'Status': r.status === 'COMPLETED' ? 'Done' : (r.status === 'DELIVERED' ? 'Delivered' : 'Not Done'),
     'number file': r.fileNumber,
-    'جۆری دۆسیە': r.fileType === 'YELLOW_FOLDER' ? 'فایلی زەرد' : 'ئەوراق',
     'date': r.deliveredDate || '',
-    'name of recive': r.receiverName || ''
+    'name of recive': r.receiverName || '',
+    'جۆری دۆسیە': r.fileType === 'YELLOW_FOLDER' ? 'فایلی زەرد' : 'ئەوراق'
   }));
 
   const worksheet = XLSX.utils.json_to_sheet(exportData);
-  worksheet['!cols'] = [
-    { wch: 22 }, // Name
-    { wch: 18 }, // ID
-    { wch: 18 }, // Phone Number
-    { wch: 14 }, // Status
-    { wch: 14 }, // number file
-    { wch: 16 }, // date
-    { wch: 25 }  // name of recive
-  ];
-
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Records');
+
   XLSX.writeFile(workbook, filename);
 }
 
 export function downloadStarterTemplate() {
   const sampleData = [
     {
-      'Name': 'ئارام علی ئەحمەد',
+      'Name': 'ئارام مەحمود عەلی',
       'ID': '63450291130',
-      'Phone Number': '07501234567',
-      'Status': 'Done',
-      'number file': '1',
-      'date': '',
-      'name of recive': ''
-    },
-    {
-      'Name': '',
-      'ID': '70000374549',
-      'Phone Number': '07509876543',
+      'Phone Number': '07507965008',
       'Status': 'Not Done',
       'number file': '2',
       'date': '',
-      'name of recive': ''
+      'name of recive': '',
+      'جۆری دۆسیە': 'فایلی زەرد'
+    },
+    {
+      'Name': 'کاروان عەزیز',
+      'ID': '63451337444',
+      'Phone Number': '07504721818',
+      'Status': 'Done',
+      'number file': '7',
+      'date': '2024-08-22',
+      'name of recive': 'کاروان عەزیز',
+      'جۆری دۆسیە': 'ئەوراق'
     }
   ];
 
   const worksheet = XLSX.utils.json_to_sheet(sampleData);
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Records');
-  XLSX.writeFile(workbook, 'co2_file_template.xlsx');
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
+
+  XLSX.writeFile(workbook, 'co2_file_19_template.xlsx');
 }
