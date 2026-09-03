@@ -16,7 +16,7 @@ import {
   isAdminAuthenticated, 
   setAdminAuthenticated 
 } from './utils/storage';
-import { subscribeToCloudRecords, saveRecordsToCloud } from './utils/cloudSync';
+import { subscribeToCloudRecords, saveRecordsToCloud, logActivity } from './utils/cloudSync';
 import { CheckCircle2, Info, Cloud } from 'lucide-react';
 
 export default function App() {
@@ -141,6 +141,7 @@ export default function App() {
 
       updated = combined;
       showToast(`${addedCount} فایلی نوێ زیادکران، ${updatedCount} فایل زانیارییەکانیان نوێکرانەوە بەبێ دووبارەبوونەوە`, 'success');
+      logActivity('EXCEL_IMPORT', `هاوردەکردنی ئێکسڵ: ${newRecords.length} دۆسیە هاوردە کران`, { count: newRecords.length });
     }
 
     setRecords(updated);
@@ -161,6 +162,11 @@ export default function App() {
     if (recordId) {
       updated = records.map(r => r.id === recordId ? { ...r, ...processedData } : r);
       showToast('زانیارییەکانی مامەڵەکە لە کڵاود و سێرڤەر بە سەرکەوتوویی نوێکرایەوە', 'success');
+      logActivity(
+        processedData.status === 'DELIVERED' ? 'DELIVERY' : 'STATUS_CHANGE',
+        `دەستکاریکردنی فایلی (${processedData.fileNumber}) [${processedData.citizenName}]`,
+        { fileNumber: processedData.fileNumber, citizenName: processedData.citizenName, status: processedData.status }
+      );
     } else {
       const newRec = {
         id: 'rec-' + Date.now(),
@@ -168,6 +174,10 @@ export default function App() {
       };
       updated = [newRec, ...records];
       showToast('مامەڵەی نوێ لە سێرڤەری گشتی بە سەرکەوتوویی تۆمار کرا', 'success');
+      logActivity('CREATE', `تۆمارکردنی فایلی نوێی (${processedData.fileNumber}) بە ناوی [${processedData.citizenName}]`, {
+        fileNumber: processedData.fileNumber,
+        citizenName: processedData.citizenName
+      });
     }
     setRecords(updated);
     saveRecordsToCloud(updated);
@@ -175,10 +185,12 @@ export default function App() {
 
   // Delete record (single)
   const handleDeleteRecord = (id) => {
+    const target = records.find(r => r.id === id);
     const updated = records.filter(r => r.id !== id);
     setRecords(updated);
     saveRecordsToCloud(updated);
     showToast('مامەڵەکە بە سەرکەوتوویی لە سێرڤەر سڕایەوە', 'info');
+    logActivity('DELETE', `سڕینەوەی فایلی (${target?.fileNumber || id}) [${target?.citizenName || ''}]`, { fileNumber: target?.fileNumber });
   };
 
   // Bulk / Batch Delete records
@@ -188,6 +200,7 @@ export default function App() {
     setRecords(updated);
     saveRecordsToCloud(updated);
     showToast(`${ids.length} فایل بە سەرکەوتوویی لە کڵاود سڕانەوە`, 'info');
+    logActivity('DELETE', `سڕینەوەی بەکۆمەڵ: (${ids.length}) فایل بە یەکەوە سڕانەوە`, { count: ids.length });
   };
 
   // Bulk Status update
@@ -213,6 +226,7 @@ export default function App() {
     setRecords(updated);
     saveRecordsToCloud(updated);
     showToast(`دۆخی ${ids.length} فایل بە سەرکەوتوویی لە کڵاود گۆڕدرا`, 'success');
+    logActivity('STATUS_CHANGE', `گۆڕینی بەکۆمەڵی دۆخی (${ids.length}) فایل بۆ (${newStatus})`, { count: ids.length, status: newStatus });
   };
 
   // Inline Status update from table

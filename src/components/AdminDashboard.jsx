@@ -38,10 +38,13 @@ import { exportToExcel } from '../utils/excelHelper';
 import DailyIntake from './DailyIntake';
 import SettingsTab from './SettingsTab';
 import AnalyticsTab from './AnalyticsTab';
+import ActivityLogTab from './ActivityLogTab';
 import FastCheckoutModal from './FastCheckoutModal';
+import BulkWhatsAppModal from './BulkWhatsAppModal';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
 import { generateWhatsAppUrl } from '../utils/whatsappHelper';
-import { MessageSquare, BarChart3, ExternalLink } from 'lucide-react';
+import { logActivity } from '../utils/cloudSync';
+import { MessageSquare, BarChart3, ExternalLink, Send, ShieldCheck } from 'lucide-react';
 
 // Convert Arabic & Persian / Kurdish numerals (٠-٩, ۰-۹) to standard Latin digits (0-9)
 function toLatinDigits(str) {
@@ -104,6 +107,7 @@ export default function AdminDashboard({
   const [selectedIds, setSelectedIds] = useState([]);
   const [deleteTarget, setDeleteTarget] = useState(null); // { id, fileNumber, citizenName, isBulk, count, ids }
   const [isFastCheckoutOpen, setIsFastCheckoutOpen] = useState(false);
+  const [isBulkWhatsAppOpen, setIsBulkWhatsAppOpen] = useState(false);
 
   // Reset to page 1 whenever filters change
   useEffect(() => {
@@ -376,6 +380,15 @@ export default function AdminDashboard({
           </button>
 
           <button
+            onClick={() => setIsBulkWhatsAppOpen(true)}
+            title="ناردنی نامەی فەرمی بەکۆمەڵ لە ڕێگەی واتسئاپ بۆ هاووڵاتییان"
+            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-black bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/25 whitespace-nowrap transition-all active:scale-95"
+          >
+            <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span>نامەی بەکۆمەڵ 📢</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('analytics')}
             className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-black whitespace-nowrap transition-all ${
               activeTab === 'analytics'
@@ -388,10 +401,22 @@ export default function AdminDashboard({
           </button>
 
           <button
-            onClick={() => { setActiveTab('records'); onOpenExcelImport(); }}
-            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-black bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/25 whitespace-nowrap transition-all active:scale-95"
+            onClick={() => setActiveTab('activity')}
+            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-black whitespace-nowrap transition-all ${
+              activeTab === 'activity'
+                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white'
+            }`}
           >
-            <UploadCloud className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span>تۆماری چالاکی 🛡️</span>
+          </button>
+
+          <button
+            onClick={() => { setActiveTab('records'); onOpenExcelImport(); }}
+            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-black bg-slate-800 hover:bg-slate-700 text-white shadow-md whitespace-nowrap transition-all active:scale-95"
+          >
+            <UploadCloud className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
             <span>ئەپڵۆدی ئێکسڵ</span>
           </button>
 
@@ -679,6 +704,15 @@ export default function AdminDashboard({
                 >
                   <FileText className="w-3.5 h-3.5" />
                   <span>ئەوراق 📄</span>
+                </button>
+
+                {/* Bulk Send WhatsApp */}
+                <button
+                  onClick={() => setIsBulkWhatsAppOpen(true)}
+                  className="px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black transition-all shadow-md shadow-emerald-500/25 active:scale-95 flex items-center gap-1.5"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>ناردنی واتسئاپ ({selectedIds.length}) 📢</span>
                 </button>
 
                 {/* Change Status to Done */}
@@ -1244,7 +1278,12 @@ export default function AdminDashboard({
         />
       )}
 
-      {/* View 4: Settings & Logo */}
+      {/* View 4: Audit Activity Logs */}
+      {activeTab === 'activity' && (
+        <ActivityLogTab />
+      )}
+
+      {/* View 5: Settings & Logo */}
       {activeTab === 'settings' && (
         <SettingsTab
           records={records}
@@ -1282,6 +1321,25 @@ export default function AdminDashboard({
           if (target && onSaveRecord) {
             onSaveRecord({ ...target, ...deliveryData }, recordId);
           }
+        }}
+      />
+
+      {/* Bulk WhatsApp Broadcast Queue Modal */}
+      <BulkWhatsAppModal
+        isOpen={isBulkWhatsAppOpen}
+        onClose={() => setIsBulkWhatsAppOpen(false)}
+        records={records}
+        selectedIds={selectedIds}
+        onMarkNotified={(recordId) => {
+          const nowStr = new Date().toISOString().replace('T', ' ').slice(0, 16);
+          const target = records.find(r => r.id === recordId);
+          if (target && onSaveRecord) {
+            onSaveRecord({ ...target, notifiedAt: nowStr }, recordId);
+          }
+          logActivity('WHATSAPP_BROADCAST', `نامەی واتسئاپ نێردرا بۆ فایلی (${target?.fileNumber}) بە ناوی [${target?.citizenName}]`, {
+            fileNumber: target?.fileNumber,
+            citizenName: target?.citizenName
+          });
         }}
       />
 

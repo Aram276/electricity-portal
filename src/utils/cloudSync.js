@@ -134,3 +134,74 @@ export async function saveFooterSettingsToCloud(settings) {
     console.error('Failed to save footer settings to cloud:', error);
   }
 }
+
+const LOGS_DOC_REF = doc(db, 'portal_data', 'activity_logs');
+
+/**
+ * Subscribe to Live Activity Logs from Firestore Cloud.
+ */
+export function subscribeToActivityLogs(onUpdateCallback) {
+  try {
+    const unsubscribe = onSnapshot(LOGS_DOC_REF, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        if (data && Array.isArray(data.logs)) {
+          localStorage.setItem('electricity_activity_logs', JSON.stringify(data.logs));
+          onUpdateCallback(data.logs);
+          return;
+        }
+      }
+      try {
+        const cached = JSON.parse(localStorage.getItem('electricity_activity_logs') || '[]');
+        onUpdateCallback(cached);
+      } catch (e) {
+        onUpdateCallback([]);
+      }
+    }, (err) => {
+      console.warn('Activity logs subscription error:', err);
+      try {
+        const cached = JSON.parse(localStorage.getItem('electricity_activity_logs') || '[]');
+        onUpdateCallback(cached);
+      } catch (e) {
+        onUpdateCallback([]);
+      }
+    });
+
+    return unsubscribe;
+  } catch (err) {
+    console.error('Failed to subscribe to activity logs:', err);
+    return () => {};
+  }
+}
+
+/**
+ * Log an activity to Firestore Cloud.
+ */
+export async function logActivity(type, title, details = {}) {
+  try {
+    let currentLogs = [];
+    try {
+      currentLogs = JSON.parse(localStorage.getItem('electricity_activity_logs') || '[]');
+    } catch (e) {}
+
+    const newLog = {
+      id: 'log-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
+      type, // 'STATUS_CHANGE' | 'CREATE' | 'DELETE' | 'EXCEL_IMPORT' | 'WHATSAPP_BROADCAST' | 'DELIVERY'
+      title,
+      details,
+      timestamp: new Date().toISOString().replace('T', ' ').slice(0, 19),
+      user: 'کارمەندی ژووری ١٩'
+    };
+
+    const updated = [newLog, ...currentLogs].slice(0, 500); // Keep last 500 logs
+    localStorage.setItem('electricity_activity_logs', JSON.stringify(updated));
+
+    await setDoc(LOGS_DOC_REF, {
+      logs: updated,
+      lastUpdated: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('Failed to log activity to cloud:', err);
+  }
+}
+
