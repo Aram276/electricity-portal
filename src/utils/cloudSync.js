@@ -138,10 +138,27 @@ export async function saveFooterSettingsToCloud(settings) {
 const LOGS_DOC_REF = doc(db, 'portal_data', 'activity_logs');
 
 /**
- * Subscribe to Live Activity Logs from Firestore Cloud.
+ * Subscribe to Live Activity Logs from Firestore Cloud and local updates.
  */
 export function subscribeToActivityLogs(onUpdateCallback) {
   try {
+    // Immediate callback from cache if available
+    try {
+      const cached = JSON.parse(localStorage.getItem('electricity_activity_logs') || '[]');
+      if (Array.isArray(cached) && cached.length > 0) {
+        onUpdateCallback(cached);
+      }
+    } catch (e) {}
+
+    // In-app immediate update listener
+    const handleLocalUpdate = (e) => {
+      if (e?.detail && Array.isArray(e.detail)) {
+        onUpdateCallback(e.detail);
+      }
+    };
+    window.addEventListener('activity_log_updated', handleLocalUpdate);
+
+    // Live Cloud Subscription
     const unsubscribe = onSnapshot(LOGS_DOC_REF, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data();
@@ -167,7 +184,10 @@ export function subscribeToActivityLogs(onUpdateCallback) {
       }
     });
 
-    return unsubscribe;
+    return () => {
+      window.removeEventListener('activity_log_updated', handleLocalUpdate);
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
   } catch (err) {
     console.error('Failed to subscribe to activity logs:', err);
     return () => {};
@@ -175,20 +195,38 @@ export function subscribeToActivityLogs(onUpdateCallback) {
 }
 
 /**
- * Log an activity to Firestore Cloud.
+ * Log an activity permanently to Firestore Cloud.
  */
 export async function logActivity(type, title, details = {}) {
   try {
-    let currentLogs = [];
+    let cloudLogs = [];
     try {
-      currentLogs = JSON.parse(localStorage.getItem('electricity_activity_logs') || '[]');
+      const snap = await getDoc(LOGS_DOC_REF);
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data && Array.isArray(data.logs)) {
+          cloudLogs = data.logs;
+        }
+      }
+    } catch (e) {
+      console.warn('Could not read existing cloud logs:', e);
+    }
+
+    let localLogs = [];
+    try {
+      localLogs = JSON.parse(localStorage.getItem('electricity_activity_logs') || '[]');
     } catch (e) {}
+
+    // Deduplicate and combine logs
+    const logMap = new Map();
+    cloudLogs.forEach(l => { if (l?.id) logMap.set(l.id, l); });
+    localLogs.forEach(l => { if (l?.id) logMap.set(l.id, l); });
 
     const activeStaff = JSON.parse(localStorage.getItem('electricity_active_staff') || 'null');
     const userName = activeStaff?.name ? `${activeStaff.name} (${activeStaff.title || 'ژووری ١٩'})` : 'کارمەندی ژووری ١٩';
 
     const newLog = {
-      id: 'log-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
+      id: 'log-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6),
       type, // 'STATUS_CHANGE' | 'CREATE' | 'DELETE' | 'EXCEL_IMPORT' | 'WHATSAPP_BROADCAST' | 'DELIVERY'
       title,
       details,
@@ -196,13 +234,14 @@ export async function logActivity(type, title, details = {}) {
       user: userName
     };
 
-    const updated = [newLog, ...currentLogs].slice(0, 500); // Keep last 500 logs
-    localStorage.setItem('electricity_activity_logs', JSON.stringify(updated));
+    const combined = [newLog, ...Array.from(logMap.values())].slice(0, 1000); // Retain up to 1,000 logs
+    localStorage.setItem('electricity_activity_logs', JSON.stringify(combined));
+    window.dispatchEvent(new CustomEvent('activity_log_updated', { detail: combined }));
 
     await setDoc(LOGS_DOC_REF, {
-      logs: updated,
+      logs: combined,
       lastUpdated: new Date().toISOString()
-    });
+    }, { merge: true });
   } catch (err) {
     console.error('Failed to log activity to cloud:', err);
   }
