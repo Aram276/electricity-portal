@@ -45,8 +45,44 @@ export default function App() {
 
   // Toast notification
   const [toast, setToast] = useState(null);
+  const [isAdminPath, setIsAdminPath] = useState(false);
 
   useEffect(() => {
+    const checkAdminUrl = () => {
+      const hash = window.location.hash.toLowerCase();
+      const path = window.location.pathname.toLowerCase();
+      const search = window.location.search.toLowerCase();
+      const isTarget = hash.includes('admin') || hash.includes('staff') || path.includes('/admin') || search.includes('admin');
+      
+      setIsAdminPath(isTarget);
+
+      if (isTarget) {
+        if (isAdminAuthenticated()) {
+          setIsAdmin(true);
+          setCurrentView('admin');
+        } else {
+          setIsLoginOpen(true);
+        }
+      }
+    };
+
+    checkAdminUrl();
+    window.addEventListener('hashchange', checkAdminUrl);
+    window.addEventListener('popstate', checkAdminUrl);
+
+    // Secret Key Combination: Ctrl + Shift + A or Alt + A
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'a') || (e.altKey && e.key.toLowerCase() === 'a')) {
+        e.preventDefault();
+        if (isAdminAuthenticated()) {
+          setCurrentView(prev => prev === 'admin' ? 'citizen' : 'admin');
+        } else {
+          setIsLoginOpen(true);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
     setIsAdmin(isAdminAuthenticated());
 
     // Live Cloud Subscription to Firebase Firestore
@@ -57,6 +93,9 @@ export default function App() {
     });
 
     return () => {
+      window.removeEventListener('hashchange', checkAdminUrl);
+      window.removeEventListener('popstate', checkAdminUrl);
+      window.removeEventListener('keydown', handleKeyDown);
       if (typeof unsubscribe === 'function') unsubscribe();
     };
   }, []);
@@ -372,6 +411,7 @@ export default function App() {
         currentView={currentView}
         setCurrentView={setCurrentView}
         isAdmin={isAdmin}
+        isAdminPath={isAdminPath}
         activeStaff={activeStaff}
         onOpenAdminLogin={() => setIsLoginOpen(true)}
         onAdminLogout={handleAdminLogout}
