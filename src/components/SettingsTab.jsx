@@ -98,6 +98,7 @@ export default function SettingsTab({ onResetData, records }) {
 
     const newStaff = {
       id: 'staff-' + Date.now(),
+      username: (newStaffUsername.trim() || newStaffName.trim()).toLowerCase(),
       name: newStaffName.trim(),
       title: newStaffTitle.trim() || 'فەرمانبەری ژووری ١٩',
       pin: newStaffPin.trim(),
@@ -107,11 +108,12 @@ export default function SettingsTab({ onResetData, records }) {
     const updated = [...staffList, newStaff];
     setStaffList(updated);
     saveStaffAccountsToCloud(updated);
-    logActivity('STATUS_CHANGE', `زیادکردنی ئەکاونتی نوێی فەرمانبەر: [${newStaff.name}] (${newStaff.title})`);
+    logActivity('STATUS_CHANGE', `زیادکردنی یوزەری نوێ: [${newStaff.name}] (@${newStaff.username})`);
 
+    setNewStaffUsername('');
     setNewStaffName('');
     setNewStaffPin('');
-    setStaffMsg('فەرمانبەری نوێ بە سەرکەوتوویی لە کڵاود تۆمار کرا ✓');
+    setStaffMsg('یوزەری نوێ بە سەرکەوتوویی لە کڵاود تۆمار کرا ✓');
     setTimeout(() => setStaffMsg(''), 3000);
   };
 
@@ -442,6 +444,7 @@ export default function SettingsTab({ onResetData, records }) {
                 <div className="truncate">
                   <div className="text-sm font-bold text-slate-900 dark:text-white truncate flex items-center gap-1.5">
                     <span>{staff.name}</span>
+                    <span className="font-mono text-[11px] text-amber-600 dark:text-amber-400 font-normal">(@{staff.username || staff.name})</span>
                     <span className={`px-2 py-0.2 rounded-md text-[9px] font-black border ${
                       staff.role === 'ADMIN' 
                         ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-300' 
@@ -474,12 +477,24 @@ export default function SettingsTab({ onResetData, records }) {
         <form onSubmit={handleAddStaff} className="p-5 rounded-2xl bg-amber-500/5 dark:bg-amber-950/20 border-2 border-dashed border-amber-500/40 space-y-4">
           <div className="text-xs font-black text-amber-900 dark:text-amber-300 flex items-center gap-1.5">
             <UserPlus className="w-4 h-4 text-amber-500" />
-            <span>زیادکردنی فەرمانبەری نوێ بۆ ژووری ١٩:</span>
+            <span>زیادکردنی فەرمانبەری نوێ (یوزەر و پاسۆرد):</span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
             <div>
-              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">ناوی فەرمانبەر:</label>
+              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">ناوی بەکارهێنەر (یوزەر):</label>
+              <input
+                type="text"
+                required
+                placeholder="نموونە: raad یان aram"
+                value={newStaffUsername}
+                onChange={(e) => setNewStaffUsername(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-amber-500 font-mono"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">ناوی فەرمانبەر (کوردی):</label>
               <input
                 type="text"
                 required
@@ -503,7 +518,7 @@ export default function SettingsTab({ onResetData, records }) {
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">پاسۆردی تایبەت (PIN):</label>
+              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">پاسۆرد (Password):</label>
               <input
                 type="text"
                 required
@@ -533,7 +548,7 @@ export default function SettingsTab({ onResetData, records }) {
               className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md transition-all flex items-center gap-1.5 active:scale-95"
             >
               <UserPlus className="w-4 h-4" />
-              <span>تۆمارکردنی فەرمانبەر</span>
+              <span>تۆمارکردنی یوزەری نوێ</span>
             </button>
 
             {staffMsg && (

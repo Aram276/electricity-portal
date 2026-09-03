@@ -211,8 +211,8 @@ export async function logActivity(type, title, details = {}) {
 const STAFF_DOC_REF = doc(db, 'portal_data', 'staff_accounts');
 
 export const DEFAULT_STAFF = [
-  { id: 'staff-1', name: 'ئارام', role: 'ADMIN', pin: '075075', title: 'بەڕێوەبەری سەرەکی' },
-  { id: 'staff-2', name: 'ڕەعد', role: 'STAFF', pin: '1919', title: 'فەرمانبەری ژووری ١٩' }
+  { id: 'staff-1', username: 'aram', name: 'ئارام', role: 'ADMIN', pin: '075075', title: 'بەڕێوەبەری سەرەکی' },
+  { id: 'staff-2', username: 'raad', name: 'ڕەعد', role: 'STAFF', pin: '1919', title: 'فەرمانبەری ژووری ١٩' }
 ];
 
 /**
