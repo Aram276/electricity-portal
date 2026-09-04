@@ -35,7 +35,7 @@ export function resetToDemoRecords() {
   return INITIAL_RECORDS;
 }
 
-export function markAsDelivered(recordId, receiverName = '', customDate = null) {
+export function markAsDelivered(recordId, receiverName = '', customDate = null, isKycDone = true, nationalId = '') {
   const records = getStoredRecords();
   const now = customDate || new Date().toISOString().slice(0, 10);
   
@@ -46,6 +46,9 @@ export function markAsDelivered(recordId, receiverName = '', customDate = null) 
         status: 'DELIVERED',
         deliveredDate: now,
         receiverName: receiverName || (r.hasRealName ? r.citizenName : 'هاوبەشی کارەبا'),
+        isKycDone: isKycDone ?? true,
+        kycStatus: isKycDone ? 'DONE' : 'PENDING',
+        nationalId: nationalId || r.nationalId || '',
         notes: (r.notes ? r.notes + ' | ' : '') + `تەسلیم کرایەوە لە [${now}]`
       };
     }

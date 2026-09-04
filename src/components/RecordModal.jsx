@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Save, User, Hash, Phone, Building2, FileText, Archive, Calendar, CheckCircle2, Folder, AlertTriangle } from 'lucide-react';
+import { X, Save, User, Hash, Phone, Building2, FileText, Archive, Calendar, CheckCircle2, Folder, AlertTriangle, ShieldCheck, CreditCard } from 'lucide-react';
 import { STATUS_CONFIG, DEPARTMENTS, TRANSACTION_TYPES } from '../constants/status';
 
 export default function RecordModal({ isOpen, onClose, onSave, editingRecord, records = [] }) {
@@ -18,7 +18,9 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, re
     deliveredDate: '',
     receiverName: '',
     handledBy: '',
-    notes: ''
+    notes: '',
+    isKycDone: false,
+    nationalId: ''
   });
 
   // Intelligent Duplicate Detection (Realtime)
@@ -50,6 +52,13 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, re
     if (!isOpen) return;
 
     if (editingRecord) {
+      const isKyc = Boolean(
+        editingRecord.isKycDone || 
+        editingRecord.kycStatus === 'DONE' || 
+        editingRecord.status === 'COMPLETED' || 
+        editingRecord.status === 'DELIVERED'
+      );
+
       setFormData({
         fileNumber: editingRecord.fileNumber || '',
         fileType: editingRecord.fileType || 'YELLOW_FOLDER',
@@ -65,7 +74,9 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, re
         deliveredDate: editingRecord.deliveredDate || '',
         receiverName: editingRecord.receiverName || '',
         handledBy: editingRecord.handledBy || '',
-        notes: editingRecord.notes || ''
+        notes: editingRecord.notes || '',
+        isKycDone: isKyc,
+        nationalId: editingRecord.nationalId || ''
       });
     } else {
       const nums = (records || []).map(r => parseInt(r.fileNumber, 10)).filter(n => !isNaN(n) && n > 0);
@@ -87,12 +98,23 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, re
         deliveredDate: '',
         receiverName: '',
         handledBy: 'هۆبەی پەیوەندیدار',
-        notes: ''
+        notes: '',
+        isKycDone: false,
+        nationalId: ''
       });
     }
   }, [editingRecord, isOpen]);
 
   if (!isOpen) return null;
+
+  const handleStatusChange = (newStatus) => {
+    const isDone = newStatus === 'COMPLETED' || newStatus === 'DELIVERED';
+    setFormData(prev => ({
+      ...prev,
+      status: newStatus,
+      isKycDone: isDone ? true : prev.isKycDone
+    }));
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -101,7 +123,8 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, re
     onSave({
       ...formData,
       citizenName: hasRealName ? rawName : 'هاوبەشی کارەبا',
-      hasRealName: hasRealName
+      hasRealName: hasRealName,
+      kycStatus: formData.isKycDone ? 'DONE' : 'PENDING'
     }, editingRecord ? editingRecord.id : null);
     onClose();
   };
@@ -118,9 +141,9 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, re
             </div>
             <div>
               <h3 className="text-lg font-black text-slate-900 dark:text-white">
-                {editingRecord ? 'دەستکاریکردنی زانیاری مامەڵە' : 'زیادکردنی مامەڵەی نوێ بۆ سیستم'}
+                {editingRecord ? 'دەستکاریکردنی زانیاری مامەڵە' : 'تۆمارکردنی مامەڵەی نوێ'}
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">تۆمارکردنی دۆسیە لە ئەرشیف و داتابەیسی کارەبا</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">زانیارییەکان لە داتابەیسی ناوەندی پاشەکەوت دەبن</p>
             </div>
           </div>
           <button
@@ -131,79 +154,79 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, re
           </button>
         </div>
 
-        {/* Duplicate Warning Banner */}
+        {/* Duplicate Realtime Warning Banner */}
         {duplicates.length > 0 && (
-          <div className="p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/40 text-amber-900 dark:text-amber-200 text-xs space-y-2 animate-fadeIn">
-            <div className="flex items-center gap-2 font-black">
-              <AlertTriangle className="w-4 h-4 text-amber-500 animate-pulse shrink-0" />
-              <span>⚠️ ئاگاداری: لێکچوونی ئەم دۆسیەیە لەگەڵ ({duplicates.length}) فایلی پێشوو دۆزرایەوە (ڕێگری لە دووبارەبوونەوە):</span>
+          <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 space-y-2 animate-fadeIn">
+            <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 text-xs font-black">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>ئاگاداری: ڕەنگە ئەم مامەڵەیە پێشتر تۆمارکرابێت (لێکچوونی دۆسیە دۆزرایەوە):</span>
             </div>
-            <div className="space-y-1.5 pr-6 text-[11px]">
-              {duplicates.map(d => (
-                <div key={d.id} className="flex items-center justify-between gap-2 bg-white dark:bg-slate-950 p-2.5 rounded-xl border border-amber-500/30">
-                  <span className="font-bold">دۆسیەی #{d.fileNumber} | {d.citizenName} ({d.accountNumber ? `ئەژمار: ${d.accountNumber}` : 'بێ ئەژمار'})</span>
-                  <span className="font-mono font-bold text-amber-600 dark:text-amber-400">
-                    {d.status === 'COMPLETED' ? '✅ تەواوبوو' : '⏳ لەژێر کاردایە'}
-                  </span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+              {duplicates.map(dup => (
+                <div key={dup.id} className="p-2.5 rounded-xl bg-white/80 dark:bg-slate-950/80 border border-rose-200 dark:border-rose-900/50 flex items-center justify-between">
+                  <div>
+                    <span className="font-bold text-slate-900 dark:text-white">{dup.citizenName}</span>
+                    <span className="text-slate-500 mr-2 font-mono">#{dup.fileNumber}</span>
+                  </div>
+                  <span className="font-mono text-slate-600 dark:text-slate-400">{dup.accountNumber || dup.phoneNumber}</span>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* Form Fields */}
         <form onSubmit={handleSubmit} className="space-y-4">
+          
+          {/* File Type Selection (Yellow Folder vs Paper) */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
+              <Folder className="w-3.5 h-3.5 text-amber-500" />
+              <span>شێوازی پاراستن / جۆری دۆسیە:</span>
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, fileType: 'YELLOW_FOLDER' })}
+                className={`p-3 rounded-2xl border flex items-center justify-center gap-2.5 font-black text-xs sm:text-sm transition-all ${
+                  formData.fileType === 'YELLOW_FOLDER'
+                    ? 'bg-amber-100 dark:bg-amber-500/25 border-amber-500 text-amber-950 dark:text-amber-300 shadow-md ring-2 ring-amber-500/30'
+                    : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100'
+                }`}
+              >
+                <Folder className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                <span>فایلی زەرد (دۆسیەی گەورە) 📁</span>
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, fileType: 'PAPER' })}
+                className={`p-3 rounded-2xl border flex items-center justify-center gap-2.5 font-black text-xs sm:text-sm transition-all ${
+                  formData.fileType === 'PAPER'
+                    ? 'bg-slate-200 dark:bg-slate-800 border-slate-500 text-slate-950 dark:text-white shadow-md ring-2 ring-slate-400/30'
+                    : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100'
+                }`}
+              >
+                <FileText className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+                <span>ئەوراق (کاغەزی تەنیا) 📄</span>
+              </button>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             
-            {/* File Type Choice Toggle */}
-            <div className="sm:col-span-2 p-3.5 rounded-2xl bg-amber-500/10 dark:bg-amber-500/5 border-2 border-amber-500/30">
-              <label className="block text-xs sm:text-sm font-black text-slate-800 dark:text-slate-200 mb-2 flex items-center gap-1.5">
-                <Folder className="w-4 h-4 text-amber-500" />
-                <span>جۆری دۆسیە (شێوازی پاراستن):</span>
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, fileType: 'YELLOW_FOLDER' }))}
-                  className={`py-3 px-4 rounded-2xl text-xs sm:text-sm font-black border-2 transition-all flex items-center justify-center gap-2 cursor-pointer select-none active:scale-98 ${
-                    formData.fileType === 'YELLOW_FOLDER'
-                      ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-md shadow-amber-500/30 ring-2 ring-amber-500/50'
-                      : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:border-amber-400 hover:bg-amber-50/40 dark:hover:bg-amber-950/20'
-                  }`}
-                >
-                  <Folder className={`w-4 h-4 ${formData.fileType === 'YELLOW_FOLDER' ? 'text-slate-950' : 'text-amber-500'}`} />
-                  <span>فایلی زەرد (دۆسیەی زەرد)</span>
-                  {formData.fileType === 'YELLOW_FOLDER' && <CheckCircle2 className="w-4 h-4 text-slate-950 ml-1" />}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, fileType: 'PAPER' }))}
-                  className={`py-3 px-4 rounded-2xl text-xs sm:text-sm font-black border-2 transition-all flex items-center justify-center gap-2 cursor-pointer select-none active:scale-98 ${
-                    formData.fileType === 'PAPER'
-                      ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/30 ring-2 ring-blue-500/50'
-                      : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:border-blue-400 hover:bg-blue-50/40 dark:hover:bg-blue-950/20'
-                  }`}
-                >
-                  <FileText className={`w-4 h-4 ${formData.fileType === 'PAPER' ? 'text-white' : 'text-blue-500'}`} />
-                  <span>ئەوراق (کاغەز/پەڕەی سپی)</span>
-                  {formData.fileType === 'PAPER' && <CheckCircle2 className="w-4 h-4 text-white ml-1" />}
-                </button>
-              </div>
-            </div>
-
             {/* 1. File Number */}
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
                 <Hash className="w-3.5 h-3.5 text-amber-500" />
-                <span>ژمارەی فایل / مامەڵە:</span>
+                <span>ژمارەی فایل (کۆدی دۆسیە):</span>
               </label>
               <input
                 type="text"
                 required
                 value={formData.fileNumber}
                 onChange={(e) => setFormData({ ...formData, fileNumber: e.target.value })}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-amber-700 dark:text-amber-300 font-mono font-bold text-sm focus:outline-none focus:border-amber-500"
+                placeholder="نموونە: 124"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-mono text-sm focus:outline-none focus:border-amber-500 font-bold"
               />
             </div>
 
@@ -211,15 +234,14 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, re
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
                 <Hash className="w-3.5 h-3.5 text-amber-500" />
-                <span>ژمارەی ئەژمار (Account No):</span>
+                <span>ژمارەی ئەژمار (ID):</span>
               </label>
               <input
                 type="text"
-                required
                 value={formData.accountNumber}
                 onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value })}
-                placeholder="بۆ نموونە: 10458293"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-mono text-sm focus:outline-none focus:border-amber-500"
+                placeholder="نموونە: 63450291130 (گەر نیە بە بەتاڵی جێبهێڵە)"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-mono text-sm focus:outline-none focus:border-amber-500 font-bold"
               />
             </div>
 
@@ -227,14 +249,13 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, re
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
                 <User className="w-3.5 h-3.5 text-amber-500" />
-                <span>ناوی تەواوی هاووڵاتی:</span>
+                <span>ناوی خاوەن مامەڵە / بەشداربوو:</span>
               </label>
               <input
                 type="text"
-                required
                 value={formData.citizenName}
                 onChange={(e) => setFormData({ ...formData, citizenName: e.target.value })}
-                placeholder="ناوی سیانی بنووسە..."
+                placeholder="ناوی سیانی... (گەر نەزانراوە بە بەتاڵی جێبهێڵە)"
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-amber-500"
               />
             </div>
@@ -247,10 +268,9 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, re
               </label>
               <input
                 type="text"
-                required
                 value={formData.phoneNumber}
                 onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-                placeholder="0770xxxxxxx"
+                placeholder="0750XXXXXXX (گەر نیە بە بەتاڵی جێبهێڵە)"
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-mono text-sm focus:outline-none focus:border-amber-500"
               />
             </div>
@@ -259,7 +279,7 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, re
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
                 <Building2 className="w-3.5 h-3.5 text-amber-500" />
-                <span>بەڕێوەبەرایەتی / فەرمانگە:</span>
+                <span>فەرمانگەی تایبەتمەند:</span>
               </label>
               <select
                 value={formData.department}
@@ -293,7 +313,7 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, re
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
                 <Archive className="w-3.5 h-3.5 text-amber-500" />
-                <span>شوێنی فایل لە ئەرشیف / سندوق:</span>
+                <span>شوێنی سندوق لە ئەرشیف:</span>
               </label>
               <input
                 type="text"
@@ -327,7 +347,7 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, re
               </label>
               <select
                 value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                onChange={(e) => handleStatusChange(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-amber-500 font-semibold"
               >
                 {Object.values(STATUS_CONFIG).map((st) => (
@@ -379,6 +399,53 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, re
               />
             </div>
 
+          </div>
+
+          {/* ── KYC VERIFICATION SECTION ── */}
+          <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                <span className="text-xs sm:text-sm font-bold text-emerald-950 dark:text-emerald-300">
+                  دۆخی ناسینەوەی هاوبەش (KYC Status)
+                </span>
+              </div>
+              <span className={`px-2.5 py-0.5 rounded-full text-xs font-black ${
+                formData.isKycDone
+                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 border border-emerald-300'
+                  : 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 border border-amber-300'
+              }`}>
+                {formData.isKycDone ? '🟢 KYC کراوە' : '🟡 KYC نەکراوە'}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={formData.isKycDone}
+                  onChange={(e) => setFormData({ ...formData, isKycDone: e.target.checked })}
+                  className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700"
+                />
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                  پرۆسەی KYC ئەنجامدراوە (ناسنامە/کارت پشکنراوە)
+                </span>
+              </label>
+
+              <div>
+                <div className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300 font-bold mb-1">
+                  <CreditCard className="w-3.5 h-3.5 text-emerald-500" />
+                  <span>ژمارەی کارتی نیشتمانی / ناسنامە:</span>
+                </div>
+                <input
+                  type="text"
+                  value={formData.nationalId}
+                  onChange={(e) => setFormData({ ...formData, nationalId: e.target.value })}
+                  placeholder="ژمارەی کارتی نیشتمانی (ئارەزوومەندانە)..."
+                  className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-mono text-xs focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+            </div>
           </div>
 
           {/* Notes */}

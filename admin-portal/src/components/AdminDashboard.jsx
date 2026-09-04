@@ -28,6 +28,7 @@ import {
   AlertTriangle,
   Folder,
   FileText,
+  ShieldCheck,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
@@ -45,7 +46,7 @@ import ConfirmDeleteModal from './ConfirmDeleteModal';
 import FileTimelineModal from './FileTimelineModal';
 import { generateWhatsAppUrl } from '../utils/whatsappHelper';
 import { logActivity } from '../utils/cloudSync';
-import { MessageSquare, BarChart3, ExternalLink, Send, ShieldCheck, History } from 'lucide-react';
+import { MessageSquare, BarChart3, ExternalLink, Send, History } from 'lucide-react';
 
 // Convert Arabic & Persian / Kurdish numerals (٠-٩, ۰-۹) to standard Latin digits (0-9)
 function toLatinDigits(str) {
@@ -88,6 +89,8 @@ export default function AdminDashboard({
   onBatchUpdateStatus,
   onBatchUpdateFileType,
   onToggleFileType,
+  onToggleKYC,
+  onBatchUpdateKYC,
   onUpdateStatus,
   onSaveRecord,
   onResetData
@@ -97,7 +100,7 @@ export default function AdminDashboard({
   const deferredSearchTerm = useDeferredValue(searchTerm); // Prevents UI typing lag
 
   const [statusFilter, setStatusFilter] = useState('ALL');
-  const [dataFilter, setDataFilter] = useState('ALL'); // 'ALL' | 'YELLOW_FOLDER' | 'PAPER' | 'NO_PHONE' | 'HAS_PHONE' | 'NO_ID' | 'HAS_ID' | 'WITH_NAME' | 'NO_NAME' | 'HAS_RECEIVER' | 'NO_RECEIVER' | 'INCOMPLETE'
+  const [dataFilter, setDataFilter] = useState('ALL'); // 'ALL' | 'YELLOW_FOLDER' | 'PAPER' | 'KYC_DONE' | 'KYC_PENDING' | ...
   const [sortField, setSortField] = useState('fileNumber');
   const [sortOrder, setSortOrder] = useState('asc');
   
@@ -145,6 +148,8 @@ export default function AdminDashboard({
     let incomplete = 0;
     let yellowFolders = 0;
     let papers = 0;
+    let kycDone = 0;
+    let kycPending = 0;
 
     for (let i = 0; i < total; i++) {
       const r = records[i];
@@ -159,6 +164,16 @@ export default function AdminDashboard({
       } else {
         papers++;
       }
+
+      // KYC Done if explicit flag or status is completed / delivered
+      const isKyc = Boolean(
+        r.isKycDone || 
+        r.kycStatus === 'DONE' || 
+        r.status === 'COMPLETED' || 
+        r.status === 'DELIVERED'
+      );
+      if (isKyc) kycDone++;
+      else kycPending++;
 
       const isPNull = !r.phoneNumber || r.phoneNumber === 'نیە' || r.phoneNumber.trim() === '';
       if (isPNull) noPhone++;
@@ -186,7 +201,9 @@ export default function AdminDashboard({
       withoutReceiver: total - withReceiver,
       incomplete,
       yellowFolders,
-      papers
+      papers,
+      kycDone,
+      kycPending
     };
   }, [records]);
 
@@ -230,9 +247,13 @@ export default function AdminDashboard({
         const isIdMissing = !record.accountNumber || record.accountNumber === 'نیە' || record.accountNumber.trim() === '' || record.accountNumber === '-';
         const hasRealName = Boolean(record.hasRealName);
         const hasReceiver = Boolean(record.receiverName && record.receiverName.trim() !== '');
+        const isKyc = Boolean(record.isKycDone || record.kycStatus === 'DONE' || record.status === 'COMPLETED' || record.status === 'DELIVERED');
 
         if (dataFilter === 'YELLOW_FOLDER' && record.fileType !== 'YELLOW_FOLDER') return false;
         if (dataFilter === 'PAPER' && record.fileType === 'YELLOW_FOLDER') return false;
+
+        if (dataFilter === 'KYC_DONE' && !isKyc) return false;
+        if (dataFilter === 'KYC_PENDING' && isKyc) return false;
 
         if (dataFilter === 'NO_PHONE' && !isPhoneMissing) return false;
         if (dataFilter === 'HAS_PHONE' && isPhoneMissing) return false;
@@ -627,6 +648,8 @@ export default function AdminDashboard({
                   }`}
                 >
                   <option value="ALL">🔍 فلتەری زانیارییەکان (گشت داتاکان)</option>
+                  <option value="KYC_DONE">🟢 تەنها هاوبەشە KYC کراوەکان ({stats.kycDone})</option>
+                  <option value="KYC_PENDING">🟡 تەنها هاوبەشە KYC نەکراوەکان ({stats.kycPending})</option>
                   <option value="YELLOW_FOLDER">📁 تەنها فایلی زەرد ({stats.yellowFolders})</option>
                   <option value="PAPER">📄 تەنها ئەوراق / کاغەز ({stats.papers})</option>
                   <option value="NO_PHONE">⚠️ ئەوانەی مۆبایلیان نیە / نیەیە ({stats.noPhone})</option>
@@ -659,7 +682,7 @@ export default function AdminDashboard({
 
                 {dataFilter !== 'ALL' && (
                   <span className="px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30 font-bold flex items-center gap-1">
-                    <span>فلتەر: {dataFilter === 'YELLOW_FOLDER' ? '📁 فایلی زەرد' : (dataFilter === 'PAPER' ? '📄 ئەوراق' : (dataFilter === 'NO_PHONE' ? 'بێ مۆبایل' : (dataFilter === 'HAS_PHONE' ? 'بە مۆبایل' : (dataFilter === 'NO_ID' ? 'بێ ئەژمار' : (dataFilter === 'HAS_ID' ? 'بە ئەژمار' : (dataFilter === 'WITH_NAME' ? 'بە ناو' : (dataFilter === 'NO_NAME' ? 'بێ ناو' : 'کەموکوڕی')))))))}</span>
+                    <span>فلتەر: {dataFilter === 'KYC_DONE' ? '🟢 KYC کراوە' : (dataFilter === 'KYC_PENDING' ? '🟡 KYC نەکراوە' : (dataFilter === 'YELLOW_FOLDER' ? '📁 فایلی زەرد' : (dataFilter === 'PAPER' ? '📄 ئەوراق' : (dataFilter === 'NO_PHONE' ? 'بێ مۆبایل' : (dataFilter === 'HAS_PHONE' ? 'بە مۆبایل' : (dataFilter === 'NO_ID' ? 'بێ ئەژمار' : (dataFilter === 'HAS_ID' ? 'بە ئەژمار' : (dataFilter === 'WITH_NAME' ? 'بە ناو' : (dataFilter === 'NO_NAME' ? 'بێ ناو' : 'کەموکوڕی')))))))))}</span>
                     <button onClick={() => setDataFilter('ALL')} className="hover:text-rose-500"><X className="w-3 h-3" /></button>
                   </span>
                 )}
@@ -731,6 +754,15 @@ export default function AdminDashboard({
                 >
                   <Send className="w-3.5 h-3.5" />
                   <span>ناردنی واتسئاپ ({selectedIds.length}) 📢</span>
+                </button>
+
+                {/* Bulk Mark KYC Done */}
+                <button
+                  onClick={() => onBatchUpdateKYC && onBatchUpdateKYC(selectedIds, true)}
+                  className="px-3 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold transition-all shadow-sm active:scale-95 flex items-center gap-1.5"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>KYC کراوە ({selectedIds.length}) 🪪</span>
                 </button>
 
                 {/* Change Status to Done */}
@@ -806,6 +838,7 @@ export default function AdminDashboard({
                     <th className="p-3 cursor-pointer" onClick={() => { setSortField('citizenName'); setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc'); }}>
                       ناوی هاووڵاتی {sortField === 'citizenName' && (sortOrder === 'asc' ? '▲' : '▼')}
                     </th>
+                    <th className="p-3">دۆخی KYC (ناسینەوە)</th>
                     <th className="p-3">دۆخی ئێستا (Status)</th>
                     <th className="p-3">بەرواری تەسلیم</th>
                     <th className="p-3">وەرگرەوە / فەرمانبەر</th>
@@ -815,7 +848,7 @@ export default function AdminDashboard({
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-slate-800 dark:text-slate-200">
                   {paginatedRecords.length === 0 ? (
                     <tr>
-                      <td colSpan="10" className="p-12 text-center text-slate-400">
+                      <td colSpan="11" className="p-12 text-center text-slate-400">
                         <AlertCircle className="w-8 h-8 mx-auto mb-2 text-slate-400" />
                         <span>هیچ تۆمارێک بەم فلتەرانە نەدۆزرایەوە</span>
                       </td>
@@ -827,6 +860,12 @@ export default function AdminDashboard({
                       const isPhoneMissing = !record.phoneNumber || record.phoneNumber === 'نیە' || record.phoneNumber.trim() === '';
                       const isIdMissing = !record.accountNumber || record.accountNumber === 'نیە' || record.accountNumber.trim() === '' || record.accountNumber === '-';
                       const isYellowFolder = record.fileType === 'YELLOW_FOLDER';
+                      const isKyc = Boolean(
+                        record.isKycDone || 
+                        record.kycStatus === 'DONE' || 
+                        record.status === 'COMPLETED' || 
+                        record.status === 'DELIVERED'
+                      );
 
                       return (
                         <tr 
@@ -919,6 +958,23 @@ export default function AdminDashboard({
                             ) : (
                               <span className="text-slate-400 italic text-xs">هاوبەشی کارەبا</span>
                             )}
+                          </td>
+
+                          {/* KYC Status Button Toggle */}
+                          <td className="p-3">
+                            <button
+                              type="button"
+                              onClick={() => onToggleKYC && onToggleKYC(record.id)}
+                              title={isKyc ? "KYC کراوە - کلیک بکە بۆ گۆڕین" : "KYC نەکراوە - کلیک بکە بۆ دیاریکردن وەک ئەنجامدراو"}
+                              className={`px-2.5 py-1 rounded-xl text-xs font-black border transition-all active:scale-95 shadow-sm inline-flex items-center gap-1.5 ${
+                                isKyc
+                                  ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-500/40 hover:bg-emerald-200 dark:hover:bg-emerald-500/30'
+                                  : 'bg-amber-100 dark:bg-amber-500/20 text-amber-900 dark:text-amber-300 border-amber-300 dark:border-amber-500/40 hover:bg-amber-200 dark:hover:bg-amber-500/30'
+                              }`}
+                            >
+                              <ShieldCheck className={`w-3.5 h-3.5 ${isKyc ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`} />
+                              <span>{isKyc ? 'KYC کراوە ✅' : 'KYC نەکراوە 🟡'}</span>
+                            </button>
                           </td>
 
                           {/* Status selector */}
@@ -1052,6 +1108,12 @@ export default function AdminDashboard({
                   const isPhoneMissing = !record.phoneNumber || record.phoneNumber === 'نیە' || record.phoneNumber.trim() === '';
                   const isIdMissing = !record.accountNumber || record.accountNumber === 'نیە' || record.accountNumber.trim() === '' || record.accountNumber === '-';
                   const isYellowFolder = record.fileType === 'YELLOW_FOLDER';
+                  const isKyc = Boolean(
+                    record.isKycDone || 
+                    record.kycStatus === 'DONE' || 
+                    record.status === 'COMPLETED' || 
+                    record.status === 'DELIVERED'
+                  );
 
                   return (
                     <div 
@@ -1062,9 +1124,9 @@ export default function AdminDashboard({
                           : (isYellowFolder ? 'bg-amber-50/30 dark:bg-amber-500/5' : 'hover:bg-slate-50 dark:hover:bg-slate-800/40')
                       }`}
                     >
-                      {/* Mobile Top Row: Checkbox + File # + File Type Toggle + Status Dropdown */}
+                      {/* Mobile Top Row: Checkbox + File # + File Type Toggle + KYC Toggle + Status Dropdown */}
                       <div className="flex items-center justify-between gap-2 flex-wrap">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <button
                             type="button"
                             onClick={() => handleToggleSelectOne(record.id)}
@@ -1095,6 +1157,21 @@ export default function AdminDashboard({
                             }`}
                           >
                             <span>{isYellowFolder ? '📁 فایلی زەرد' : '📄 ئەوراق'}</span>
+                          </button>
+
+                          {/* KYC Toggle Button on Mobile */}
+                          <button
+                            type="button"
+                            onClick={() => onToggleKYC && onToggleKYC(record.id)}
+                            title="گۆڕینی دۆخی KYC"
+                            className={`px-2 py-0.5 rounded-lg text-xs font-black border transition-all active:scale-95 flex items-center gap-1 ${
+                              isKyc
+                                ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-emerald-300'
+                                : 'bg-amber-100 dark:bg-amber-500/20 text-amber-900 dark:text-amber-300 border-amber-300'
+                            }`}
+                          >
+                            <ShieldCheck className="w-3 h-3" />
+                            <span>{isKyc ? 'KYC کراوە' : 'KYC نەکراوە'}</span>
                           </button>
                         </div>
 

@@ -513,6 +513,16 @@ export default function CitizenSearch({ records, onOpenPrintModal }) {
                             <span>{result.fileType === 'YELLOW_FOLDER' ? '📁 فایلی زەرد' : '📄 ئەوراق'}</span>
                           </span>
 
+                          {/* KYC Badge in Citizen Search */}
+                          <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-black border shadow-sm ${
+                            (result.isKycDone || result.kycStatus === 'DONE' || result.status === 'COMPLETED' || result.status === 'DELIVERED')
+                              ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-500/40'
+                              : 'bg-amber-100 dark:bg-amber-500/20 text-amber-900 dark:text-amber-300 border-amber-300 dark:border-amber-500/40'
+                          }`}>
+                            <ShieldCheck className="w-3.5 h-3.5" />
+                            <span>{(result.isKycDone || result.kycStatus === 'DONE' || result.status === 'COMPLETED' || result.status === 'DELIVERED') ? 'ناسنامە پشتڕاستکراوەتەوە (KYC ✅)' : 'پێویست بە KYC لە کاتی وەرگرتنەوە ℹ️'}</span>
+                          </span>
+
                           {result._fuzzyReason && (
                             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-amber-500/20 text-amber-900 dark:text-amber-200 border border-amber-500/40">
                               <Sparkles className="w-3 h-3 text-amber-500" />

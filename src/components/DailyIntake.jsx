@@ -15,6 +15,7 @@ import {
   Edit,
   Folder,
   FileText,
+  ShieldCheck,
   X
 } from 'lucide-react';
 import { STATUS_CONFIG } from '../constants/status';
@@ -40,7 +41,8 @@ export default function DailyIntake({ records = [], onSaveRecord, onDeleteRecord
     status: 'IN_PROGRESS', // 'Not Done'
     deliveredDate: '',
     receiverName: '',
-    notes: ''
+    notes: '',
+    isKycDone: false
   });
 
   const [localSubmitted, setLocalSubmitted] = useState([]);
@@ -95,6 +97,8 @@ export default function DailyIntake({ records = [], onSaveRecord, onDeleteRecord
     }
 
     const hasRealName = Boolean(cleanName && cleanName !== 'هاوبەشی کارەبا');
+    const isDone = formData.status === 'COMPLETED';
+    const isKyc = Boolean(formData.isKycDone || isDone);
 
     const newRecord = {
       id: 'rec-' + Date.now(),
@@ -109,11 +113,13 @@ export default function DailyIntake({ records = [], onSaveRecord, onDeleteRecord
       status: formData.status || 'IN_PROGRESS',
       archiveLocation: `سندوقی ${cleanFileNum}`,
       submissionDate: todayStr,
-      completionDate: formData.status === 'COMPLETED' ? todayStr : null,
+      completionDate: isDone ? todayStr : null,
       deliveredDate: formData.deliveredDate || null,
       receiverName: formData.receiverName || '',
       handledBy: 'هۆبەی پەیوەندیدار',
-      notes: formData.notes || ''
+      notes: formData.notes || '',
+      isKycDone: isKyc,
+      kycStatus: isKyc ? 'DONE' : 'PENDING'
     };
 
     if (onSaveRecord) {
@@ -134,7 +140,8 @@ export default function DailyIntake({ records = [], onSaveRecord, onDeleteRecord
       status: 'IN_PROGRESS',
       deliveredDate: '',
       receiverName: '',
-      notes: ''
+      notes: '',
+      isKycDone: false
     });
 
     if (accountInputRef.current) {
@@ -295,24 +302,43 @@ export default function DailyIntake({ records = [], onSaveRecord, onDeleteRecord
                 </div>
               </div>
 
-              {/* Initial Status (Not Done / Archive) */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
-                  <span>دۆخی سەرەتایی دۆسیە:</span>
-                </label>
-                <div className="w-full px-3.5 py-2.5 rounded-xl bg-amber-100/50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-500/30 text-amber-950 dark:text-amber-300 text-xs sm:text-sm font-bold flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                  <span>پێنەدراوەتەوە - لەلای ئێمەیە لە ئەرشیف (Not Done)</span>
-                </div>
+            {/* Initial Status (Not Done / Archive) */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
+                <span>دۆخی سەرەتایی دۆسیە:</span>
+              </label>
+              <div className="w-full px-3.5 py-2.5 rounded-xl bg-amber-100/50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-500/30 text-amber-950 dark:text-amber-300 text-xs sm:text-sm font-bold flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                <span>پێنەدراوەتەوە - لەلای ئێمەیە لە ئەرشیف (Not Done)</span>
               </div>
-
             </div>
 
-            {/* Note below fields */}
-            <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              💡 تێبینی: بەرواری ئەمڕۆ خۆکارانە دادەنرێت. کاتێک هاووڵاتی لە داهاتوودا سەردانی کرد، لە لیستی سەرەکی دوگمەی «تەسلیمکردن» دادەگریت.
-            </p>
+            {/* KYC Checkbox during Intake */}
+            <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between">
+              <label className="flex items-center gap-2 cursor-pointer select-none text-xs font-bold text-slate-800 dark:text-slate-200">
+                <input
+                  type="checkbox"
+                  checked={formData.isKycDone}
+                  onChange={(e) => setFormData({ ...formData, isKycDone: e.target.checked })}
+                  className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700"
+                />
+                <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <span>پرۆسەی KYC ئەنجامدرا (پشکنینی ناسنامە / کارتی نیشتمانی)</span>
+              </label>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                formData.isKycDone ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+              }`}>
+                {formData.isKycDone ? '🟢 کراوە' : '🟡 لە کاتی دانەوە دەکرێت'}
+              </span>
+            </div>
+
+          </div>
+
+          {/* Note below fields */}
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">
+            💡 تێبینی: بەرواری ئەمڕۆ خۆکارانە دادەنرێت. کاتێک هاووڵاتی لە داهاتوودا سەردانی کرد، لە لیستی سەرەکی دوگمەی «تەسلیمکردن» دادەگریت و بیرهێنانەوەی KYC پشان دەدرێت.
+          </p>
 
             {/* Submit Button */}
             <button

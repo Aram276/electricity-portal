@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Search, 
   Zap, 
@@ -14,11 +14,14 @@ import {
   User, 
   Phone, 
   Hash, 
+  Calendar, 
+  FileText, 
   Archive, 
   Sparkles, 
   Info,
   ShieldCheck,
   Layers,
+  CheckCheck,
   HelpCircle,
   Folder,
   X
@@ -81,7 +84,7 @@ function isSubsequence(sub, str) {
   return i === sub.length;
 }
 
-export default function CitizenSearch({ records = [], onOpenPrintModal }) {
+export default function CitizenSearch({ records, onOpenPrintModal }) {
   const [query, setQuery] = useState('');
   const [searchMode, setSearchMode] = useState('ALL'); // 'ALL' | 'NAME' | 'FILE' | 'PHONE' | 'ID'
   const [searchResults, setSearchResults] = useState([]);
@@ -109,7 +112,7 @@ export default function CitizenSearch({ records = [], onOpenPrintModal }) {
     const cleanPhoneNoZeroQ = cleanDigitsQ.replace(/^0+/, '');
 
     // ── STAGE 1: Exact & Substring Matches ──
-    const directMatches = (records || []).filter(r => {
+    const directMatches = records.filter(r => {
       const hasValidName = Boolean(r.citizenName && r.citizenName !== 'هاوبەشی کارەبا' && r.citizenName.trim() !== '');
       const fuzzyName = normalizeKurdishFuzzy(r.citizenName || '');
       const compactFuzzyName = fuzzyName.replace(/\s+/g, '');
@@ -168,7 +171,7 @@ export default function CitizenSearch({ records = [], onOpenPrintModal }) {
     // ── STAGE 2: Closest Fuzzy Match (In case employee or citizen mistyped a digit) ──
     const fuzzyCandidates = [];
 
-    for (const r of (records || [])) {
+    for (const r of records) {
       const fileStr = String(r.fileNumber || '').trim();
       const accStr = String(r.accountNumber || '').trim();
       const phoneDigits = String(r.phoneNumber || '').replace(/[^0-9]/g, '');
@@ -263,20 +266,20 @@ export default function CitizenSearch({ records = [], onOpenPrintModal }) {
 
   // Summary counts for multiple results
   const completedCount = searchResults.filter(r => r.status === 'COMPLETED' || r.status === 'DELIVERED').length;
-  const inProgressCount = searchResults.filter(r => r.status === 'IN_PROGRESS').length;
+  const inProgressCount = searchResults.filter(r => r.status === 'IN_PROGRESS' || r.status === 'NOT_CONTACTED').length;
 
   const getPlaceholder = () => {
     switch (searchMode) {
       case 'NAME':
-        return 'تەنها ناو یان ناوی یەکەم بنووسە (بۆ نموونە: ڕێبین، ئارام، کارزان)...';
+        return 'تەنها ناو یان ناوی یەکەم بنووسە (بۆ نموونە: ڕێبین، محمد، کارزان)...';
       case 'FILE':
-        return 'ژمارەی فایلی فەرمانگە بنووسە (بۆ نموونە: 101 یان 102)...';
+        return 'ژمارەی فایلی فەرمانگە بنووسە (بۆ نموونە: 197 یان 246)...';
       case 'PHONE':
-        return 'کەمێک لە ژمارەی مۆبایل بنووسە (بۆ نموونە: 0750123 یان ٠٧٥٠)...';
+        return 'کەمێک لە ژمارەی مۆبایل بنووسە (بۆ نموونە: 0750494 یان ٠٧٥٠٤٩٤)...';
       case 'ID':
         return 'ژمارەی ئەژماری کارەبا بنووسە (ID)...';
       default:
-        return 'ناو، مۆبایل، ژمارەی فایل، یان ژمارەی ئەژمار (ID) بنووسە...';
+        return 'ناو (وەک ڕێبین)، بەشێک لە مۆبایل (وەک ٠٧٥٠٤٩٤)، فایل، یان ID...';
     }
   };
 
@@ -336,7 +339,7 @@ export default function CitizenSearch({ records = [], onOpenPrintModal }) {
               }`}
             >
               <User className="w-3.5 h-3.5" />
-              <span>ناوی هاووڵاتی</span>
+              <span>ناوی هاووڵاتی (وەک ڕێبین)</span>
             </button>
 
             <button
@@ -349,7 +352,7 @@ export default function CitizenSearch({ records = [], onOpenPrintModal }) {
               }`}
             >
               <Phone className="w-3.5 h-3.5" />
-              <span>ژمارەی مۆبایل</span>
+              <span>مۆبایل (وەک ٠٧٥٠٤٩٤)</span>
             </button>
 
             <button
@@ -420,14 +423,14 @@ export default function CitizenSearch({ records = [], onOpenPrintModal }) {
             </div>
             <p className="leading-relaxed flex-1">
               <span className="font-black text-amber-700 dark:text-amber-400">💡 شێوازی گەڕانی زیرەک: </span>
-              دەتوانیت تەنها ناوی یەکەم وەک <span className="font-bold text-slate-950 dark:text-white bg-amber-500/20 dark:bg-amber-500/30 px-1.5 py-0.5 rounded border border-amber-500/30">ئارام</span> یان بەشێکی مۆبایل بنووسیت.
+              ئەگەر تەنها بەشێکی ناو وەک <span className="font-bold text-slate-950 dark:text-white bg-amber-500/20 dark:bg-amber-500/30 px-1.5 py-0.5 rounded border border-amber-500/30">ڕێبین</span> یان بەشێکی مۆبایل وەک <span className="font-bold font-mono text-slate-950 dark:text-white bg-amber-500/20 dark:bg-amber-500/30 px-1.5 py-0.5 rounded border border-amber-500/30">0750494</span> بنووسیت، ڕاستەوخۆ دەیدۆزێتەوە.
             </p>
           </div>
 
         </div>
       </div>
 
-      {/* Multiple Results Header Banner */}
+      {/* Multiple Results Header Banner (when 1 or more files are found) */}
       {hasSearched && searchResults.length > 0 && (
         <div className={`p-4 sm:p-5 rounded-2xl border-2 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-3 animate-fadeIn ${
           isFuzzyMatch 
@@ -451,7 +454,7 @@ export default function CitizenSearch({ records = [], onOpenPrintModal }) {
               </h3>
               <p className="text-xs text-slate-600 dark:text-slate-400">
                 {isFuzzyMatch 
-                  ? `دۆسیەی تەواو ڕاستەوخۆ نەدۆزرایەوە، بەڵام ئەم دۆسیانە نزیکترینن لە (${query})`
+                  ? `دۆسیەی تەواو ڕاستەوخۆ نەدۆزرایەوە، بەڵام ئەم دۆسیانە نزیکترینن لە (${query}) لەوانەیە بەهۆی ژمارەیەکی هەڵەوە بێت`
                   : `لەسەر گەڕان بە دوای (${query}) ئەم دۆسیانە دۆزرانەوە`}
               </p>
             </div>
@@ -474,7 +477,7 @@ export default function CitizenSearch({ records = [], onOpenPrintModal }) {
         </div>
       )}
 
-      {/* Render Results */}
+      {/* Render Each Matching File Result */}
       {hasSearched && searchResults.length > 0 && (
         <div className="space-y-8 animate-fadeIn">
           {searchResults.slice(0, displayLimit).map((result, index) => {
@@ -484,23 +487,40 @@ export default function CitizenSearch({ records = [], onOpenPrintModal }) {
             return (
               <div key={result.id || index} className="rounded-2xl sm:rounded-[32px] roonaki-card overflow-hidden shadow-2xl transition-all border border-slate-200 dark:border-slate-800">
                 
-                {/* Status Header */}
-                <div className={`p-5 sm:p-8 border-b ${status.badgeClass}`}>
+                {/* Status Header Banner */}
+                <div className={`p-5 sm:p-8 border-b ${status.bgLight} ${status.borderClass}`}>
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex items-start gap-3 sm:gap-4">
-                      <div className="p-3 rounded-2xl bg-white/50 dark:bg-slate-900/50 border shadow-md shrink-0">
+                      <div className={`p-3 rounded-2xl ${status.badgeClass} border shadow-md shrink-0`}>
                         {result.status === 'COMPLETED' && <CheckCircle2 className="w-7 h-7 sm:w-9 sm:h-9 text-emerald-600 dark:text-emerald-400" />}
                         {result.status === 'IN_PROGRESS' && <Clock className="w-7 h-7 sm:w-9 sm:h-9 text-amber-600 dark:text-amber-400" />}
+                        {result.status === 'NOT_CONTACTED' && <PhoneMissed className="w-7 h-7 sm:w-9 sm:h-9 text-orange-600 dark:text-orange-400" />}
                         {result.status === 'DELIVERED' && <PackageCheck className="w-7 h-7 sm:w-9 sm:h-9 text-blue-600 dark:text-blue-400" />}
+                        {result.status === 'NEEDS_DOCS' && <AlertCircle className="w-7 h-7 sm:w-9 sm:h-9 text-rose-600 dark:text-rose-400" />}
                       </div>
                       <div>
                         <div className="flex items-center gap-2 mb-2 flex-wrap">
-                          <span className="inline-block px-3 py-1 rounded-full text-xs font-black bg-white dark:bg-slate-900 border shadow-sm">
+                          <span className={`inline-block px-3 py-1 rounded-full text-xs font-black ${status.badgeClass} border shadow-sm`}>
                             دۆخی ئێستا: {status.shortLabel}
                           </span>
                           
-                          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-black border shadow-sm bg-white dark:bg-slate-900">
+                          {/* File Type Badge (Yellow Folder vs Papers) */}
+                          <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-black border shadow-sm ${
+                            result.fileType === 'YELLOW_FOLDER'
+                              ? 'bg-amber-200/80 dark:bg-amber-500/25 text-amber-950 dark:text-amber-200 border-amber-400 dark:border-amber-500/50'
+                              : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-700'
+                          }`}>
                             <span>{result.fileType === 'YELLOW_FOLDER' ? '📁 فایلی زەرد' : '📄 ئەوراق'}</span>
+                          </span>
+
+                          {/* KYC Badge in Citizen Search */}
+                          <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-black border shadow-sm ${
+                            (result.isKycDone || result.kycStatus === 'DONE' || result.status === 'COMPLETED' || result.status === 'DELIVERED')
+                              ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-500/40'
+                              : 'bg-amber-100 dark:bg-amber-500/20 text-amber-900 dark:text-amber-300 border-amber-300 dark:border-amber-500/40'
+                          }`}>
+                            <ShieldCheck className="w-3.5 h-3.5" />
+                            <span>{(result.isKycDone || result.kycStatus === 'DONE' || result.status === 'COMPLETED' || result.status === 'DELIVERED') ? 'ناسنامە پشتڕاستکراوەتەوە (KYC ✅)' : 'پێویست بە KYC لە کاتی وەرگرتنەوە ℹ️'}</span>
                           </span>
 
                           {result._fuzzyReason && (
@@ -509,29 +529,33 @@ export default function CitizenSearch({ records = [], onOpenPrintModal }) {
                               <span>{result._fuzzyReason}</span>
                             </span>
                           )}
+
+                          {searchResults.length > 1 && (
+                            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                              فایلی #{index + 1}
+                            </span>
+                          )}
                         </div>
                         <h3 className="text-lg sm:text-2xl font-black text-slate-900 dark:text-white">
-                          {status.citizenStatusTitle}
+                          {status.label}
                         </h3>
                         <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-200 mt-2 leading-relaxed max-w-2xl font-medium">
-                          {status.citizenStatusDesc}
+                          {status.citizenMessage}
                         </p>
                       </div>
                     </div>
 
-                    {onOpenPrintModal && (
-                      <button
-                        onClick={() => onOpenPrintModal(result)}
-                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800 text-amber-800 dark:text-amber-300 font-bold text-xs sm:text-sm border border-amber-400 dark:border-amber-500/40 transition-all shadow-md active:scale-95 shrink-0"
-                      >
-                        <Printer className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                        <span>پرێنتکردنی کارتی سەردان</span>
-                      </button>
-                    )}
+                    <button
+                      onClick={() => onOpenPrintModal(result)}
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800 text-amber-800 dark:text-amber-300 font-bold text-xs sm:text-sm border border-amber-400 dark:border-amber-500/40 transition-all shadow-md active:scale-95 shrink-0"
+                    >
+                      <Printer className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                      <span>پرێنتکردنی کارتی سەردان</span>
+                    </button>
                   </div>
                 </div>
 
-                {/* File Number Box */}
+                {/* KEY HIGHLIGHT BOX: THE FILE NUMBER TO SHOW TO THE EMPLOYEE */}
                 <div className="p-4 sm:p-8 bg-amber-50/70 dark:bg-gradient-to-r dark:from-amber-500/15 dark:via-yellow-500/5 dark:to-amber-500/15 border-b border-amber-300/40 dark:border-amber-500/20">
                   <div className="rounded-2xl roonaki-glow-box p-4 sm:p-6 shadow-inner flex flex-col md:flex-row items-center justify-between gap-5 sm:gap-6">
                     <div className="space-y-2 text-center md:text-right w-full md:w-auto">
@@ -551,13 +575,15 @@ export default function CitizenSearch({ records = [], onOpenPrintModal }) {
                           {isCopied ? <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-4 h-4" />}
                         </button>
                       </div>
+                      <p className="text-xs text-slate-700 dark:text-slate-300 flex items-center justify-center md:justify-start gap-1.5 pt-1">
+                        <Info className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                        <span>شوێنی پاراستن لە ئەرشیف: <strong className="text-amber-800 dark:text-amber-300 font-bold">{result.archiveLocation || `سندوقی ${result.fileNumber}`}</strong></span>
+                      </p>
                     </div>
 
                     <div className="w-full md:w-auto p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-950/90 border border-amber-300 dark:border-amber-500/30 text-center space-y-1.5 shadow-md">
                       <div className="text-xs text-slate-500 dark:text-slate-400">ڕێنمایی وەرگرتنەوە:</div>
-                      <div className="text-xs sm:text-sm font-bold text-emerald-700 dark:text-emerald-400">
-                        {result.status === 'COMPLETED' ? 'دەتوانیت سەردانی ژووری ١٩ بکەیت بۆ وەرگرتنەوە' : 'چاوەڕێ بکە تا پەیوەندیت پێوە دەکرێت'}
-                      </div>
+                      <div className="text-xs sm:text-sm font-bold text-emerald-700 dark:text-emerald-400">{status.citizenAction}</div>
                       {result.deliveredDate && (
                         <div className="text-xs text-blue-700 dark:text-cyan-300 pt-1 font-mono font-bold">
                           بەرواری تەسلیم: {result.deliveredDate}
@@ -567,9 +593,11 @@ export default function CitizenSearch({ records = [], onOpenPrintModal }) {
                   </div>
                 </div>
 
-                {/* Detailed Information */}
+                {/* Detailed Information Grid */}
                 <div className="p-4 sm:p-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 text-xs sm:text-sm">
-                  <div className="space-y-1">
+                  
+                  {/* Citizen Name */}
+                  <div className="space-y-1 p-3 sm:p-0 rounded-xl bg-slate-50 sm:bg-transparent dark:bg-transparent">
                     <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                       <User className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                       <span>ناوی بەشداربوو / هاووڵاتی</span>
@@ -579,7 +607,8 @@ export default function CitizenSearch({ records = [], onOpenPrintModal }) {
                     </div>
                   </div>
 
-                  <div className="space-y-1">
+                  {/* ID / Account */}
+                  <div className="space-y-1 p-3 sm:p-0 rounded-xl bg-slate-50 sm:bg-transparent dark:bg-transparent">
                     <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                       <Hash className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                       <span>ژمارەی ئەژمار (ID)</span>
@@ -589,7 +618,8 @@ export default function CitizenSearch({ records = [], onOpenPrintModal }) {
                     </div>
                   </div>
 
-                  <div className="space-y-1">
+                  {/* Phone */}
+                  <div className="space-y-1 p-3 sm:p-0 rounded-xl bg-slate-50 sm:bg-transparent dark:bg-transparent">
                     <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                       <Phone className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                       <span>ژمارەی مۆبایل</span>
@@ -599,8 +629,37 @@ export default function CitizenSearch({ records = [], onOpenPrintModal }) {
                     </div>
                   </div>
 
+                  {/* Department */}
+                  <div className="space-y-1 p-3 sm:p-0 rounded-xl bg-slate-50 sm:bg-transparent dark:bg-transparent">
+                    <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                      <Building2 className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                      <span>بەڕێوەبەرایەتی / فەرمانگە</span>
+                    </div>
+                    <div className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">{result.department}</div>
+                  </div>
+
+                  {/* File Type (Yellow Folder vs Papers) */}
+                  <div className="space-y-1 p-3 sm:p-0 rounded-xl bg-slate-50 sm:bg-transparent dark:bg-transparent">
+                    <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                      <Folder className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                      <span>جۆری دۆسیە (شێوازی پاراستن)</span>
+                    </div>
+                    <div>
+                      {result.fileType === 'YELLOW_FOLDER' ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-100 dark:bg-amber-500/20 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-500/40 text-xs font-black">
+                          📁 فایلی زەرد (دۆسیەی زەرد)
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 text-xs font-bold">
+                          📄 ئەوراق (کاغەز/پەڕەی سپی)
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Receiver Name if delivered */}
                   {result.receiverName && (
-                    <div className="space-y-1">
+                    <div className="space-y-1 p-3 sm:p-0 rounded-xl bg-slate-50 sm:bg-transparent dark:bg-transparent">
                       <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                         <User className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                         <span>ناوی وەرگرەوە</span>
@@ -608,15 +667,34 @@ export default function CitizenSearch({ records = [], onOpenPrintModal }) {
                       <div className="text-xs sm:text-sm font-bold text-blue-700 dark:text-blue-400">{result.receiverName}</div>
                     </div>
                   )}
+
+                  {result.notes && (
+                    <div className="sm:col-span-2 lg:col-span-3 p-3.5 sm:p-4 rounded-xl bg-slate-100 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-300 font-medium">
+                      <span className="font-bold text-amber-700 dark:text-amber-400 ml-1">تێبینی فەرمانگە:</span>
+                      {result.notes}
+                    </div>
+                  )}
                 </div>
 
               </div>
             );
           })}
+
+          {searchResults.length > displayLimit && (
+            <div className="text-center pt-2">
+              <button
+                type="button"
+                onClick={() => setDisplayLimit(prev => prev + 50)}
+                className="px-8 py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-sm shadow-xl shadow-amber-500/25 transition-all duration-200 active:scale-95"
+              >
+                پیشاندانی ({searchResults.length - displayLimit}) فایلی تری دۆزراوە...
+              </button>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Not Found State with Reassurance Notice */}
+      {/* Not Found State */}
       {hasSearched && searchResults.length === 0 && (
         <div className="rounded-2xl sm:rounded-[32px] roonaki-card border-amber-400 dark:border-amber-500/40 p-6 sm:p-10 text-center space-y-4 shadow-xl animate-fadeIn">
           <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-amber-100 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto">
@@ -627,6 +705,7 @@ export default function CitizenSearch({ records = [], onOpenPrintModal }) {
             هیچ فایلێک بەم زانیارییە (<strong className="text-amber-600 dark:text-amber-400 font-mono">{query}</strong>) لە سیستەمدا تۆمار نەکراوە.
           </p>
 
+          {/* Official Citizen Reassurance Notice */}
           <div className="p-4 sm:p-5 rounded-2xl bg-amber-500/15 border-2 border-amber-500/50 text-amber-950 dark:text-amber-200 text-xs sm:text-sm max-w-lg mx-auto text-right space-y-1.5 shadow-sm">
             <div className="font-black text-amber-900 dark:text-amber-300 flex items-center gap-1.5">
               <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
@@ -639,7 +718,7 @@ export default function CitizenSearch({ records = [], onOpenPrintModal }) {
         </div>
       )}
 
-      {/* Roonaki Highlights Grid */}
+      {/* Roonaki Project Highlights Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 sm:gap-5 pt-2">
         <div className="p-5 sm:p-6 rounded-2xl sm:rounded-3xl roonaki-card space-y-2 sm:space-y-3">
           <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-amber-100 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/30 flex items-center justify-center text-amber-600 dark:text-amber-400">

@@ -99,7 +99,9 @@ export default function FastCheckoutModal({ isOpen, onClose, records = [], onDel
       deliveredDate: nowTime,
       receiverName: finalReceiver,
       handledBy: staffName,
-      deliveredBy: staffName
+      deliveredBy: staffName,
+      isKycDone: true,
+      kycStatus: 'DONE'
     });
 
     // Confetti celebration

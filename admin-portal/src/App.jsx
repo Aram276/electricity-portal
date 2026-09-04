@@ -203,19 +203,30 @@ export default function App() {
     }
   };
 
-  // Single record status update
+  // Status Update from table
   const handleUpdateStatus = (id, newStatus) => {
     const staffName = getActiveStaffName();
     const target = records.find(r => r.id === id);
+    const isDone = newStatus === 'COMPLETED' || newStatus === 'DELIVERED';
+
     const updated = records.map(r => {
       if (r.id === id) {
-        const isComplete = newStatus === 'COMPLETED';
-        return {
-          ...r,
+        const changes = {
           status: newStatus,
-          completionDate: isComplete ? (r.completionDate || new Date().toISOString().split('T')[0]) : r.completionDate,
           handledBy: staffName
         };
+        if (isDone) {
+          changes.isKycDone = true;
+          changes.kycStatus = 'DONE';
+        }
+        if (newStatus === 'COMPLETED' && !r.completionDate) {
+          changes.completionDate = new Date().toISOString().slice(0, 10);
+        }
+        if (newStatus === 'DELIVERED' && !r.deliveredDate) {
+          changes.deliveredDate = new Date().toISOString().replace('T', ' ').slice(0, 16);
+          changes.deliveredBy = staffName;
+        }
+        return { ...r, ...changes };
       }
       return r;
     });
@@ -247,20 +258,80 @@ export default function App() {
     logActivity('STATUS_CHANGE', `گۆڕینی جۆری فایلی (${target?.fileNumber || id}) (لەلایەن: ${staffName})`, { fileNumber: target?.fileNumber });
   };
 
-  // Fast Delivery Confirmation
-  const handleConfirmDelivery = (id, deliveryData) => {
+  // Toggle KYC status for a single record
+  const handleToggleKYC = (id) => {
     const staffName = getActiveStaffName();
     const target = records.find(r => r.id === id);
+    const isCurrentlyDone = Boolean(target?.isKycDone || target?.kycStatus === 'DONE' || target?.status === 'COMPLETED' || target?.status === 'DELIVERED');
+    const nextKyc = !isCurrentlyDone;
+
+    const updated = records.map(r => {
+      if (r.id === id) {
+        return { 
+          ...r, 
+          isKycDone: nextKyc,
+          kycStatus: nextKyc ? 'DONE' : 'PENDING',
+          kycVerifiedAt: nextKyc ? new Date().toISOString().replace('T', ' ').slice(0, 16) : null,
+          kycVerifiedBy: nextKyc ? staffName : null
+        };
+      }
+      return r;
+    });
+
+    setRecords(updated);
+    saveRecordsToCloud(updated);
+    showToast(`دۆخی KYC فایلی (${target?.fileNumber || id}) گۆڕدرا بۆ: ${nextKyc ? '✅ کراوە' : '🟡 نەکراوە'}`, 'info');
+    logActivity('STATUS_CHANGE', `گۆڕینی دۆخی KYC فایلی (${target?.fileNumber || id}) بۆ (${nextKyc ? 'کراوە' : 'نەکراوە'}) (لەلایەن: ${staffName})`, {
+      fileNumber: target?.fileNumber,
+      isKycDone: nextKyc
+    });
+  };
+
+  // Bulk KYC update
+  const handleBatchUpdateKYC = (ids, isDone = true) => {
+    const staffName = getActiveStaffName();
+    const idSet = new Set(ids);
+    const nowTime = new Date().toISOString().replace('T', ' ').slice(0, 16);
+
+    const updated = records.map(r => {
+      if (idSet.has(r.id)) {
+        return {
+          ...r,
+          isKycDone: isDone,
+          kycStatus: isDone ? 'DONE' : 'PENDING',
+          kycVerifiedAt: isDone ? nowTime : null,
+          kycVerifiedBy: isDone ? staffName : null
+        };
+      }
+      return r;
+    });
+
+    setRecords(updated);
+    saveRecordsToCloud(updated);
+    showToast(`دۆخی KYC بۆ ${ids.length} فایل گۆڕدرا بۆ ${isDone ? '✅ کراوە' : '🟡 نەکراوە'}`, 'success');
+  };
+
+  // Delivery Confirmation
+  const handleConfirmDelivery = (id, receiverName, customDate, note, isKycDone = true, nationalId = '') => {
+    const staffName = getActiveStaffName();
+    const target = records.find(r => r.id === id);
+    const finalReceiver = (typeof receiverName === 'object' && receiverName !== null) ? receiverName.receiverName : receiverName;
+    const finalDate = (typeof receiverName === 'object' && receiverName !== null) ? receiverName.deliveredDate : (customDate || new Date().toISOString().slice(0, 10));
+    const finalNote = (typeof receiverName === 'object' && receiverName !== null) ? receiverName.notes : note;
+
     const updated = records.map(r => {
       if (r.id === id) {
         return {
           ...r,
           status: 'DELIVERED',
-          deliveredDate: deliveryData.deliveredDate,
-          receiverName: deliveryData.receiverName,
+          deliveredDate: finalDate,
+          receiverName: finalReceiver || (r.hasRealName ? r.citizenName : 'هاوبەشی کارەبا'),
           deliveredBy: staffName,
           handledBy: staffName,
-          notes: deliveryData.notes ? `${r.notes ? r.notes + ' | ' : ''}${deliveryData.notes}` : r.notes
+          isKycDone: isKycDone ?? true,
+          kycStatus: isKycDone ? 'DONE' : 'PENDING',
+          nationalId: nationalId || r.nationalId || '',
+          notes: finalNote ? `${r.notes ? r.notes + ' | ' : ''}${finalNote}` : r.notes
         };
       }
       return r;
@@ -269,25 +340,40 @@ export default function App() {
     setRecords(updated);
     saveRecordsToCloud(updated);
     setDeliveryModalRecord(null);
-    showToast('دۆسیەکە بە سەرکەوتوویی بە تەسلیمکراو تۆمار کرا', 'success');
-    logActivity('DELIVERY', `تەسلیمکردنەوەی فایلی (${target?.fileNumber || id}) بە (${deliveryData.receiverName}) (لەلایەن: ${staffName})`, {
+    showToast(`فایل بە فەرمی تەسلیمی (${finalReceiver || 'هاووڵاتی'}) کرا و KYC تۆمار کرا ✅`, 'success');
+    logActivity('DELIVERY', `تەسلیمکردنەوەی فایلی (${target?.fileNumber || id}) بە (${finalReceiver}) (لەلایەن: ${staffName})`, {
       fileNumber: target?.fileNumber,
-      receiverName: deliveryData.receiverName,
-      date: deliveryData.deliveredDate
+      receiverName: finalReceiver,
+      date: finalDate
     });
   };
 
   // Bulk Status update
   const handleBatchUpdateStatus = (ids, newStatus) => {
     const staffName = getActiveStaffName();
+    const idSet = new Set(ids);
+    const isDone = newStatus === 'COMPLETED' || newStatus === 'DELIVERED';
+    const today = new Date().toISOString().slice(0, 10);
+    const nowTime = new Date().toISOString().replace('T', ' ').slice(0, 16);
+
     const updated = records.map(r => {
-      if (ids.includes(r.id)) {
-        return {
-          ...r,
+      if (idSet.has(r.id)) {
+        const changes = {
           status: newStatus,
-          completionDate: newStatus === 'COMPLETED' ? (r.completionDate || new Date().toISOString().split('T')[0]) : r.completionDate,
           handledBy: staffName
         };
+        if (isDone) {
+          changes.isKycDone = true;
+          changes.kycStatus = 'DONE';
+        }
+        if (newStatus === 'COMPLETED' && !r.completionDate) {
+          changes.completionDate = today;
+        }
+        if (newStatus === 'DELIVERED' && !r.deliveredDate) {
+          changes.deliveredDate = nowTime;
+          changes.deliveredBy = staffName;
+        }
+        return { ...r, ...changes };
       }
       return r;
     });
@@ -375,6 +461,8 @@ export default function App() {
             onBatchUpdateStatus={handleBatchUpdateStatus}
             onBatchUpdateFileType={handleBatchUpdateFileType}
             onToggleFileType={handleToggleFileType}
+            onToggleKYC={handleToggleKYC}
+            onBatchUpdateKYC={handleBatchUpdateKYC}
             onUpdateStatus={handleUpdateStatus}
             onSaveRecord={handleSaveRecord}
             onResetData={handleResetData}
