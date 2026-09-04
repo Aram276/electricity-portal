@@ -25,7 +25,8 @@ import {
   Edit3,
   X,
   ShieldCheck,
-  User
+  User,
+  MessageSquare
 } from 'lucide-react';
 import RoonakiLogo from './RoonakiLogo';
 import { 
@@ -36,6 +37,11 @@ import {
   DEFAULT_STAFF, 
   logActivity 
 } from '../utils/cloudSync';
+import {
+  getCustomWhatsAppTemplate,
+  saveCustomWhatsAppTemplate,
+  DEFAULT_WHATSAPP_TEMPLATE
+} from '../utils/whatsappHelper';
 
 export default function SettingsTab({ onResetData, records = [], activeStaff = null }) {
   // ── Password / PIN State ──
@@ -76,6 +82,10 @@ export default function SettingsTab({ onResetData, records = [], activeStaff = n
     bottomNote: localStorage.getItem('footer_bottom_note') || 'سیستەمی ئەلیکترۆنی پشکنین و بەڕێوەبردنی دۆسیەکانی هاوبەشان'
   }));
   const [footerSaved, setFooterSaved] = useState(false);
+
+  // ── WhatsApp Template State ──
+  const [waTemplate, setWaTemplate] = useState(() => getCustomWhatsAppTemplate());
+  const [waSaved, setWaSaved] = useState(false);
 
   useEffect(() => {
     const unsubFooter = subscribeToFooterSettings((cloudSettings) => {
@@ -288,6 +298,27 @@ export default function SettingsTab({ onResetData, records = [], activeStaff = n
     saveFooterSettingsToCloud(defaults);
     setFooterSaved(true);
     setTimeout(() => setFooterSaved(false), 3000);
+  };
+
+  // ── WhatsApp Template Handlers ──
+  const handleSaveWaTemplate = (e) => {
+    e.preventDefault();
+    saveCustomWhatsAppTemplate(waTemplate);
+    setWaSaved(true);
+    setTimeout(() => setWaSaved(false), 3000);
+  };
+
+  const handleResetWaTemplate = () => {
+    if (window.confirm('ئایا دڵنیایت لە گەڕاندنەوەی دەقی نامەی واتسئاپ بۆ دەقی بنەڕەت؟')) {
+      setWaTemplate(DEFAULT_WHATSAPP_TEMPLATE);
+      saveCustomWhatsAppTemplate(DEFAULT_WHATSAPP_TEMPLATE);
+      setWaSaved(true);
+      setTimeout(() => setWaSaved(false), 3000);
+    }
+  };
+
+  const handleInsertWaTag = (tag) => {
+    setWaTemplate(prev => (prev || '') + tag);
   };
 
   const handleBackupJSON = () => {
@@ -892,6 +923,92 @@ export default function SettingsTab({ onResetData, records = [], activeStaff = n
               <span>✓ تێکستەکانی فووتەر بە سەرکەوتوویی نوێکرانەوە!</span>
             </div>
           )}
+        </form>
+      </div>
+
+      {/* ── NEW: WhatsApp Message Template Customization Card ───────────────── */}
+      <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-xl space-y-6 transition-colors">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400">
+              <MessageSquare className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+                  دەستکاریکردنی دەقی فەرمیی نامەی واتسئاپ (WhatsApp Template)
+                </h3>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                  Custom Template
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                دانانی ئەو دەقەی بە خۆکاری دەنێردرێت بۆ هاووڵاتییان لە کاتی ئاگادارکردنەوە لە ڕێگەی واتسئاپ
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleResetWaTemplate}
+            className="self-start sm:self-auto text-xs px-3 py-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center gap-1.5 transition-colors"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>گەڕاندنەوە بۆ بنەڕەت</span>
+          </button>
+        </div>
+
+        <form onSubmit={handleSaveWaTemplate} className="space-y-4">
+          <p className="text-xs text-slate-600 dark:text-slate-400">
+            دەتوانیت هەر زانیاری و تێکستێک دەتەوێت زیادی بکەیت. تاگە تایبەتەکان کلیک بکە بۆ زیادکردنی شوێنی خۆکار:
+          </p>
+
+          {/* Variable tags shortcuts */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">تاگی ئۆتۆماتیکی:</span>
+            {[
+              { label: 'ناوی هاووڵاتی', tag: ' {ناو} ' },
+              { label: 'ژمارەی فایل', tag: ' {ژمارەی_فایل} ' },
+              { label: 'ژمارەی ئەژمار (ID)', tag: ' {ژمارەی_ئەژمار} ' },
+              { label: 'دۆخی مامەڵە', tag: ' {دۆخ} ' },
+              { label: 'ژووری ١٩', tag: ' {ژوور} ' },
+              { label: 'ناوی فەرمانگە', tag: ' {فەرمانگە} ' },
+            ].map(v => (
+              <button
+                key={v.tag}
+                type="button"
+                onClick={() => handleInsertWaTag(v.tag)}
+                className="px-2.5 py-1 rounded-xl bg-slate-50 dark:bg-slate-950 border border-emerald-500/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500 hover:text-white font-mono text-xs font-bold transition-all shadow-sm"
+              >
+                + {v.label}
+              </button>
+            ))}
+          </div>
+
+          <textarea
+            rows="8"
+            value={waTemplate}
+            onChange={(e) => setWaTemplate(e.target.value)}
+            className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border-2 border-emerald-500/40 text-slate-900 dark:text-white text-xs sm:text-sm leading-relaxed focus:outline-none focus:border-emerald-500 font-sans shadow-inner"
+            placeholder="دەقی نامەی فەرمیی واتسئاپ لێرە دابنێ..."
+          />
+
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
+            <button
+              type="submit"
+              className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white font-black text-sm shadow-xl shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 active:scale-98"
+            >
+              <Save className="w-4 h-4" />
+              <span>پاشەکەوتکردنی دەقی نوێی واتسئاپ</span>
+            </button>
+
+            {waSaved && (
+              <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-400 text-xs flex items-center justify-center gap-2 font-bold animate-fadeIn">
+                <CheckCircle2 className="w-4 h-4" />
+                <span>✓ دەقی نامەی واتسئاپ بە سەرکەوتوویی پاشەکەوت کرا!</span>
+              </div>
+            )}
+          </div>
         </form>
       </div>
 

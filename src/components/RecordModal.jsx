@@ -47,6 +47,8 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, re
   }, [formData.fileNumber, formData.accountNumber, formData.citizenName, formData.phoneNumber, records, editingRecord]);
 
   useEffect(() => {
+    if (!isOpen) return;
+
     if (editingRecord) {
       setFormData({
         fileNumber: editingRecord.fileNumber || '',
@@ -88,7 +90,7 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, re
         notes: ''
       });
     }
-  }, [editingRecord, isOpen, records]);
+  }, [editingRecord, isOpen]);
 
   if (!isOpen) return null;
 
@@ -154,34 +156,38 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, re
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             
             {/* File Type Choice Toggle */}
-            <div className="sm:col-span-2 p-3 rounded-2xl bg-amber-50/70 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30">
-              <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-2 flex items-center gap-1.5">
-                <Folder className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+            <div className="sm:col-span-2 p-3.5 rounded-2xl bg-amber-500/10 dark:bg-amber-500/5 border-2 border-amber-500/30">
+              <label className="block text-xs sm:text-sm font-black text-slate-800 dark:text-slate-200 mb-2 flex items-center gap-1.5">
+                <Folder className="w-4 h-4 text-amber-500" />
                 <span>جۆری دۆسیە (شێوازی پاراستن):</span>
               </label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
-                  onClick={() => setFormData({ ...formData, fileType: 'YELLOW_FOLDER' })}
-                  className={`py-2 px-3 rounded-xl text-xs font-black border transition-all flex items-center justify-center gap-1.5 ${
+                  onClick={() => setFormData(prev => ({ ...prev, fileType: 'YELLOW_FOLDER' }))}
+                  className={`py-3 px-4 rounded-2xl text-xs sm:text-sm font-black border-2 transition-all flex items-center justify-center gap-2 cursor-pointer select-none active:scale-98 ${
                     formData.fileType === 'YELLOW_FOLDER'
-                      ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-md shadow-amber-500/20'
-                      : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700'
+                      ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-md shadow-amber-500/30 ring-2 ring-amber-500/50'
+                      : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:border-amber-400 hover:bg-amber-50/40 dark:hover:bg-amber-950/20'
                   }`}
                 >
-                  <span>📁 فایلی زەرد (دۆسیەی زەرد)</span>
+                  <Folder className={`w-4 h-4 ${formData.fileType === 'YELLOW_FOLDER' ? 'text-slate-950' : 'text-amber-500'}`} />
+                  <span>فایلی زەرد (دۆسیەی زەرد)</span>
+                  {formData.fileType === 'YELLOW_FOLDER' && <CheckCircle2 className="w-4 h-4 text-slate-950 ml-1" />}
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => setFormData({ ...formData, fileType: 'PAPER' })}
-                  className={`py-2 px-3 rounded-xl text-xs font-black border transition-all flex items-center justify-center gap-1.5 ${
+                  onClick={() => setFormData(prev => ({ ...prev, fileType: 'PAPER' }))}
+                  className={`py-3 px-4 rounded-2xl text-xs sm:text-sm font-black border-2 transition-all flex items-center justify-center gap-2 cursor-pointer select-none active:scale-98 ${
                     formData.fileType === 'PAPER'
-                      ? 'bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-950 border-slate-800 shadow-md'
-                      : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700'
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/30 ring-2 ring-blue-500/50'
+                      : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:border-blue-400 hover:bg-blue-50/40 dark:hover:bg-blue-950/20'
                   }`}
                 >
-                  <span>📄 ئەوراق (کاغەز/پەڕەی سپی)</span>
+                  <FileText className={`w-4 h-4 ${formData.fileType === 'PAPER' ? 'text-white' : 'text-blue-500'}`} />
+                  <span>ئەوراق (کاغەز/پەڕەی سپی)</span>
+                  {formData.fileType === 'PAPER' && <CheckCircle2 className="w-4 h-4 text-white ml-1" />}
                 </button>
               </div>
             </div>

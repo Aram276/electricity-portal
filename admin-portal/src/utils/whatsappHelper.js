@@ -2,6 +2,19 @@
  * WhatsApp Helper for Kurdistan Electricity Directorate / Roonaki Project
  */
 
+export const DEFAULT_WHATSAPP_TEMPLATE = `سڵاو بەڕێز {ناو}،
+ئاگادارت دەکەینەوە لە پڕۆژەی ڕووناکی (فرۆشیاری وزە ٢):
+
+📄 دۆخی مامەڵە: {دۆخ}
+📁 ژمارەی فایل لە ئەرشیف: {ژمارەی_فایل}
+⚡ ژمارەی ئەژمار (ID): {ژمارەی_ئەژمار}
+🚪 ژووری سەردانیکردن: ژووری ژمارە ١٩
+📍 ناونیشان: هەولێر - بەڕێوەبەرایەتی دابەشکردنی کارەبا (فرۆشیاری وزە ٢)
+⏰ کاتی دەوام: یەکشەممە تا پێنجشەممە (٨:٣٠ بەیانی - ١:٣٠ پاشنیوەڕۆ)
+
+تکایە لە کاتی سەردانیکردنی ژووری ژمارە ١٩، ژمارەی فایلی سەرەوە ( {ژمارەی_فایل} ) بە فەرمانبەر ڕابگەیەنە.
+پڕۆژەی نیشتمانیی ڕووناکی`;
+
 export function cleanIraqiPhone(phoneStr) {
   if (!phoneStr) return null;
   const digits = String(phoneStr).replace(/[^0-9]/g, '');
@@ -23,10 +36,19 @@ export function cleanIraqiPhone(phoneStr) {
   return digits;
 }
 
-export function generateWhatsAppUrl(record) {
-  if (!record || !record.phoneNumber) return null;
-  const cleaned = cleanIraqiPhone(record.phoneNumber);
-  if (!cleaned) return null;
+export function getCustomWhatsAppTemplate() {
+  return localStorage.getItem('electricity_whatsapp_template') || DEFAULT_WHATSAPP_TEMPLATE;
+}
+
+export function saveCustomWhatsAppTemplate(template) {
+  if (template && typeof template === 'string') {
+    localStorage.setItem('electricity_whatsapp_template', template);
+  }
+}
+
+export function buildWhatsAppMessage(record, customTemplate) {
+  if (!record) return '';
+  const template = customTemplate || getCustomWhatsAppTemplate();
 
   const citizenName = (record.citizenName && record.citizenName !== 'هاوبەشی کارەبا') 
     ? record.citizenName 
@@ -40,20 +62,30 @@ export function generateWhatsAppUrl(record) {
     statusText = '✅ تەواوبووە (Done) و ئامادەیە بۆ وەرگرتنەوە';
   } else if (isDelivered) {
     statusText = '📦 بە فەرمی تەسلیم کراوەتەوە';
+  } else if (record.status === 'NOT_CONTACTED') {
+    statusText = '⏳ لە چاوەڕوانی پەیوەندیدایە';
   }
 
-  const message = `سڵاو بەڕێز ${citizenName}،
-ئاگادارت دەکەینەوە لە پڕۆژەی ڕووناکی (فرۆشیاری وزە ٢):
+  let msg = template
+    .replaceAll('{ناو}', citizenName)
+    .replaceAll('{name}', citizenName)
+    .replaceAll('{ژمارەی_فایل}', record.fileNumber || 'نادیار')
+    .replaceAll('{fileNumber}', record.fileNumber || 'نادیار')
+    .replaceAll('{ژمارەی_ئەژمار}', record.accountNumber || 'نیە')
+    .replaceAll('{accountNumber}', record.accountNumber || 'نیە')
+    .replaceAll('{دۆخ}', statusText)
+    .replaceAll('{status}', statusText)
+    .replaceAll('{ژوور}', 'ژووری ژمارە ١٩')
+    .replaceAll('{فەرمانگە}', 'فرۆشیاری وزە ٢ (هەولێر)');
 
-📄 دۆخی مامەڵە: ${statusText}
-📁 ژمارەی فایل لە ئەرشیف: ${record.fileNumber}
-⚡ ژمارەی ئەژمار (ID): ${record.accountNumber || 'نیە'}
-🚪 ژووری سەردانیکردن: ژووری ژمارە ١٩
-📍 ناونیشان: هەولێر - بەڕێوەبەرایەتی دابەشکردنی کارەبا (فرۆشیاری وزە ٢)
-⏰ کاتی دەوام: یەکشەممە تا پێنجشەممە (٨:٣٠ بەیانی - ١:٣٠ پاشنیوەڕۆ)
+  return msg;
+}
 
-تکایە لە کاتی سەردانیکردنی ژووری ژمارە ١٩، ژمارەی فایلی سەرەوە ( ${record.fileNumber} ) بە فەرمانبەر ڕابگەیەنە.
-پڕۆژەی نیشتمانیی ڕووناکی`;
+export function generateWhatsAppUrl(record, customTemplate) {
+  if (!record || !record.phoneNumber) return null;
+  const cleaned = cleanIraqiPhone(record.phoneNumber);
+  if (!cleaned) return null;
 
+  const message = buildWhatsAppMessage(record, customTemplate);
   return `https://wa.me/${cleaned}?text=${encodeURIComponent(message)}`;
 }

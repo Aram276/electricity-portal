@@ -12,12 +12,24 @@ import {
   ArrowRight, 
   ArrowLeft,
   Users, 
-  CheckCheck,
-  Sparkles,
-  AlertTriangle,
-  Play
+  CheckCheck, 
+  Sparkles, 
+  AlertTriangle, 
+  Play, 
+  Edit3, 
+  RefreshCw, 
+  Eye, 
+  ChevronDown, 
+  ChevronUp 
 } from 'lucide-react';
-import { generateWhatsAppUrl, cleanIraqiPhone } from '../utils/whatsappHelper';
+import { 
+  generateWhatsAppUrl, 
+  cleanIraqiPhone, 
+  getCustomWhatsAppTemplate, 
+  saveCustomWhatsAppTemplate, 
+  buildWhatsAppMessage, 
+  DEFAULT_WHATSAPP_TEMPLATE 
+} from '../utils/whatsappHelper';
 
 export default function BulkWhatsAppModal({ 
   isOpen, 
@@ -33,6 +45,11 @@ export default function BulkWhatsAppModal({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [sentCount, setSentCount] = useState(0);
   const [skippedCount, setSkippedCount] = useState(0);
+  
+  // Custom WhatsApp template state
+  const [customTemplate, setCustomTemplate] = useState(() => getCustomWhatsAppTemplate());
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [templateSavedMsg, setTemplateSavedMsg] = useState(false);
 
   // Compute eligible target queue
   useEffect(() => {
@@ -63,10 +80,32 @@ export default function BulkWhatsAppModal({
   const progressPercent = totalInQueue > 0 ? Math.round((currentIndex / totalInQueue) * 100) : 0;
   const isFinished = currentIndex >= totalInQueue && totalInQueue > 0;
 
+  const handleTemplateChange = (val) => {
+    setCustomTemplate(val);
+    saveCustomWhatsAppTemplate(val);
+    setTemplateSavedMsg(true);
+    setTimeout(() => setTemplateSavedMsg(false), 2000);
+  };
+
+  const handleInsertTag = (tag) => {
+    const updated = (customTemplate || '') + tag;
+    setCustomTemplate(updated);
+    saveCustomWhatsAppTemplate(updated);
+  };
+
+  const handleResetTemplate = () => {
+    if (window.confirm('ئایا دڵنیایت لە گەڕاندنەوەی دەقی نامەی واتسئاپ بۆ دەقی بنەڕەت؟')) {
+      setCustomTemplate(DEFAULT_WHATSAPP_TEMPLATE);
+      saveCustomWhatsAppTemplate(DEFAULT_WHATSAPP_TEMPLATE);
+      setTemplateSavedMsg(true);
+      setTimeout(() => setTemplateSavedMsg(false), 2000);
+    }
+  };
+
   const handleSendCurrent = () => {
     if (!currentRecord) return;
 
-    const url = generateWhatsAppUrl(currentRecord);
+    const url = generateWhatsAppUrl(currentRecord, customTemplate);
     if (url) {
       window.open(url, '_blank', 'noopener,noreferrer');
       
@@ -87,7 +126,7 @@ export default function BulkWhatsAppModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-fadeIn">
-      <div className="relative w-full max-w-2xl rounded-3xl bg-white dark:bg-slate-900 border-2 border-emerald-500/50 shadow-2xl p-6 sm:p-8 space-y-6 max-h-[92vh] overflow-y-auto">
+      <div className="relative w-full max-w-2xl rounded-3xl bg-white dark:bg-slate-900 border-2 border-emerald-500/50 shadow-2xl p-6 sm:p-8 space-y-5 max-h-[92vh] overflow-y-auto">
         
         {/* Top Modal Header */}
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
@@ -112,6 +151,81 @@ export default function BulkWhatsAppModal({
           >
             <X className="w-5 h-5" />
           </button>
+        </div>
+
+        {/* ── Custom Message Template Editor (Accordion) ── */}
+        <div className="rounded-2xl border border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/20 overflow-hidden transition-all">
+          <button
+            type="button"
+            onClick={() => setIsEditorOpen(!isEditorOpen)}
+            className="w-full p-3.5 flex items-center justify-between text-xs font-black text-emerald-900 dark:text-emerald-300 hover:bg-emerald-500/10 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <Edit3 className="w-4 h-4 text-emerald-500" />
+              <span>دەستکاریکردن و دانانی دەقی دڵی خۆت بۆ نامەی واتسئاپ (Template)</span>
+              {templateSavedMsg && (
+                <span className="px-2 py-0.5 rounded-md bg-emerald-500 text-white text-[10px] animate-pulse">
+                  ✓ پاشەکەوت کرا
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-1 text-[11px] text-emerald-700 dark:text-emerald-400">
+              <span>{isEditorOpen ? 'داخستن' : 'ئیدیتکردن'}</span>
+              {isEditorOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </div>
+          </button>
+
+          {isEditorOpen && (
+            <div className="p-4 pt-0 space-y-3 border-t border-emerald-500/20 animate-fadeIn">
+              <p className="text-[11px] text-slate-600 dark:text-slate-400">
+                دەتوانیت هەر تێکستێک دەتەوێت لێرە بنووسیت. وشە نیشانکراوەکانی وەک <strong>{'{ناو}'}</strong> و <strong>{'{ژمارەی_فایل}'}</strong> بە خۆکاری بۆ هەر هاووڵاتییەک دەگۆڕدرێن:
+              </p>
+
+              {/* Variable shortcut buttons */}
+              <div className="flex items-center gap-1.5 flex-wrap text-[11px]">
+                <span className="font-bold text-slate-600 dark:text-slate-400">زیادکردن:</span>
+                {[
+                  { label: 'ناوی هاووڵاتی', tag: ' {ناو} ' },
+                  { label: 'ژمارەی فایل', tag: ' {ژمارەی_فایل} ' },
+                  { label: 'ژمارەی ئەژمار (ID)', tag: ' {ژمارەی_ئەژمار} ' },
+                  { label: 'دۆخی مامەڵە', tag: ' {دۆخ} ' },
+                  { label: 'ژووری ١٩', tag: ' {ژوور} ' },
+                ].map(v => (
+                  <button
+                    key={v.tag}
+                    type="button"
+                    onClick={() => handleInsertTag(v.tag)}
+                    className="px-2 py-1 rounded-lg bg-white dark:bg-slate-900 border border-emerald-500/40 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-500 hover:text-white font-mono text-[11px] transition-colors"
+                  >
+                    + {v.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Textarea */}
+              <textarea
+                rows="6"
+                value={customTemplate}
+                onChange={(e) => handleTemplateChange(e.target.value)}
+                className="w-full p-3 rounded-xl bg-white dark:bg-slate-950 border border-emerald-500/40 text-slate-900 dark:text-white text-xs leading-relaxed focus:outline-none focus:border-emerald-500 font-sans shadow-inner"
+                placeholder="دەقی نامەی واتسئاپ لێرە بنووسە..."
+              />
+
+              <div className="flex items-center justify-between pt-1">
+                <button
+                  type="button"
+                  onClick={handleResetTemplate}
+                  className="text-xs text-slate-500 dark:text-slate-400 hover:text-rose-500 flex items-center gap-1 font-bold"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>گەڕاندنەوە بۆ دەقی بنەڕەت</span>
+                </button>
+                <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">
+                  ✓ بەردەوام دەمێنێتەوە بۆ هەموو نامەکان
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Filter Target Selector */}
@@ -224,6 +338,17 @@ export default function BulkWhatsAppModal({
               <span className="px-3 py-1 rounded-xl text-xs font-black border bg-emerald-100 dark:bg-emerald-500/20 text-emerald-900 dark:text-emerald-300 border-emerald-300 dark:border-emerald-500/40">
                 {currentRecord.fileType === 'YELLOW_FOLDER' ? '📁 فایلی زەرد' : '📄 ئەوراق'}
               </span>
+            </div>
+
+            {/* Live Message Preview Box */}
+            <div className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-emerald-500/30 space-y-1.5 shadow-sm text-right">
+              <div className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                <Eye className="w-3.5 h-3.5" />
+                <span>پێشبینینی دەقی نامە بۆ ئەم هاووڵاتییە (Preview):</span>
+              </div>
+              <p className="text-xs text-slate-700 dark:text-slate-200 whitespace-pre-line leading-relaxed font-sans bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+                {buildWhatsAppMessage(currentRecord, customTemplate)}
+              </p>
             </div>
 
             {/* Notification History if already notified */}

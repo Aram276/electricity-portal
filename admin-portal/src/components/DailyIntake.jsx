@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
   Zap, 
   Plus, 
@@ -14,34 +14,25 @@ import {
   UserCheck,
   Edit,
   Folder,
+  FileText,
   X
 } from 'lucide-react';
 import { STATUS_CONFIG } from '../constants/status';
 
-export default function DailyIntake({ records, onSaveRecord, onDeleteRecord }) {
+export default function DailyIntake({ records = [], onSaveRecord, onDeleteRecord }) {
   const todayStr = new Date().toISOString().slice(0, 10);
   const accountInputRef = useRef(null);
   const [editingItem, setEditingItem] = useState(null); // { id, fields... }
 
-  const handleEditSave = () => {
-    if (!editingItem) return;
-    onSaveRecord(editingItem, editingItem.id); // update existing
-    setEnteredToday(prev =>
-      prev.map(p => p.id === editingItem.id ? { ...editingItem } : p)
-    );
-    setEditingItem(null);
-  };
-
   // Auto-calculate the next file number starting from 933 onwards (934, 935...)
-  const getNextFileNumber = () => {
+  const nextFileNumber = useMemo(() => {
     const nums = (records || []).map(r => parseInt(r.fileNumber, 10)).filter(n => !isNaN(n) && n > 0);
     const maxNum = nums.length ? Math.max(933, ...nums) : 933;
-    const next = maxNum + 1;
-    return String(next);
-  };
+    return String(maxNum + 1);
+  }, [records]);
 
   const [formData, setFormData] = useState({
-    fileNumber: getNextFileNumber(),
+    fileNumber: nextFileNumber,
     fileType: 'YELLOW_FOLDER', // 'YELLOW_FOLDER' | 'PAPER'
     accountNumber: '',
     citizenName: '',
@@ -52,42 +43,87 @@ export default function DailyIntake({ records, onSaveRecord, onDeleteRecord }) {
     notes: ''
   });
 
-  const [enteredToday, setEnteredToday] = useState([]);
+  const [localSubmitted, setLocalSubmitted] = useState([]);
+
+  // Sync initial fileNumber when records first load
+  useEffect(() => {
+    setFormData(prev => {
+      if (!prev.fileNumber || prev.fileNumber === '934') {
+        return { ...prev, fileNumber: nextFileNumber };
+      }
+      return prev;
+    });
+  }, [nextFileNumber]);
+
+  // Combined list of records entered today
+  const todayList = useMemo(() => {
+    const fromRecords = (records || []).filter(r => r.submissionDate === todayStr);
+    const map = new Map();
+    // Add local ones first
+    localSubmitted.forEach(item => {
+      if (item && item.id) map.set(item.id, item);
+    });
+    // Add records from prop
+    fromRecords.forEach(item => {
+      if (item && item.id && !map.has(item.id)) map.set(item.id, item);
+    });
+    return Array.from(map.values());
+  }, [records, localSubmitted, todayStr]);
+
+  const handleEditSave = () => {
+    if (!editingItem) return;
+    if (onSaveRecord) {
+      onSaveRecord(editingItem, editingItem.id);
+    }
+    setLocalSubmitted(prev =>
+      prev.map(p => p.id === editingItem.id ? { ...editingItem } : p)
+    );
+    setEditingItem(null);
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.accountNumber && !formData.phoneNumber) {
-      alert('تکایە لانیکەم ژمارەی ئەژمار (ID) یان ژمارەی مۆبایل بنووسە');
+    const cleanAccount = (formData.accountNumber || '').trim();
+    const cleanPhone = (formData.phoneNumber || '').trim();
+    const cleanName = (formData.citizenName || '').trim();
+    const cleanFileNum = (formData.fileNumber || '').trim() || nextFileNumber;
+
+    if (!cleanAccount && !cleanPhone && !cleanName) {
+      alert('تکایە لانیکەم یەکێک لەمانە بنووسە: ژمارەی ئەژمار (ID)، ژمارەی مۆبایل، یان ناوی هاووڵاتی');
+      if (accountInputRef.current) accountInputRef.current.focus();
       return;
     }
 
-    const hasRealName = Boolean(formData.citizenName.trim());
+    const hasRealName = Boolean(cleanName && cleanName !== 'هاوبەشی کارەبا');
 
     const newRecord = {
       id: 'rec-' + Date.now(),
-      fileNumber: formData.fileNumber || getNextFileNumber(),
+      fileNumber: cleanFileNum,
       fileType: formData.fileType || 'YELLOW_FOLDER',
-      accountNumber: formData.accountNumber.trim(),
-      citizenName: hasRealName ? formData.citizenName.trim() : 'هاوبەشی کارەبا',
+      accountNumber: cleanAccount,
+      citizenName: hasRealName ? cleanName : 'هاوبەشی کارەبا',
       hasRealName: hasRealName,
-      phoneNumber: formData.phoneNumber.trim() || 'نیە',
+      phoneNumber: cleanPhone || 'نیە',
       department: 'بەڕێوەبەرایەتی دابەشکردنی کارەبا',
       transactionType: 'پڕۆژەی ڕووناکی - پێوەری زیرەک',
-      status: formData.status,
-      archiveLocation: `سندوقی ${formData.fileNumber || getNextFileNumber()}`,
+      status: formData.status || 'IN_PROGRESS',
+      archiveLocation: `سندوقی ${cleanFileNum}`,
       submissionDate: todayStr,
       completionDate: formData.status === 'COMPLETED' ? todayStr : null,
       deliveredDate: formData.deliveredDate || null,
       receiverName: formData.receiverName || '',
       handledBy: 'هۆبەی پەیوەندیدار',
-      notes: formData.notes
+      notes: formData.notes || ''
     };
 
-    onSaveRecord(newRecord, null);
-    setEnteredToday(prev => [newRecord, ...prev]);
+    if (onSaveRecord) {
+      onSaveRecord(newRecord, null);
+    }
+    setLocalSubmitted(prev => [newRecord, ...prev]);
 
-    // Calculate next file number
-    const nextNum = String(parseInt(newRecord.fileNumber, 10) + 1 || getNextFileNumber());
+    // Calculate next file number for next entry
+    const currentNumInt = parseInt(cleanFileNum, 10);
+    const nextNum = !isNaN(currentNumInt) ? String(currentNumInt + 1) : nextFileNumber;
 
     setFormData({
       fileNumber: nextNum,
@@ -127,7 +163,7 @@ export default function DailyIntake({ records, onSaveRecord, onDeleteRecord }) {
         <div className="flex items-center gap-3 bg-white dark:bg-slate-950/80 p-3 rounded-2xl border border-amber-300 dark:border-amber-500/30">
           <div className="text-right">
             <div className="text-[11px] text-slate-500 dark:text-slate-400 font-bold">تۆمارکراوی ئەمڕۆ</div>
-            <div className="text-xl font-black text-amber-600 dark:text-amber-400 font-mono">{enteredToday.length} دۆسیە</div>
+            <div className="text-xl font-black text-amber-600 dark:text-amber-400 font-mono">{todayList.length} دۆسیە</div>
           </div>
         </div>
       </div>
@@ -147,34 +183,38 @@ export default function DailyIntake({ records, onSaveRecord, onDeleteRecord }) {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* File Type Choice Toggle (Yellow Folder vs Paper) */}
-            <div className="p-3 rounded-2xl bg-amber-50/70 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30">
-              <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 mb-2 flex items-center gap-1.5">
-                <Folder className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+            <div className="p-3.5 rounded-2xl bg-amber-500/10 dark:bg-amber-500/5 border-2 border-amber-500/30">
+              <label className="block text-xs sm:text-sm font-black text-slate-800 dark:text-slate-200 mb-2 flex items-center gap-1.5">
+                <Folder className="w-4 h-4 text-amber-500" />
                 <span>جۆری دۆسیە (شێوازی پاراستن لە فەرمانگە):</span>
               </label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
-                  onClick={() => setFormData({ ...formData, fileType: 'YELLOW_FOLDER' })}
-                  className={`py-2 px-3 rounded-xl text-xs font-black border transition-all flex items-center justify-center gap-1.5 ${
+                  onClick={() => setFormData(prev => ({ ...prev, fileType: 'YELLOW_FOLDER' }))}
+                  className={`py-3 px-4 rounded-2xl text-xs sm:text-sm font-black border-2 transition-all flex items-center justify-center gap-2 cursor-pointer select-none active:scale-98 ${
                     formData.fileType === 'YELLOW_FOLDER'
-                      ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-md shadow-amber-500/20'
-                      : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700'
+                      ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-md shadow-amber-500/30 ring-2 ring-amber-500/50'
+                      : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:border-amber-400 hover:bg-amber-50/40 dark:hover:bg-amber-950/20'
                   }`}
                 >
-                  <span>📁 فایلی زەرد (دۆسیەی زەرد)</span>
+                  <Folder className={`w-4 h-4 ${formData.fileType === 'YELLOW_FOLDER' ? 'text-slate-950' : 'text-amber-500'}`} />
+                  <span>فایلی زەرد (دۆسیەی زەرد)</span>
+                  {formData.fileType === 'YELLOW_FOLDER' && <CheckCircle2 className="w-4 h-4 text-slate-950 ml-1" />}
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => setFormData({ ...formData, fileType: 'PAPER' })}
-                  className={`py-2 px-3 rounded-xl text-xs font-black border transition-all flex items-center justify-center gap-1.5 ${
+                  onClick={() => setFormData(prev => ({ ...prev, fileType: 'PAPER' }))}
+                  className={`py-3 px-4 rounded-2xl text-xs sm:text-sm font-black border-2 transition-all flex items-center justify-center gap-2 cursor-pointer select-none active:scale-98 ${
                     formData.fileType === 'PAPER'
-                      ? 'bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-950 border-slate-800 shadow-md'
-                      : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700'
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/30 ring-2 ring-blue-500/50'
+                      : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:border-blue-400 hover:bg-blue-50/40 dark:hover:bg-blue-950/20'
                   }`}
                 >
-                  <span>📄 ئەوراق (کاغەز/پەڕەی سپی)</span>
+                  <FileText className={`w-4 h-4 ${formData.fileType === 'PAPER' ? 'text-white' : 'text-blue-500'}`} />
+                  <span>ئەوراق (کاغەز/پەڕەی سپی)</span>
+                  {formData.fileType === 'PAPER' && <CheckCircle2 className="w-4 h-4 text-white ml-1" />}
                 </button>
               </div>
             </div>
@@ -200,12 +240,11 @@ export default function DailyIntake({ records, onSaveRecord, onDeleteRecord }) {
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
                   <Hash className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
-                  <span>ژمارەی ئەژمار (ID)*:</span>
+                  <span>ژمارەی ئەژمار (Account / ID):</span>
                 </label>
                 <input
                   ref={accountInputRef}
                   type="text"
-                  required
                   autoFocus
                   placeholder="بۆ نموونە: 63450291130"
                   value={formData.accountNumber}
@@ -291,21 +330,21 @@ export default function DailyIntake({ records, onSaveRecord, onDeleteRecord }) {
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
             <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <Clock className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              <span>فایلە تۆمارکراوەکانی ئەم دانیشتنە</span>
+              <span>فایلە تۆمارکراوەکانی ئەمڕۆ</span>
             </h3>
             <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30 font-mono font-bold">
-              {enteredToday.length} دانە
+              {todayList.length} دانە
             </span>
           </div>
 
           <div className="flex-1 overflow-y-auto space-y-2.5 max-h-[500px] pr-1">
-            {enteredToday.length === 0 ? (
+            {todayList.length === 0 ? (
               <div className="p-12 text-center text-slate-400 space-y-2">
                 <Clock className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600" />
                 <p className="text-xs">هیچ فایلێکی نوێت لەم دانیشتنەدا داخڵ نەکردووە</p>
               </div>
             ) : (
-              enteredToday.map((item, idx) => (
+              todayList.map((item, idx) => (
                 <div key={item.id || idx} className="space-y-0">
 
                   {/* Card Row */}
@@ -322,14 +361,14 @@ export default function DailyIntake({ records, onSaveRecord, onDeleteRecord }) {
                           #{item.fileNumber}
                         </span>
                         <span className="font-mono text-slate-500 dark:text-slate-400 truncate">
-                          ID: {item.accountNumber}
+                          ID: {item.accountNumber || 'نیە'}
                         </span>
                       </div>
                       <div className="font-semibold text-slate-900 dark:text-white">
                         {item.hasRealName ? item.citizenName : <span className="text-slate-400 italic">هاوبەشی کارەبا</span>}
                       </div>
                       <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                        مۆبایل: {item.phoneNumber}
+                        مۆبایل: {item.phoneNumber || 'نیە'}
                         {item.deliveredDate && <span className="mr-2 text-blue-600 dark:text-blue-400"> | بەروار: {item.deliveredDate}</span>}
                       </div>
                     </div>
@@ -356,8 +395,8 @@ export default function DailyIntake({ records, onSaveRecord, onDeleteRecord }) {
                       {/* Delete */}
                       <button
                         onClick={() => {
-                          onDeleteRecord(item.id);
-                          setEnteredToday(prev => prev.filter(p => p.id !== item.id));
+                          if (onDeleteRecord) onDeleteRecord(item.id);
+                          setLocalSubmitted(prev => prev.filter(p => p.id !== item.id));
                           if (editingItem?.id === item.id) setEditingItem(null);
                         }}
                         title="سڕینەوە"
