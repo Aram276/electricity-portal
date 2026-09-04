@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Lock, LogOut, Sun, Moon, Download, Smartphone, Monitor, X, Check } from 'lucide-react';
+import { Lock, LogOut, Sun, Moon, Download, Smartphone, Monitor, X, Check } from 'lucide-react';
 import RoonakiLogo from './RoonakiLogo';
 
 export default function Navbar({ currentView, setCurrentView, isAdmin, isAdminPath, activeStaff, onOpenAdminLogin, onAdminLogout, isDarkMode, onToggleTheme }) {
@@ -136,15 +136,6 @@ export default function Navbar({ currentView, setCurrentView, isAdmin, isAdminPa
                       <span className="md:hidden text-[10px] sm:text-xs max-w-[70px] sm:max-w-[120px] truncate">{activeStaff.name}</span>
                     </div>
                   )}
-
-                  <button
-                    onClick={() => setCurrentView('citizen')}
-                    title="پۆرتاڵی هاووڵاتی"
-                    className="flex items-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl text-[10px] sm:text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 transition-colors shrink-0"
-                  >
-                    <Search className="w-3.5 h-3.5 text-amber-500" />
-                    <span className="hidden sm:inline">هاووڵاتی</span>
-                  </button>
 
                   <button
                     onClick={onAdminLogout}

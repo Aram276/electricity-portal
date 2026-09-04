@@ -32,11 +32,11 @@ export default function DailyIntake({ records, onSaveRecord, onDeleteRecord }) {
     setEditingItem(null);
   };
 
-  // Auto-calculate the next file number starting from 838 onwards
+  // Auto-calculate the next file number starting from 933 onwards (934, 935...)
   const getNextFileNumber = () => {
-    const nums = records.map(r => parseInt(r.fileNumber, 10)).filter(n => !isNaN(n));
-    const maxNum = nums.length ? Math.max(...nums) : 837;
-    const next = maxNum >= 838 ? maxNum + 1 : 838;
+    const nums = (records || []).map(r => parseInt(r.fileNumber, 10)).filter(n => !isNaN(n) && n > 0);
+    const maxNum = nums.length ? Math.max(933, ...nums) : 933;
+    const next = maxNum + 1;
     return String(next);
   };
 

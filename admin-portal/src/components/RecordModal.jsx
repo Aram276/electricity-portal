@@ -4,7 +4,7 @@ import { STATUS_CONFIG, DEPARTMENTS, TRANSACTION_TYPES } from '../constants/stat
 
 export default function RecordModal({ isOpen, onClose, onSave, editingRecord, records = [] }) {
   const [formData, setFormData] = useState({
-    fileNumber: '838',
+    fileNumber: '',
     fileType: 'YELLOW_FOLDER',
     accountNumber: '',
     citizenName: '',
@@ -12,7 +12,7 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, re
     department: DEPARTMENTS[0],
     transactionType: TRANSACTION_TYPES[0],
     status: 'IN_PROGRESS',
-    archiveLocation: 'سندوقی 838',
+    archiveLocation: '',
     submissionDate: new Date().toISOString().slice(0, 10),
     completionDate: '',
     deliveredDate: '',
@@ -66,9 +66,9 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, re
         notes: editingRecord.notes || ''
       });
     } else {
-      const nums = (records || []).map(r => parseInt(r.fileNumber, 10)).filter(n => !isNaN(n));
-      const maxNum = nums.length ? Math.max(...nums) : 837;
-      const nextNum = maxNum >= 838 ? maxNum + 1 : 838;
+      const nums = (records || []).map(r => parseInt(r.fileNumber, 10)).filter(n => !isNaN(n) && n > 0);
+      const maxNum = nums.length ? Math.max(933, ...nums) : 933;
+      const nextNum = maxNum + 1;
 
       setFormData({
         fileNumber: String(nextNum),
@@ -186,7 +186,7 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, re
               </div>
             </div>
 
-            {/* File Number */}
+            {/* 1. File Number */}
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
                 <Hash className="w-3.5 h-3.5 text-amber-500" />
@@ -201,7 +201,7 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, re
               />
             </div>
 
-            {/* Account Number */}
+            {/* 2. Account Number */}
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
                 <Hash className="w-3.5 h-3.5 text-amber-500" />
@@ -217,7 +217,7 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, re
               />
             </div>
 
-            {/* Citizen Name */}
+            {/* 3. Citizen Name */}
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
                 <User className="w-3.5 h-3.5 text-amber-500" />
@@ -233,7 +233,7 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, re
               />
             </div>
 
-            {/* Phone Number */}
+            {/* 4. Phone Number */}
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
                 <Phone className="w-3.5 h-3.5 text-amber-500" />
@@ -249,7 +249,7 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, re
               />
             </div>
 
-            {/* Department */}
+            {/* 5. Department */}
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
                 <Building2 className="w-3.5 h-3.5 text-amber-500" />
@@ -266,7 +266,7 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, re
               </select>
             </div>
 
-            {/* Transaction Type */}
+            {/* 6. Transaction Type */}
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
                 <FileText className="w-3.5 h-3.5 text-amber-500" />
@@ -283,7 +283,37 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, re
               </select>
             </div>
 
-            {/* Status */}
+            {/* 7. Archive Location */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
+                <Archive className="w-3.5 h-3.5 text-amber-500" />
+                <span>شوێنی فایل لە ئەرشیف / سندوق:</span>
+              </label>
+              <input
+                type="text"
+                value={formData.archiveLocation}
+                onChange={(e) => setFormData({ ...formData, archiveLocation: e.target.value })}
+                placeholder="ڕەفەی ٤ - سندوقی ١٢"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-amber-500"
+              />
+            </div>
+
+            {/* 8. Handled By */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
+                <User className="w-3.5 h-3.5 text-amber-500" />
+                <span>فەرمانبەری بەرپرس:</span>
+              </label>
+              <input
+                type="text"
+                value={formData.handledBy}
+                onChange={(e) => setFormData({ ...formData, handledBy: e.target.value })}
+                placeholder="ناوی فەرمانبەر..."
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-amber-500"
+              />
+            </div>
+
+            {/* 9. Status */}
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5 text-amber-500" />
@@ -300,22 +330,7 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, re
               </select>
             </div>
 
-            {/* Archive Location */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
-                <Archive className="w-3.5 h-3.5 text-amber-500" />
-                <span>شوێنی فایل لە ئەرشیف / سندوق:</span>
-              </label>
-              <input
-                type="text"
-                value={formData.archiveLocation}
-                onChange={(e) => setFormData({ ...formData, archiveLocation: e.target.value })}
-                placeholder="ڕەفەی ٤ - سندوقی ١٢"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-amber-500"
-              />
-            </div>
-
-            {/* Submission Date */}
+            {/* 10. Submission Date */}
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
                 <Calendar className="w-3.5 h-3.5 text-amber-500" />
@@ -329,7 +344,7 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, re
               />
             </div>
 
-            {/* Completion Date */}
+            {/* 11. Completion Date */}
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
                 <Calendar className="w-3.5 h-3.5 text-emerald-500" />
@@ -343,7 +358,7 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, re
               />
             </div>
 
-            {/* Delivered Date */}
+            {/* 12. Delivered Date */}
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
                 <Calendar className="w-3.5 h-3.5 text-blue-500" />
@@ -355,21 +370,6 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, re
                 onChange={(e) => setFormData({ ...formData, deliveredDate: e.target.value })}
                 placeholder="YYYY-MM-DD HH:MM"
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-mono text-sm focus:outline-none focus:border-amber-500"
-              />
-            </div>
-
-            {/* Handled By */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
-                <User className="w-3.5 h-3.5 text-amber-500" />
-                <span>فەرمانبەری بەرپرس:</span>
-              </label>
-              <input
-                type="text"
-                value={formData.handledBy}
-                onChange={(e) => setFormData({ ...formData, handledBy: e.target.value })}
-                placeholder="ناوی فەرمانبەر..."
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-amber-500"
               />
             </div>
 
@@ -393,18 +393,18 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, re
           {/* Action buttons */}
           <div className="flex items-center gap-3 pt-2">
             <button
-              type="button"
-              onClick={onClose}
-              className="w-1/2 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-sm transition-colors"
-            >
-              پاشگەزبوونەوە
-            </button>
-            <button
               type="submit"
               className="w-1/2 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-sm shadow-lg shadow-amber-500/25 transition-all flex items-center justify-center gap-2"
             >
               <Save className="w-4 h-4" />
               <span>پاشەکەوتکردنی زانیاری</span>
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-1/2 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-sm transition-colors"
+            >
+              پاشگەزبوونەوە
             </button>
           </div>
         </form>
