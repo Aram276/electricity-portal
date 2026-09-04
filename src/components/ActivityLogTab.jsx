@@ -19,6 +19,28 @@ import {
 import { subscribeToActivityLogs } from '../utils/cloudSync';
 import { exportToExcel } from '../utils/excelHelper';
 
+function formatLogTimestamp(ts) {
+  if (!ts) return '';
+  try {
+    if (typeof ts === 'string' && (ts.endsWith('Z') || ts.includes('T'))) {
+      const d = new Date(ts);
+      return new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Asia/Baghdad',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      }).format(d).replace(',', '');
+    }
+    return String(ts);
+  } catch (e) {
+    return String(ts);
+  }
+}
+
 export default function ActivityLogTab() {
   const [logs, setLogs] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -174,7 +196,7 @@ export default function ActivityLogTab() {
               <div className="flex items-center gap-3 self-end sm:self-center shrink-0 text-xs text-slate-500 dark:text-slate-400 font-mono">
                 <div className="flex items-center gap-1">
                   <Clock className="w-3.5 h-3.5 text-slate-400" />
-                  <span>{log.timestamp}</span>
+                  <span>{formatLogTimestamp(log.timestamp)}</span>
                 </div>
                 <span className="text-[11px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-sans font-bold">
                   {log.user || 'کارمەند'}

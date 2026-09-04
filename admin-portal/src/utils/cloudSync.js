@@ -195,6 +195,36 @@ export function subscribeToActivityLogs(onUpdateCallback) {
 }
 
 /**
+ * Generates local Erbil / Kurdistan (Asia/Baghdad, UTC+3) formatted timestamp string.
+ */
+export function getLocalTimestamp(includeSeconds = true) {
+  const now = new Date();
+  try {
+    const formatter = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Baghdad',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: includeSeconds ? '2-digit' : undefined,
+      hour12: false
+    });
+    const parts = formatter.formatToParts(now);
+    const getPart = (t) => parts.find(p => p.type === t)?.value || '';
+    if (includeSeconds) {
+      return `${getPart('year')}-${getPart('month')}-${getPart('day')} ${getPart('hour')}:${getPart('minute')}:${getPart('second')}`;
+    }
+    return `${getPart('year')}-${getPart('month')}-${getPart('day')} ${getPart('hour')}:${getPart('minute')}`;
+  } catch (e) {
+    const tzOffsetMs = 3 * 60 * 60 * 1000;
+    const local = new Date(now.getTime() + tzOffsetMs);
+    const str = local.toISOString().replace('T', ' ');
+    return includeSeconds ? str.slice(0, 19) : str.slice(0, 16);
+  }
+}
+
+/**
  * Log an activity permanently to Firestore Cloud.
  */
 export async function logActivity(type, title, details = {}) {
@@ -230,7 +260,7 @@ export async function logActivity(type, title, details = {}) {
       type, // 'STATUS_CHANGE' | 'CREATE' | 'DELETE' | 'EXCEL_IMPORT' | 'WHATSAPP_BROADCAST' | 'DELIVERY'
       title,
       details,
-      timestamp: new Date().toISOString().replace('T', ' ').slice(0, 19),
+      timestamp: getLocalTimestamp(true),
       user: userName
     };
 
@@ -240,7 +270,7 @@ export async function logActivity(type, title, details = {}) {
 
     await setDoc(LOGS_DOC_REF, {
       logs: combined,
-      lastUpdated: new Date().toISOString()
+      lastUpdated: getLocalTimestamp(true)
     }, { merge: true });
   } catch (err) {
     console.error('Failed to log activity to cloud:', err);
