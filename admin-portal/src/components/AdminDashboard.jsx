@@ -1343,6 +1343,7 @@ export default function AdminDashboard({
       {activeTab === 'settings' && (
         <SettingsTab
           records={records}
+          activeStaff={activeStaff}
           onResetData={onResetData}
         />
       )}

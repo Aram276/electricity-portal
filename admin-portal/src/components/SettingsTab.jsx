@@ -37,7 +37,7 @@ import {
   logActivity 
 } from '../utils/cloudSync';
 
-export default function SettingsTab({ onResetData, records = [] }) {
+export default function SettingsTab({ onResetData, records = [], activeStaff = null }) {
   // ── Password / PIN State ──
   const [currentPin, setCurrentPin]   = useState('');
   const [newPin, setNewPin]           = useState('');
@@ -186,30 +186,72 @@ export default function SettingsTab({ onResetData, records = [] }) {
     logActivity('STATUS_CHANGE', `سڕینەوەی ئەکاونتی فەرمانبەر: [${staffName}]`);
   };
 
-  // ── Change PIN handler ──
+  // ── Change PIN / Password handler (Full Cloud & Local Sync) ──
   const handleChangePIN = (e) => {
     e.preventDefault();
-    const storedPin = localStorage.getItem('electricity_portal_pin') || '075075';
+    
+    // Determine active staff user
+    let currentStaff = activeStaff;
+    if (!currentStaff) {
+      try {
+        currentStaff = JSON.parse(localStorage.getItem('electricity_active_staff') || 'null');
+      } catch (err) {}
+    }
 
-    if (currentPin !== storedPin) {
+    const currentList = Array.isArray(staffList) ? staffList : DEFAULT_STAFF;
+    
+    // Find target staff in list
+    const matchedIndex = currentList.findIndex(s => 
+      (currentStaff?.id && s.id === currentStaff.id) ||
+      (currentStaff?.username && s.username === currentStaff.username) ||
+      (currentStaff?.name && s.name === currentStaff.name)
+    );
+
+    const targetStaff = matchedIndex !== -1 ? currentList[matchedIndex] : currentList[0];
+    const expectedPin = String(targetStaff?.pin || currentStaff?.pin || localStorage.getItem('electricity_portal_pin') || '075075').trim();
+    const cleanCurrent = String(currentPin || '').trim();
+    const cleanNew = String(newPin || '').trim();
+    const cleanConfirm = String(confirmPin || '').trim();
+
+    // Verify current PIN (supports active staff pin, legacy pin, or master pin)
+    if (cleanCurrent !== expectedPin && cleanCurrent !== '075075' && cleanCurrent !== localStorage.getItem('electricity_portal_pin')) {
       setPinStatus('wrong-current');
       return;
     }
-    if (newPin.length < 4) {
+    if (cleanNew.length < 3) {
       setPinStatus('too-short');
       return;
     }
-    if (newPin !== confirmPin) {
+    if (cleanNew !== cleanConfirm) {
       setPinStatus('mismatch');
       return;
     }
 
-    localStorage.setItem('electricity_portal_pin', newPin);
+    // Update staff in list and cloud
+    let updatedStaffList;
+    if (matchedIndex !== -1) {
+      updatedStaffList = currentList.map((s, idx) => idx === matchedIndex ? { ...s, pin: cleanNew } : s);
+    } else {
+      updatedStaffList = currentList.map((s, idx) => idx === 0 ? { ...s, pin: cleanNew } : s);
+    }
+
+    setStaffList(updatedStaffList);
+    saveStaffAccountsToCloud(updatedStaffList);
+
+    // Update local storage
+    localStorage.setItem('electricity_portal_pin', cleanNew);
+    if (targetStaff) {
+      const updatedStaff = { ...targetStaff, pin: cleanNew };
+      localStorage.setItem('electricity_active_staff', JSON.stringify(updatedStaff));
+    }
+
+    logActivity('STATUS_CHANGE', `گۆڕینی پاسۆردی هەژمار بۆ: [${targetStaff?.name || 'بەڕێوەبەر'}]`);
+
     setPinStatus('success');
     setCurrentPin('');
     setNewPin('');
     setConfirmPin('');
-    setTimeout(() => setPinStatus(null), 3500);
+    setTimeout(() => setPinStatus(null), 4000);
   };
 
   // ── Save directorate name ──
@@ -285,8 +327,12 @@ export default function SettingsTab({ onResetData, records = [] }) {
               <Lock className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-black text-slate-900 dark:text-white">گۆڕینی پاسۆردی سەرەکی</h3>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">پاسۆردی تایبەتی بەڕێوەبەر دابنێ</p>
+              <h3 className="text-base font-black text-slate-900 dark:text-white">
+                گۆڕینی پاسۆردی هەژمار {activeStaff?.name ? `(${activeStaff.name})` : ''}
+              </h3>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                پاسۆردی نوێ بۆ هەژمارەکەت دابنێ و لە کڵاود پاشەکەوت دەبێت
+              </p>
             </div>
           </div>
 
