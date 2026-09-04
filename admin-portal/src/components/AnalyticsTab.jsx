@@ -12,7 +12,11 @@ import {
   Calendar,
   AlertTriangle,
   Download,
-  Printer
+  Printer,
+  UserCheck,
+  Award,
+  Sparkles,
+  Zap
 } from 'lucide-react';
 import { exportToExcel } from '../utils/excelHelper';
 
@@ -34,6 +38,56 @@ export default function AnalyticsTab({ records = [] }) {
   const todayStr = new Date().toISOString().slice(0, 10);
   const intakeToday = records.filter(r => r.submissionDate === todayStr).length;
   const deliveredToday = records.filter(r => r.deliveredDate && r.deliveredDate.startsWith(todayStr)).length;
+
+  // ── KYC Metrics ──
+  const isRecordKyc = (r) => Boolean(
+    r.isKycDone || 
+    r.kycStatus === 'DONE' || 
+    r.status === 'COMPLETED' || 
+    r.status === 'DELIVERED'
+  );
+
+  const kycTotal = records.filter(isRecordKyc).length;
+  const kycPending = total - kycTotal;
+  const kycPercent = total > 0 ? Math.round((kycTotal / total) * 100) : 0;
+
+  const kycToday = records.filter(r => {
+    if (!isRecordKyc(r)) return false;
+    const isVerifiedToday = r.kycVerifiedAt && r.kycVerifiedAt.startsWith(todayStr);
+    const isDeliveredToday = r.deliveredDate && r.deliveredDate.startsWith(todayStr);
+    const isCompletedToday = r.completionDate && r.completionDate.startsWith(todayStr);
+    const isIntakeToday = r.submissionDate && r.submissionDate.startsWith(todayStr);
+    return isVerifiedToday || isDeliveredToday || isCompletedToday || (isIntakeToday && r.isKycDone);
+  }).length;
+
+  // ── Staff / User Analytics Breakdown ──
+  const staffMap = {};
+  records.forEach(r => {
+    const handler = (r.deliveredBy || r.handledBy || r.kycVerifiedBy || 'هۆبەی پەیوەندیدار').trim();
+    if (!staffMap[handler]) {
+      staffMap[handler] = {
+        name: handler,
+        totalHandled: 0,
+        delivered: 0,
+        kycVerified: 0,
+        todayActions: 0
+      };
+    }
+    staffMap[handler].totalHandled++;
+    if (r.status === 'DELIVERED') staffMap[handler].delivered++;
+    if (isRecordKyc(r)) staffMap[handler].kycVerified++;
+    
+    const isToday = (r.submissionDate === todayStr) || 
+      (r.deliveredDate && r.deliveredDate.startsWith(todayStr)) ||
+      (r.completionDate === todayStr) ||
+      (r.kycVerifiedAt && r.kycVerifiedAt.startsWith(todayStr));
+      
+    if (isToday) {
+      staffMap[handler].todayActions++;
+    }
+  });
+
+  const staffStats = Object.values(staffMap).sort((a, b) => b.totalHandled - a.totalHandled);
 
   const completedPercent = total > 0 ? Math.round(((completed + delivered) / total) * 100) : 0;
   const yellowPercent = total > 0 ? Math.round((yellowFolders / total) * 100) : 0;
@@ -59,10 +113,10 @@ export default function AnalyticsTab({ records = [] }) {
             <span>ناوەندی ئامار و شیکاری پڕۆژەی ڕووناکی</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
-            ڕاپۆرتی گشتی کار و دۆسیەکانی کارەبا
+            ڕاپۆرتی گشتی کار، KYC و چالاکی فەرمانبەران
           </h2>
           <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
-            شیکاری وردی کۆی مامەڵەکان، ڕێژەی تەواوبوون، و دابەشبوونی فایلی زەرد بەرامبەر ئەوراق
+            شیکاری وردی ژمارەی KYC ئەمڕۆ، داتای بەکارهێنەران (Users)، و دابەشبوونی دۆسیەکان
           </p>
         </div>
 
@@ -84,7 +138,7 @@ export default function AnalyticsTab({ records = [] }) {
         </div>
       </div>
 
-      {/* Main KPI Row */}
+      {/* Main KPI Row with KYC Highlight */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         
         {/* Total Records */}
@@ -97,14 +151,37 @@ export default function AnalyticsTab({ records = [] }) {
             {total}
           </div>
           <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
-            <span className="text-emerald-600 font-bold">+{intakeToday}</span> تۆمارکراوی ئەمڕۆ
+            <span className="text-emerald-600 font-bold font-mono">+{intakeToday}</span> تۆمارکراوی ئەمڕۆ
+          </div>
+        </div>
+
+        {/* KYC Done Today & Total Highlight */}
+        <div className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-emerald-50/80 dark:bg-emerald-950/40 border-2 border-emerald-500 shadow-md space-y-2">
+          <div className="flex items-center justify-between text-emerald-700 dark:text-emerald-300">
+            <span className="text-xs font-black flex items-center gap-1">
+              <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              <span>KYC ئەنجامدراو</span>
+            </span>
+            <span className="px-2 py-0.5 rounded-md bg-emerald-600 text-white text-[10px] font-black">
+              ئەمڕۆ: {kycToday}
+            </span>
+          </div>
+          <div className="text-2xl sm:text-3xl font-black font-mono text-emerald-800 dark:text-emerald-200">
+            {kycTotal}
+          </div>
+          <div className="w-full bg-emerald-200 dark:bg-emerald-900/60 h-2 rounded-full overflow-hidden">
+            <div className="bg-emerald-600 h-full rounded-full transition-all duration-500" style={{ width: `${kycPercent}%` }}></div>
+          </div>
+          <div className="text-[11px] text-emerald-700 dark:text-emerald-300 flex justify-between font-bold">
+            <span>ڕێژەی پابەندبوون:</span>
+            <span className="font-mono">{kycPercent}%</span>
           </div>
         </div>
 
         {/* Completed & Delivered */}
         <div className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-white dark:bg-slate-900/90 border border-emerald-500/30 shadow-sm space-y-2">
           <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400">
-            <span className="text-xs font-bold">تەواوبوو / تەسلیمکراو</span>
+            <span className="text-xs font-bold">تەواوبوو / وەرگیراوەتەوە</span>
             <CheckCircle2 className="w-4 h-4 text-emerald-500" />
           </div>
           <div className="text-2xl sm:text-3xl font-black font-mono text-emerald-600 dark:text-emerald-400">
@@ -114,39 +191,104 @@ export default function AnalyticsTab({ records = [] }) {
             <div className="bg-emerald-500 h-full rounded-full transition-all duration-500" style={{ width: `${completedPercent}%` }}></div>
           </div>
           <div className="text-[11px] text-slate-500 dark:text-slate-400 flex justify-between">
-            <span>ڕێژەی ئەنجامدان:</span>
-            <strong className="text-emerald-600 font-mono">{completedPercent}%</strong>
+            <span>تەسلیمکراوی ئەمڕۆ:</span>
+            <strong className="text-blue-600 font-mono">+{deliveredToday}</strong>
           </div>
         </div>
 
         {/* In Progress */}
         <div className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-white dark:bg-slate-900/90 border border-amber-500/30 shadow-sm space-y-2">
           <div className="flex items-center justify-between text-amber-600 dark:text-amber-400">
-            <span className="text-xs font-bold">لە جێبەجێکردندایە</span>
+            <span className="text-xs font-bold">لە ئەرشیفە (Not Done)</span>
             <Clock className="w-4 h-4 text-amber-500" />
           </div>
           <div className="text-2xl sm:text-3xl font-black font-mono text-amber-600 dark:text-amber-400">
             {inProgress}
           </div>
           <div className="text-[11px] text-slate-500 dark:text-slate-400">
-            لە ئەرشیف دەمێنێتەوە تا هاووڵاتی دێت
+            {kycPending} دۆسیە پێویستیان بە KYC هەیە
           </div>
         </div>
 
-        {/* Delivered Count */}
-        <div className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-white dark:bg-slate-900/90 border border-blue-500/30 shadow-sm space-y-2">
-          <div className="flex items-center justify-between text-blue-600 dark:text-blue-400">
-            <span className="text-xs font-bold">تەسلیمی هاووڵاتی کرا</span>
-            <ShieldCheck className="w-4 h-4 text-blue-500" />
+      </div>
+
+      {/* ── STAFF & USER BREAKDOWN / LEADERBOARD CARD ── */}
+      <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2.5 rounded-2xl bg-amber-500/15 text-amber-600 dark:text-amber-400">
+              <UserCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-black text-slate-900 dark:text-white">
+                ئاماری کار و چالاکی بەپێی فەرمانبەر / USER
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                چەندین فایل لەلایەن هەر کارمەندێکەوە مامەڵەی پێوە کراوە، تەسلیمکراوە یان KYC بۆ کراوە
+              </p>
+            </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-black font-mono text-blue-600 dark:text-blue-400">
-            {delivered}
-          </div>
-          <div className="text-[11px] text-slate-500 dark:text-slate-400">
-            بە بەڵگەنامەی فەرمی دراوەتەوە
-          </div>
+
+          <span className="px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold font-mono">
+            {staffStats.length} بەکارهێنەر / هۆبە
+          </span>
         </div>
 
+        <div className="overflow-x-auto">
+          <table className="w-full text-right text-xs sm:text-sm">
+            <thead className="bg-slate-50 dark:bg-slate-950/80 text-slate-600 dark:text-slate-400 font-bold border-b border-slate-200 dark:border-slate-800 text-xs">
+              <tr>
+                <th className="p-3">ناوی فەرمانبەر / هۆبە</th>
+                <th className="p-3 text-center">کۆی دۆسیەی پێسپێردراو</th>
+                <th className="p-3 text-center">تەسلیمکراو (Delivered)</th>
+                <th className="p-3 text-center">KYC ئەنجامدراو 🪪</th>
+                <th className="p-3 text-center">چالاکی ئەمڕۆ</th>
+                <th className="p-3 text-center">ڕێژەی بەشداری</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-slate-800 dark:text-slate-200">
+              {staffStats.map((staff, idx) => {
+                const staffPercent = total > 0 ? Math.round((staff.totalHandled / total) * 100) : 0;
+                return (
+                  <tr key={staff.name} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                    <td className="p-3 font-bold flex items-center gap-2">
+                      <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black ${
+                        idx === 0 
+                          ? 'bg-amber-500 text-slate-950' 
+                          : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                      }`}>
+                        {idx + 1}
+                      </div>
+                      <span className="text-slate-900 dark:text-white">{staff.name}</span>
+                    </td>
+                    <td className="p-3 text-center font-mono font-bold text-base text-slate-900 dark:text-white">
+                      {staff.totalHandled}
+                    </td>
+                    <td className="p-3 text-center font-mono font-bold text-blue-600 dark:text-blue-400">
+                      {staff.delivered}
+                    </td>
+                    <td className="p-3 text-center font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                      <span className="px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-300 dark:border-emerald-500/30">
+                        {staff.kycVerified}
+                      </span>
+                    </td>
+                    <td className="p-3 text-center font-mono font-bold text-amber-600 dark:text-amber-400">
+                      {staff.todayActions > 0 ? `+${staff.todayActions}` : '0'}
+                    </td>
+                    <td className="p-3 text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="w-16 bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                          <div className="bg-amber-500 h-full rounded-full" style={{ width: `${staffPercent}%` }}></div>
+                        </div>
+                        <span className="font-mono text-xs text-slate-500 dark:text-slate-400">{staffPercent}%</span>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Visual Distributions Grid */}
