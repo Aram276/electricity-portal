@@ -34,7 +34,7 @@ import {
   ChevronsLeft,
   ChevronsRight
 } from 'lucide-react';
-import { STATUS_CONFIG, FILE_TYPES } from '../constants/status';
+import { STATUS_CONFIG, FILE_TYPES, KYC_CONFIG, getRecordKYC } from '../constants/status';
 import { exportToExcel } from '../utils/excelHelper';
 import DailyIntake from './DailyIntake';
 import SettingsTab from './SettingsTab';
@@ -90,6 +90,7 @@ export default function AdminDashboard({
   onBatchUpdateFileType,
   onToggleFileType,
   onToggleKYC,
+  onUpdateKYC,
   onBatchUpdateKYC,
   onUpdateStatus,
   onSaveRecord,
@@ -148,7 +149,8 @@ export default function AdminDashboard({
     let incomplete = 0;
     let yellowFolders = 0;
     let papers = 0;
-    let kycDone = 0;
+    let kycDoneByUs = 0;
+    let kycPreVerified = 0;
     let kycPending = 0;
 
     for (let i = 0; i < total; i++) {
@@ -165,14 +167,10 @@ export default function AdminDashboard({
         papers++;
       }
 
-      // KYC Done if explicit flag or status is completed / delivered
-      const isKyc = Boolean(
-        r.isKycDone || 
-        r.kycStatus === 'DONE' || 
-        r.status === 'COMPLETED' || 
-        r.status === 'DELIVERED'
-      );
-      if (isKyc) kycDone++;
+      // 3-state KYC calculation
+      const kycState = getRecordKYC(r);
+      if (kycState === 'DONE_BY_US') kycDoneByUs++;
+      else if (kycState === 'PRE_VERIFIED') kycPreVerified++;
       else kycPending++;
 
       const isPNull = !r.phoneNumber || r.phoneNumber === 'نیە' || r.phoneNumber.trim() === '';
@@ -202,8 +200,10 @@ export default function AdminDashboard({
       incomplete,
       yellowFolders,
       papers,
-      kycDone,
-      kycPending
+      kycDoneByUs,
+      kycPreVerified,
+      kycPending,
+      kycDone: kycDoneByUs + kycPreVerified
     };
   }, [records]);
 
@@ -245,15 +245,16 @@ export default function AdminDashboard({
       if (dataFilter !== 'ALL') {
         const isPhoneMissing = !record.phoneNumber || record.phoneNumber === 'نیە' || record.phoneNumber.trim() === '';
         const isIdMissing = !record.accountNumber || record.accountNumber === 'نیە' || record.accountNumber.trim() === '' || record.accountNumber === '-';
-        const hasRealName = Boolean(record.hasRealName);
         const hasReceiver = Boolean(record.receiverName && record.receiverName.trim() !== '');
-        const isKyc = Boolean(record.isKycDone || record.kycStatus === 'DONE' || record.status === 'COMPLETED' || record.status === 'DELIVERED');
+        const kycVal = getRecordKYC(record);
 
         if (dataFilter === 'YELLOW_FOLDER' && record.fileType !== 'YELLOW_FOLDER') return false;
         if (dataFilter === 'PAPER' && record.fileType === 'YELLOW_FOLDER') return false;
 
-        if (dataFilter === 'KYC_DONE' && !isKyc) return false;
-        if (dataFilter === 'KYC_PENDING' && isKyc) return false;
+        if (dataFilter === 'KYC_DONE_BY_US' && kycVal !== 'DONE_BY_US') return false;
+        if (dataFilter === 'KYC_PRE_VERIFIED' && kycVal !== 'PRE_VERIFIED') return false;
+        if (dataFilter === 'KYC_PENDING' && kycVal !== 'PENDING') return false;
+        if (dataFilter === 'KYC_DONE' && kycVal === 'PENDING') return false;
 
         if (dataFilter === 'NO_PHONE' && !isPhoneMissing) return false;
         if (dataFilter === 'HAS_PHONE' && isPhoneMissing) return false;
@@ -648,8 +649,9 @@ export default function AdminDashboard({
                   }`}
                 >
                   <option value="ALL">🔍 فلتەری زانیارییەکان (گشت داتاکان)</option>
-                  <option value="KYC_DONE">🟢 تەنها هاوبەشە KYC کراوەکان ({stats.kycDone})</option>
-                  <option value="KYC_PENDING">🟡 تەنها هاوبەشە KYC نەکراوەکان ({stats.kycPending})</option>
+                  <option value="KYC_DONE_BY_US">🟢 تەنها ئەوانەی ئێمە کردمان ({stats.kycDoneByUs})</option>
+                  <option value="KYC_PRE_VERIFIED">🔵 تەنها ئەوانەی پێشتر کراون - دەرەکی ({stats.kycPreVerified})</option>
+                  <option value="KYC_PENDING">🟡 تەنها ئەوانەی نەکراون - پێنەدراوەتەوە ({stats.kycPending})</option>
                   <option value="YELLOW_FOLDER">📁 تەنها فایلی زەرد ({stats.yellowFolders})</option>
                   <option value="PAPER">📄 تەنها ئەوراق / کاغەز ({stats.papers})</option>
                   <option value="NO_PHONE">⚠️ ئەوانەی مۆبایلیان نیە / نیەیە ({stats.noPhone})</option>
@@ -682,7 +684,20 @@ export default function AdminDashboard({
 
                 {dataFilter !== 'ALL' && (
                   <span className="px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30 font-bold flex items-center gap-1">
-                    <span>فلتەر: {dataFilter === 'KYC_DONE' ? '🟢 KYC کراوە' : (dataFilter === 'KYC_PENDING' ? '🟡 KYC نەکراوە' : (dataFilter === 'YELLOW_FOLDER' ? '📁 فایلی زەرد' : (dataFilter === 'PAPER' ? '📄 ئەوراق' : (dataFilter === 'NO_PHONE' ? 'بێ مۆبایل' : (dataFilter === 'HAS_PHONE' ? 'بە مۆبایل' : (dataFilter === 'NO_ID' ? 'بێ ئەژمار' : (dataFilter === 'HAS_ID' ? 'بە ئەژمار' : (dataFilter === 'WITH_NAME' ? 'بە ناو' : (dataFilter === 'NO_NAME' ? 'بێ ناو' : 'کەموکوڕی')))))))))}</span>
+                    <span>فلتەر: {
+                      dataFilter === 'KYC_DONE_BY_US' ? '🟢 ئێمە کردمان' :
+                      dataFilter === 'KYC_PRE_VERIFIED' ? '🔵 پێشتر کراوە (دەرەکی)' :
+                      dataFilter === 'KYC_PENDING' ? '🟡 نەکراوە (پێنەدراوەتەوە)' :
+                      dataFilter === 'KYC_DONE' ? '🟢 هەموو KYC کراوەکان' :
+                      dataFilter === 'YELLOW_FOLDER' ? '📁 فایلی زەرد' :
+                      dataFilter === 'PAPER' ? '📄 ئەوراق' :
+                      dataFilter === 'NO_PHONE' ? 'بێ مۆبایل' :
+                      dataFilter === 'HAS_PHONE' ? 'بە مۆبایل' :
+                      dataFilter === 'NO_ID' ? 'بێ ئەژمار' :
+                      dataFilter === 'HAS_ID' ? 'بە ئەژمار' :
+                      dataFilter === 'WITH_NAME' ? 'بە ناو' :
+                      dataFilter === 'NO_NAME' ? 'بێ ناو' : 'کەموکوڕی'
+                    }</span>
                     <button onClick={() => setDataFilter('ALL')} className="hover:text-rose-500"><X className="w-3 h-3" /></button>
                   </span>
                 )}
@@ -756,14 +771,37 @@ export default function AdminDashboard({
                   <span>ناردنی واتسئاپ ({selectedIds.length}) 📢</span>
                 </button>
 
-                {/* Bulk Mark KYC Done */}
-                <button
-                  onClick={() => onBatchUpdateKYC && onBatchUpdateKYC(selectedIds, true)}
-                  className="px-3 py-2 rounded-xl bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold transition-all shadow-sm active:scale-95 flex items-center gap-1.5"
-                >
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  <span>KYC کراوە ({selectedIds.length}) 🪪</span>
-                </button>
+                {/* Bulk KYC 3-choice group */}
+                <div className="flex items-center gap-1 bg-slate-900/60 dark:bg-slate-950/80 p-1.5 rounded-xl border-2 border-amber-500/60 shadow-md">
+                  <span className="text-[11px] font-black text-amber-300 px-1.5 flex items-center gap-1">
+                    <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                    <span>بەتنی KYC ({selectedIds.length}):</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => onBatchUpdateKYC && onBatchUpdateKYC(selectedIds, 'DONE_BY_US')}
+                    className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black transition-all active:scale-95 shadow-sm"
+                    title="دیاریکردن وەک ئێمە کردمان بۆ هەڵبژێردراوەکان"
+                  >
+                    🟢 ئێمە کردمان
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onBatchUpdateKYC && onBatchUpdateKYC(selectedIds, 'PRE_VERIFIED')}
+                    className="px-2.5 py-1 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-black transition-all active:scale-95 shadow-sm"
+                    title="دیاریکردن وەک پێشتر کراوە (دەرەکی)"
+                  >
+                    🔵 پێشتر کراوە
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onBatchUpdateKYC && onBatchUpdateKYC(selectedIds, 'PENDING')}
+                    className="px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-black transition-all active:scale-95 shadow-sm"
+                    title="دیاریکردن وەک نەکراوە (پێنەدراوەتەوە)"
+                  >
+                    🟡 نەکراوە
+                  </button>
+                </div>
 
                 {/* Change Status to Done */}
                 <button
@@ -807,42 +845,47 @@ export default function AdminDashboard({
           {/* Records Table formatted like co2 file */}
           <div className="rounded-2xl sm:rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xl backdrop-blur-xl transition-colors">
             {/* ── DESKTOP & TABLET VIEW: Wide Data Table (hidden on mobile) ── */}
-            <div className="hidden md:block overflow-x-auto scrollbar-thin">
-              <table className="w-full text-right text-xs sm:text-sm min-w-[850px]">
-                <thead className="bg-slate-100 dark:bg-slate-950/80 text-slate-700 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-800 text-xs">
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-right text-xs border-collapse">
+                <thead className="bg-slate-100 dark:bg-slate-950/90 text-slate-700 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-800 text-xs">
                   <tr>
                     {/* Select All Checkbox Header */}
-                    <th className="p-3 pr-4 text-center w-12">
+                    <th className="p-2 text-center w-8">
                       <button
                         type="button"
                         onClick={handleToggleSelectAllPage}
                         title={isAllPageSelected ? "هەڵوەشاندنەوەی پەڕە" : "هەڵبژاردنی هەموو ئەم پەڕەیە"}
-                        className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-300"
+                        className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-300"
                       >
                         {isAllPageSelected ? (
-                          <CheckSquare className="w-5 h-5 text-amber-500" />
+                          <CheckSquare className="w-4 h-4 text-amber-500" />
                         ) : (
-                          <Square className="w-5 h-5 text-slate-400" />
+                          <Square className="w-4 h-4 text-slate-400" />
                         )}
                       </button>
                     </th>
 
-                    <th className="p-3 cursor-pointer" onClick={() => { setSortField('fileNumber'); setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc'); }}>
-                      ژمارەی فایل {sortField === 'fileNumber' && (sortOrder === 'asc' ? '▲' : '▼')}
+                    <th className="p-2 cursor-pointer text-center w-16" onClick={() => { setSortField('fileNumber'); setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc'); }}>
+                      فایل {sortField === 'fileNumber' && (sortOrder === 'asc' ? '▲' : '▼')}
                     </th>
-                    <th className="p-3">جۆری دۆسیە (شێواز)</th>
-                    <th className="p-3 cursor-pointer" onClick={() => { setSortField('accountNumber'); setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc'); }}>
-                      ژمارەی ئەژمار (ID) {sortField === 'accountNumber' && (sortOrder === 'asc' ? '▲' : '▼')}
+                    <th className="p-2 text-center w-24">جۆری دۆسیە</th>
+                    <th className="p-2 cursor-pointer text-center w-24" onClick={() => { setSortField('accountNumber'); setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc'); }}>
+                      ئەژمار (ID) {sortField === 'accountNumber' && (sortOrder === 'asc' ? '▲' : '▼')}
                     </th>
-                    <th className="p-3">ژمارەی مۆبایل</th>
-                    <th className="p-3 cursor-pointer" onClick={() => { setSortField('citizenName'); setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc'); }}>
+                    <th className="p-2 text-center w-28">مۆبایل</th>
+                    <th className="p-2 cursor-pointer text-right min-w-[110px]" onClick={() => { setSortField('citizenName'); setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc'); }}>
                       ناوی هاووڵاتی {sortField === 'citizenName' && (sortOrder === 'asc' ? '▲' : '▼')}
                     </th>
-                    <th className="p-3">دۆخی KYC (ناسینەوە)</th>
-                    <th className="p-3">دۆخی ئێستا (Status)</th>
-                    <th className="p-3">بەرواری تەسلیم</th>
-                    <th className="p-3">وەرگرەوە / فەرمانبەر</th>
-                    <th className="p-3 text-center pl-4 sm:pl-6">کردارەکان</th>
+                    <th className="p-2 bg-amber-500/15 dark:bg-amber-500/20 text-amber-950 dark:text-amber-200 border-x border-amber-300 dark:border-amber-500/40 text-center font-black w-32">
+                      <div className="flex items-center justify-center gap-1">
+                        <ShieldCheck className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                        <span>بەتنی KYC 🪪</span>
+                      </div>
+                    </th>
+                    <th className="p-2 text-center w-32">دۆخی ئێستا</th>
+                    <th className="p-2 text-center w-20">بەروار</th>
+                    <th className="p-2 text-center w-24">وەرگرەوە</th>
+                    <th className="p-2 text-center w-36">کردارەکان</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-slate-800 dark:text-slate-200">
@@ -860,12 +903,6 @@ export default function AdminDashboard({
                       const isPhoneMissing = !record.phoneNumber || record.phoneNumber === 'نیە' || record.phoneNumber.trim() === '';
                       const isIdMissing = !record.accountNumber || record.accountNumber === 'نیە' || record.accountNumber.trim() === '' || record.accountNumber === '-';
                       const isYellowFolder = record.fileType === 'YELLOW_FOLDER';
-                      const isKyc = Boolean(
-                        record.isKycDone || 
-                        record.kycStatus === 'DONE' || 
-                        record.status === 'COMPLETED' || 
-                        record.status === 'DELIVERED'
-                      );
 
                       return (
                         <tr 
@@ -878,37 +915,37 @@ export default function AdminDashboard({
                         >
                           
                           {/* Row Checkbox */}
-                          <td className="p-3 pr-4 text-center">
+                          <td className="p-2 text-center">
                             <button
                               type="button"
                               onClick={() => handleToggleSelectOne(record.id)}
-                              className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
+                              className="p-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
                             >
                               {isSelected ? (
-                                <CheckSquare className="w-5 h-5 text-amber-500" />
+                                <CheckSquare className="w-4 h-4 text-amber-500" />
                               ) : (
-                                <Square className="w-5 h-5 text-slate-400" />
+                                <Square className="w-4 h-4 text-slate-400" />
                               )}
                             </button>
                           </td>
 
                           {/* number file */}
-                          <td className="p-3">
-                            <span className="font-mono font-black text-amber-700 dark:text-amber-300 text-base px-2 py-0.5 bg-amber-100/70 dark:bg-amber-500/10 rounded-lg border border-amber-300 dark:border-amber-500/30">
+                          <td className="p-2 text-center">
+                            <span className="font-mono font-black text-amber-700 dark:text-amber-300 text-xs px-1.5 py-0.5 bg-amber-100/70 dark:bg-amber-500/10 rounded border border-amber-300 dark:border-amber-500/30">
                               {record.fileNumber}
                             </span>
                           </td>
 
                           {/* File Type Button Toggle (Yellow Folder vs Paper) */}
-                          <td className="p-3">
+                          <td className="p-2 text-center">
                             <button
                               type="button"
                               onClick={() => onToggleFileType && onToggleFileType(record.id)}
                               title="کلیک بکە بۆ گۆڕینی جۆری فایل (فایلی زەرد / ئەوراق)"
-                              className={`px-2.5 py-1 rounded-xl text-xs font-black border transition-all active:scale-95 shadow-sm inline-flex items-center gap-1.5 ${
+                              className={`px-2 py-0.5 rounded-lg text-[11px] font-black border transition-all active:scale-95 shadow-xs inline-flex items-center gap-1 ${
                                 isYellowFolder
-                                  ? 'bg-amber-200/80 dark:bg-amber-500/25 text-amber-950 dark:text-amber-300 border-amber-400 dark:border-amber-500/50 hover:bg-amber-300/80'
-                                  : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-700 hover:bg-slate-200'
+                                  ? 'bg-amber-200/80 dark:bg-amber-500/25 text-amber-950 dark:text-amber-300 border-amber-400 dark:border-amber-500/50'
+                                  : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-700'
                               }`}
                             >
                               <span>{isYellowFolder ? '📁 فایلی زەرد' : '📄 ئەوراق'}</span>
@@ -916,35 +953,34 @@ export default function AdminDashboard({
                           </td>
 
                           {/* ID */}
-                          <td className="p-3 font-mono font-bold">
+                          <td className="p-2 text-center font-mono text-xs">
                             {isIdMissing ? (
-                              <span className="text-rose-600 dark:text-rose-400 text-xs px-2 py-0.5 rounded bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 font-bold">
+                              <span className="text-rose-600 dark:text-rose-400 text-[10px] px-1.5 py-0.5 rounded bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 font-bold">
                                 نیە
                               </span>
                             ) : (
-                              <span className="text-slate-900 dark:text-white font-mono">{record.accountNumber}</span>
+                              <span className="text-slate-900 dark:text-white font-mono font-semibold">{record.accountNumber}</span>
                             )}
                           </td>
 
                           {/* Phone & WhatsApp */}
-                          <td className="p-3 font-mono text-xs">
+                          <td className="p-2 text-center font-mono text-xs">
                             {isPhoneMissing ? (
-                              <span className="text-rose-600 dark:text-rose-400 px-2 py-0.5 rounded bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 font-bold">
+                              <span className="text-rose-600 dark:text-rose-400 px-1.5 py-0.5 rounded bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-[10px] font-bold">
                                 نیە
                               </span>
                             ) : (
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="text-slate-700 dark:text-slate-300 font-semibold">{record.phoneNumber}</span>
+                              <div className="flex items-center justify-center gap-1 flex-wrap">
+                                <span className="text-slate-700 dark:text-slate-300 text-xs font-semibold">{record.phoneNumber}</span>
                                 {generateWhatsAppUrl(record) && (
                                   <a
                                     href={generateWhatsAppUrl(record)}
                                     target="_blank"
                                     rel="noreferrer"
                                     title="ناردنی نامەی فەرمی بە واتسئاپ بۆ هاووڵاتی"
-                                    className="p-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/30 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 inline-flex items-center gap-1 transition-all active:scale-95 shadow-sm"
+                                    className="p-1 rounded bg-emerald-500/15 hover:bg-emerald-500/30 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 inline-flex items-center transition-all active:scale-95"
                                   >
-                                    <MessageSquare className="w-3.5 h-3.5" />
-                                    <span className="text-[10px] font-bold hidden xl:inline">واتسئاپ</span>
+                                    <MessageSquare className="w-3 h-3" />
                                   </a>
                                 )}
                               </div>
@@ -952,100 +988,114 @@ export default function AdminDashboard({
                           </td>
 
                           {/* Name */}
-                          <td className="p-3">
+                          <td className="p-2 text-right">
                             {(record.citizenName && record.citizenName !== 'هاوبەشی کارەبا' && record.citizenName.trim() !== '') ? (
-                              <span className="font-bold text-slate-900 dark:text-white">{record.citizenName}</span>
+                              <span className="font-bold text-slate-900 dark:text-white text-xs block truncate max-w-[130px]" title={record.citizenName}>
+                                {record.citizenName}
+                              </span>
                             ) : (
                               <span className="text-slate-400 italic text-xs">هاوبەشی کارەبا</span>
                             )}
                           </td>
 
-                          {/* KYC Status Button Toggle */}
-                          <td className="p-3">
-                            <button
-                              type="button"
-                              onClick={() => onToggleKYC && onToggleKYC(record.id)}
-                              title={isKyc ? "KYC کراوە - کلیک بکە بۆ گۆڕین" : "KYC نەکراوە - کلیک بکە بۆ دیاریکردن وەک ئەنجامدراو"}
-                              className={`px-2.5 py-1 rounded-xl text-xs font-black border transition-all active:scale-95 shadow-sm inline-flex items-center gap-1.5 ${
-                                isKyc
-                                  ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-500/40 hover:bg-emerald-200 dark:hover:bg-emerald-500/30'
-                                  : 'bg-amber-100 dark:bg-amber-500/20 text-amber-900 dark:text-amber-300 border-amber-300 dark:border-amber-500/40 hover:bg-amber-200 dark:hover:bg-amber-500/30'
-                              }`}
-                            >
-                              <ShieldCheck className={`w-3.5 h-3.5 ${isKyc ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`} />
-                              <span>{isKyc ? 'KYC کراوە ✅' : 'KYC نەکراوە 🟡'}</span>
-                            </button>
+                          {/* KYC Status Dropdown */}
+                          <td className="p-2 bg-amber-500/5 dark:bg-amber-500/5 border-x border-amber-200/60 dark:border-amber-500/20 text-center">
+                            {(() => {
+                              const kycState = getRecordKYC(record);
+                              return (
+                                <select
+                                  value={kycState}
+                                  onChange={(e) => {
+                                    if (onUpdateKYC) {
+                                      onUpdateKYC(record.id, e.target.value);
+                                    } else if (onToggleKYC) {
+                                      onToggleKYC(record.id);
+                                    }
+                                  }}
+                                  title="بەتنی دیاریکردنی دۆخی کەیوایسی (KYC)"
+                                  className={`w-full px-1.5 py-1 rounded-lg text-xs font-black border-2 transition-all cursor-pointer focus:outline-none shadow-xs text-center ${
+                                    kycState === 'DONE_BY_US'
+                                      ? 'bg-emerald-100 dark:bg-emerald-500/25 text-emerald-950 dark:text-emerald-200 border-emerald-500'
+                                      : kycState === 'PRE_VERIFIED'
+                                      ? 'bg-sky-100 dark:bg-sky-500/25 text-sky-950 dark:text-sky-200 border-sky-500'
+                                      : 'bg-amber-100 dark:bg-amber-500/25 text-amber-950 dark:text-amber-200 border-amber-500'
+                                  }`}
+                                >
+                                  <option value="DONE_BY_US" className="bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-300 font-bold">
+                                    🟢 ئێمە کردمان
+                                  </option>
+                                  <option value="PRE_VERIFIED" className="bg-white dark:bg-slate-900 text-sky-700 dark:text-sky-300 font-bold">
+                                    🔵 پێشتر کراوە
+                                  </option>
+                                  <option value="PENDING" className="bg-white dark:bg-slate-900 text-amber-700 dark:text-amber-300 font-bold">
+                                    🟡 نەکراوە
+                                  </option>
+                                </select>
+                              );
+                            })()}
                           </td>
 
                           {/* Status selector */}
-                          <td className="p-3">
+                          <td className="p-2 text-center">
                             <select
                               value={record.status}
                               onChange={(e) => onUpdateStatus(record.id, e.target.value)}
-                              className={`px-2 sm:px-2.5 py-1 rounded-full text-xs font-bold border ${status.badgeClass} bg-white dark:bg-slate-900 cursor-pointer focus:outline-none`}
+                              className={`w-full px-1.5 py-1 rounded-lg text-xs font-bold border ${status.badgeClass} bg-white dark:bg-slate-900 cursor-pointer focus:outline-none shadow-xs text-center`}
                             >
-                              <option value="COMPLETED" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-normal">
-                                وەرگیراوەتەوە (Done)
+                              <option value="COMPLETED" className="bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-300 font-bold">
+                                🟢 وەرگیراوەتەوە
                               </option>
-                              <option value="IN_PROGRESS" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-normal">
-                                پێنەدراوەتەوە - لەلای ئێمەیە (Not Done)
+                              <option value="IN_PROGRESS" className="bg-white dark:bg-slate-900 text-amber-700 dark:text-amber-300 font-bold">
+                                🟡 پێنەدراوەتەوە
                               </option>
-                              <option value="DELIVERED" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-normal">
-                                تەسلیم کرا (Delivered)
+                              <option value="DELIVERED" className="bg-white dark:bg-slate-900 text-blue-700 dark:text-blue-300 font-bold">
+                                🔵 تەسلیم کرا
                               </option>
                             </select>
                           </td>
 
                           {/* date */}
-                          <td className="p-3 text-xs">
+                          <td className="p-2 text-center text-xs">
                             {record.deliveredDate ? (
-                              <span className="text-blue-700 dark:text-blue-400 font-bold font-mono px-2 py-0.5 bg-blue-50 dark:bg-blue-950/40 rounded border border-blue-200 dark:border-blue-500/30">
+                              <span className="text-blue-700 dark:text-blue-400 font-bold font-mono text-[11px] px-1.5 py-0.5 bg-blue-50 dark:bg-blue-950/40 rounded border border-blue-200 dark:border-blue-500/30">
                                 {record.deliveredDate}
                               </span>
                             ) : (
-                              <span className="text-slate-400">-</span>
+                              <span className="text-slate-400 text-xs">-</span>
                             )}
                           </td>
 
                           {/* name of recive & staff handler */}
-                          <td className="p-3 text-xs">
-                            <div className="space-y-1">
-                              {record.receiverName ? (
-                                <span className="font-bold text-slate-900 dark:text-white flex items-center gap-1">
-                                  <UserCheck className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                                  <span>{record.receiverName}</span>
-                                </span>
-                              ) : (
-                                !record.deliveredBy && !record.handledBy && <span className="text-slate-400">-</span>
-                              )}
-                              {(record.deliveredBy || record.handledBy) && (
-                                <div>
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-900 dark:text-amber-300 text-[10px] font-bold border border-amber-500/30">
-                                    <span>👤</span>
-                                    <span>{record.deliveredBy || record.handledBy}</span>
-                                  </span>
-                                </div>
-                              )}
-                            </div>
+                          <td className="p-2 text-center text-xs">
+                            {record.receiverName ? (
+                              <span className="font-bold text-slate-900 dark:text-white text-xs truncate block max-w-[95px] mx-auto" title={record.receiverName}>
+                                {record.receiverName}
+                              </span>
+                            ) : (record.deliveredBy || record.handledBy) ? (
+                              <span className="text-amber-800 dark:text-amber-300 text-[10px] font-bold px-1 py-0.5 rounded bg-amber-100 dark:bg-amber-500/20 truncate block max-w-[95px] mx-auto" title={record.deliveredBy || record.handledBy}>
+                                👤 {record.deliveredBy || record.handledBy}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 text-xs">-</span>
+                            )}
                           </td>
 
-                          {/* Actions */}
-                          <td className="p-2 pl-3 sm:pl-4">
-                            <div className="flex items-center justify-center gap-1.5">
+                          {/* Actions Column (Compact & 100% visible on PC) */}
+                          <td className="p-2 text-center">
+                            <div className="flex items-center justify-center gap-1">
                               {/* Deliver Button */}
                               {record.status !== 'DELIVERED' ? (
                                 <button
                                   onClick={() => onOpenDeliveryModal(record)}
                                   title="تەسلیمکردنەوە بە هاووڵاتی"
-                                  className="group inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white text-[11px] font-black shadow-md shadow-blue-500/30 transition-all duration-200 active:scale-95 hover:shadow-lg hover:shadow-blue-500/40"
+                                  className="group inline-flex items-center gap-1 px-2 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-black shadow-xs transition-all active:scale-95 shrink-0"
                                 >
-                                  <PackageCheck className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+                                  <PackageCheck className="w-3.5 h-3.5" />
                                   <span>تەسلیم</span>
                                 </button>
                               ) : (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 text-[11px] font-bold border border-blue-200 dark:border-blue-500/30">
+                                <span className="inline-flex items-center px-1.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 text-[10px] font-bold border border-blue-200 dark:border-blue-500/30 shrink-0" title="تەسلیم کرا">
                                   <PackageCheck className="w-3.5 h-3.5" />
-                                  <span>تەسلیم کرا</span>
                                 </span>
                               )}
 
@@ -1053,36 +1103,36 @@ export default function AdminDashboard({
                               <button
                                 onClick={() => setTimelineRecord(record)}
                                 title="مێژووی ژیانی فایل (Full Timeline Audit)"
-                                className="group p-2 rounded-xl bg-purple-50 dark:bg-purple-500/10 hover:bg-purple-100 dark:hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-500/30 hover:border-purple-400 dark:hover:border-purple-400/50 transition-all duration-200 active:scale-95 shadow-sm"
+                                className="p-1.5 rounded-lg bg-purple-50 dark:bg-purple-500/10 hover:bg-purple-100 dark:hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-500/30 transition-all active:scale-95 shadow-xs shrink-0"
                               >
-                                <Clock className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                                <Clock className="w-3.5 h-3.5" />
                               </button>
 
                               {/* Print Button */}
                               <button
                                 onClick={() => onOpenPrintModal(record)}
                                 title="پرێنتکردنی کارتی هاووڵاتی"
-                                className="group p-2 rounded-xl bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/30 hover:border-amber-400 dark:hover:border-amber-400/50 transition-all duration-200 active:scale-95 shadow-sm"
+                                className="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/30 transition-all active:scale-95 shadow-xs shrink-0"
                               >
-                                <Printer className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                                <Printer className="w-3.5 h-3.5" />
                               </button>
 
                               {/* Edit Button */}
                               <button
                                 onClick={() => onOpenEditModal(record)}
                                 title="دەستکاریکردن"
-                                className="group p-2 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30 hover:border-emerald-400 dark:hover:border-emerald-400/50 transition-all duration-200 active:scale-95 shadow-sm"
+                                className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30 transition-all active:scale-95 shadow-xs shrink-0"
                               >
-                                <Edit className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                                <Edit className="w-3.5 h-3.5" />
                               </button>
 
                               {/* Delete Button */}
                               <button
                                 onClick={() => setDeleteTarget({ id: record.id, fileNumber: record.fileNumber, citizenName: record.citizenName })}
                                 title="سڕینەوەی دۆسیە"
-                                className="group p-2 rounded-xl bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-100 dark:hover:bg-rose-500/20 text-rose-500 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30 hover:border-rose-400 dark:hover:border-rose-400/50 transition-all duration-200 active:scale-95 shadow-sm"
+                                className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-100 dark:hover:bg-rose-500/20 text-rose-500 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30 transition-all active:scale-95 shadow-xs shrink-0"
                               >
-                                <Trash2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                                <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </div>
                           </td>
@@ -1159,20 +1209,45 @@ export default function AdminDashboard({
                             <span>{isYellowFolder ? '📁 فایلی زەرد' : '📄 ئەوراق'}</span>
                           </button>
 
-                          {/* KYC Toggle Button on Mobile */}
-                          <button
-                            type="button"
-                            onClick={() => onToggleKYC && onToggleKYC(record.id)}
-                            title="گۆڕینی دۆخی KYC"
-                            className={`px-2 py-0.5 rounded-lg text-xs font-black border transition-all active:scale-95 flex items-center gap-1 ${
-                              isKyc
-                                ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-emerald-300'
-                                : 'bg-amber-100 dark:bg-amber-500/20 text-amber-900 dark:text-amber-300 border-amber-300'
-                            }`}
-                          >
-                            <ShieldCheck className="w-3 h-3" />
-                            <span>{isKyc ? 'KYC کراوە' : 'KYC نەکراوە'}</span>
-                          </button>
+                          {/* KYC Dropdown on Mobile */}
+                          <div className="flex items-center gap-1.5 bg-amber-500/15 dark:bg-amber-500/20 px-2.5 py-1 rounded-xl border-2 border-amber-400 dark:border-amber-500/40 shadow-xs">
+                            <span className="text-[11px] font-black text-amber-950 dark:text-amber-200 shrink-0">
+                              بەتنی KYC 🪪:
+                            </span>
+                            {(() => {
+                              const kycState = getRecordKYC(record);
+                              return (
+                                <select
+                                  value={kycState}
+                                  onChange={(e) => {
+                                    if (onUpdateKYC) {
+                                      onUpdateKYC(record.id, e.target.value);
+                                    } else if (onToggleKYC) {
+                                      onToggleKYC(record.id);
+                                    }
+                                  }}
+                                  title="بەتنی گۆڕینی دۆخی KYC"
+                                  className={`px-2 py-0.5 rounded-lg text-[11px] font-black border-2 transition-all cursor-pointer focus:outline-none ${
+                                    kycState === 'DONE_BY_US'
+                                      ? 'bg-emerald-100 dark:bg-emerald-500/25 text-emerald-950 dark:text-emerald-200 border-emerald-500'
+                                      : kycState === 'PRE_VERIFIED'
+                                      ? 'bg-sky-100 dark:bg-sky-500/25 text-sky-950 dark:text-sky-200 border-sky-500'
+                                      : 'bg-amber-100 dark:bg-amber-500/25 text-amber-950 dark:text-amber-200 border-amber-500'
+                                  }`}
+                                >
+                                  <option value="DONE_BY_US" className="bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-300 font-bold">
+                                    🟢 ئێمە کردمان
+                                  </option>
+                                  <option value="PRE_VERIFIED" className="bg-white dark:bg-slate-900 text-sky-700 dark:text-sky-300 font-bold">
+                                    🔵 پێشتر کراوە
+                                  </option>
+                                  <option value="PENDING" className="bg-white dark:bg-slate-900 text-amber-700 dark:text-amber-300 font-bold">
+                                    🟡 نەکراوە
+                                  </option>
+                                </select>
+                              );
+                            })()}
+                          </div>
                         </div>
 
                         {/* Inline Status Dropdown */}

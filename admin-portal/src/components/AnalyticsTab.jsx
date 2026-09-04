@@ -19,6 +19,7 @@ import {
   Zap
 } from 'lucide-react';
 import { exportToExcel } from '../utils/excelHelper';
+import { getRecordKYC, KYC_CONFIG } from '../constants/status';
 
 export default function AnalyticsTab({ records = [] }) {
   const total = records.length;
@@ -39,20 +40,27 @@ export default function AnalyticsTab({ records = [] }) {
   const intakeToday = records.filter(r => r.submissionDate === todayStr).length;
   const deliveredToday = records.filter(r => r.deliveredDate && r.deliveredDate.startsWith(todayStr)).length;
 
-  // ── KYC Metrics ──
-  const isRecordKyc = (r) => Boolean(
-    r.isKycDone || 
-    r.kycStatus === 'DONE' || 
-    r.status === 'COMPLETED' || 
-    r.status === 'DELIVERED'
-  );
+  // ── KYC Metrics (3 states) ──
+  let kycDoneByUs = 0;
+  let kycPreVerified = 0;
+  let kycPending = 0;
 
-  const kycTotal = records.filter(isRecordKyc).length;
-  const kycPending = total - kycTotal;
+  records.forEach(r => {
+    const kyc = getRecordKYC(r);
+    if (kyc === 'DONE_BY_US') kycDoneByUs++;
+    else if (kyc === 'PRE_VERIFIED') kycPreVerified++;
+    else kycPending++;
+  });
+
+  const kycTotal = kycDoneByUs + kycPreVerified;
   const kycPercent = total > 0 ? Math.round((kycTotal / total) * 100) : 0;
+  const kycDoneByUsPercent = total > 0 ? Math.round((kycDoneByUs / total) * 100) : 0;
+  const kycPreVerifiedPercent = total > 0 ? Math.round((kycPreVerified / total) * 100) : 0;
+  const kycPendingPercent = total > 0 ? Math.round((kycPending / total) * 100) : 0;
 
   const kycToday = records.filter(r => {
-    if (!isRecordKyc(r)) return false;
+    const kyc = getRecordKYC(r);
+    if (kyc === 'PENDING') return false;
     const isVerifiedToday = r.kycVerifiedAt && r.kycVerifiedAt.startsWith(todayStr);
     const isDeliveredToday = r.deliveredDate && r.deliveredDate.startsWith(todayStr);
     const isCompletedToday = r.completionDate && r.completionDate.startsWith(todayStr);
@@ -75,7 +83,7 @@ export default function AnalyticsTab({ records = [] }) {
     }
     staffMap[handler].totalHandled++;
     if (r.status === 'DELIVERED') staffMap[handler].delivered++;
-    if (isRecordKyc(r)) staffMap[handler].kycVerified++;
+    if (getRecordKYC(r) !== 'PENDING') staffMap[handler].kycVerified++;
     
     const isToday = (r.submissionDate === todayStr) || 
       (r.deliveredDate && r.deliveredDate.startsWith(todayStr)) ||
@@ -294,6 +302,58 @@ export default function AnalyticsTab({ records = [] }) {
       {/* Visual Distributions Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
+        {/* 3-State KYC Breakdown Card */}
+        <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-emerald-500" />
+              <span>دابەشبوونی دۆخی ناسینەوە (KYC Status Breakdown)</span>
+            </h3>
+          </div>
+
+          <div className="space-y-4">
+            {/* Combined 3-Color Bar */}
+            <div className="h-4 w-full rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden flex shadow-inner">
+              <div 
+                style={{ width: `${kycDoneByUsPercent}%` }} 
+                className="bg-emerald-500 h-full transition-all duration-500"
+                title={`ئێمە کردمان: ${kycDoneByUs} (${kycDoneByUsPercent}%)`}
+              />
+              <div 
+                style={{ width: `${kycPreVerifiedPercent}%` }} 
+                className="bg-sky-500 h-full transition-all duration-500"
+                title={`پێشتر کراوە (دەرەکی): ${kycPreVerified} (${kycPreVerifiedPercent}%)`}
+              />
+              <div 
+                style={{ width: `${kycPendingPercent}%` }} 
+                className="bg-amber-500 h-full transition-all duration-500"
+                title={`نەکراوە: ${kycPending} (${kycPendingPercent}%)`}
+              />
+            </div>
+
+            {/* 3 Legend Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+              <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-300 dark:border-emerald-500/30">
+                <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300 block mb-1">🟢 ئێمە کردمان</span>
+                <div className="text-xl font-black font-mono text-emerald-950 dark:text-emerald-200">{kycDoneByUs}</div>
+                <div className="text-[10px] text-emerald-700 dark:text-emerald-400">{kycDoneByUsPercent}% لە کۆی گشتی</div>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-sky-50 dark:bg-sky-500/10 border border-sky-300 dark:border-sky-500/30">
+                <span className="text-xs font-bold text-sky-800 dark:text-sky-300 block mb-1">🔵 پێشتر کراوە</span>
+                <div className="text-xl font-black font-mono text-sky-950 dark:text-sky-200">{kycPreVerified}</div>
+                <div className="text-[10px] text-sky-700 dark:text-sky-400">{kycPreVerifiedPercent}% لە کۆی گشتی</div>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/30">
+                <span className="text-xs font-bold text-amber-800 dark:text-amber-300 block mb-1">🟡 نەکراوە</span>
+                <div className="text-xl font-black font-mono text-amber-950 dark:text-amber-200">{kycPending}</div>
+                <div className="text-[10px] text-amber-700 dark:text-amber-400">{kycPendingPercent}% لە کۆی گشتی</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Yellow Folders vs Papers Breakdown Card */}
         <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
           <div className="flex items-center justify-between">

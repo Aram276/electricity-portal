@@ -112,3 +112,54 @@ export const FILE_TYPES = {
   }
 };
 
+export const KYC_CONFIG = {
+  DONE_BY_US: {
+    id: 'DONE_BY_US',
+    label: '🟢 ئێمە کردمان',
+    fullLabel: '🟢 ئێمە کردمان (ئێرە ئەنجامدراوە و مامەڵەکە تەواو بووە)',
+    shortLabel: 'ئێمە کردمان 🟢',
+    badgeClass: 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-500/40',
+    color: 'emerald',
+    icon: 'ShieldCheck',
+    description: 'لە شوێنی ئێمە ئەنجامدراوە و مامەڵەکە تەواو بووە'
+  },
+  PRE_VERIFIED: {
+    id: 'PRE_VERIFIED',
+    label: '🔵 پێشتر کراوە (دەرەکی)',
+    fullLabel: '🔵 پێشتر کراوە (دەرەکی / لەلایەن کەسێکی ترەوە کراوە)',
+    shortLabel: 'پێشتر کراوە 🔵',
+    badgeClass: 'bg-sky-100 dark:bg-sky-500/20 text-sky-800 dark:text-sky-300 border-sky-300 dark:border-sky-500/40',
+    color: 'sky',
+    icon: 'Shield',
+    description: 'پێشتر لە دەرەوە یان لەلایەن کەسێکی ترەوە بۆی کراوە'
+  },
+  PENDING: {
+    id: 'PENDING',
+    label: '🟡 نەکراوە (پێنەدراوەتەوە)',
+    fullLabel: '🟡 نەکراوە (پێنەدراوەتەوە / هێشتا نەکراوە)',
+    shortLabel: 'نەکراوە 🟡',
+    badgeClass: 'bg-amber-100 dark:bg-amber-500/20 text-amber-900 dark:text-amber-300 border-amber-300 dark:border-amber-500/40',
+    color: 'amber',
+    icon: 'ShieldAlert',
+    description: 'هێشتا کەیوایسی نەکراوە و پێنەدراوەتەوە'
+  }
+};
+
+export function getRecordKYC(record) {
+  if (!record) return 'PENDING';
+  if (record.kycStatus === 'DONE_BY_US' || record.kycType === 'DONE_BY_US') {
+    return 'DONE_BY_US';
+  }
+  if (
+    record.kycStatus === 'PRE_VERIFIED' || 
+    record.kycType === 'PRE_VERIFIED' || 
+    record.kycStatus === 'DONE' || 
+    record.isKycDone === true ||
+    record.status === 'COMPLETED' ||
+    record.status === 'DELIVERED'
+  ) {
+    return 'PRE_VERIFIED';
+  }
+  return 'PENDING';
+}
+

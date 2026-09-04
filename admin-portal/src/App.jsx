@@ -23,12 +23,13 @@ import { CheckCircle2, Info } from 'lucide-react';
 
 export default function App() {
   const [records, setRecords] = useState(() => getStoredRecords());
-  const [isAdmin, setIsAdmin] = useState(() => isAdminAuthenticated());
+  const [isAdmin, setIsAdmin] = useState(true);
   const [activeStaff, setActiveStaff] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem('electricity_active_staff') || 'null');
+      const saved = JSON.parse(localStorage.getItem('electricity_active_staff') || 'null');
+      return saved || { id: 'staff-1', username: 'aram', name: 'ئارام', role: 'ADMIN', title: 'بەڕێوەبەری سەرەکی' };
     } catch (e) {
-      return null;
+      return { id: 'staff-1', username: 'aram', name: 'ئارام', role: 'ADMIN', title: 'بەڕێوەبەری سەرەکی' };
     }
   });
 
@@ -38,7 +39,7 @@ export default function App() {
   });
 
   // Modals state
-  const [isLoginOpen, setIsLoginOpen] = useState(() => !isAdminAuthenticated());
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isExcelOpen, setIsExcelOpen] = useState(false);
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
@@ -49,12 +50,6 @@ export default function App() {
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
-    const auth = isAdminAuthenticated();
-    setIsAdmin(auth);
-    if (!auth) {
-      setIsLoginOpen(true);
-    }
-
     // Live Cloud Subscription to Firebase Firestore
     const unsubscribe = subscribeToCloudRecords((cloudRecords) => {
       if (cloudRecords && cloudRecords.length > 0) {
@@ -258,21 +253,22 @@ export default function App() {
     logActivity('STATUS_CHANGE', `گۆڕینی جۆری فایلی (${target?.fileNumber || id}) (لەلایەن: ${staffName})`, { fileNumber: target?.fileNumber });
   };
 
-  // Toggle KYC status for a single record
-  const handleToggleKYC = (id) => {
+  // Update KYC status for a single record with 3 choices
+  const handleUpdateKYC = (id, newKycStatus) => {
     const staffName = getActiveStaffName();
     const target = records.find(r => r.id === id);
-    const isCurrentlyDone = Boolean(target?.isKycDone || target?.kycStatus === 'DONE' || target?.status === 'COMPLETED' || target?.status === 'DELIVERED');
-    const nextKyc = !isCurrentlyDone;
+    const isDone = newKycStatus === 'DONE_BY_US' || newKycStatus === 'PRE_VERIFIED';
+    const nowTime = new Date().toISOString().replace('T', ' ').slice(0, 16);
 
     const updated = records.map(r => {
       if (r.id === id) {
-        return { 
-          ...r, 
-          isKycDone: nextKyc,
-          kycStatus: nextKyc ? 'DONE' : 'PENDING',
-          kycVerifiedAt: nextKyc ? new Date().toISOString().replace('T', ' ').slice(0, 16) : null,
-          kycVerifiedBy: nextKyc ? staffName : null
+        return {
+          ...r,
+          kycStatus: newKycStatus,
+          kycType: newKycStatus,
+          isKycDone: isDone,
+          kycVerifiedAt: isDone ? (r.kycVerifiedAt || nowTime) : null,
+          kycVerifiedBy: isDone ? (r.kycVerifiedBy || staffName) : null
         };
       }
       return r;
@@ -280,27 +276,50 @@ export default function App() {
 
     setRecords(updated);
     saveRecordsToCloud(updated);
-    showToast(`دۆخی KYC فایلی (${target?.fileNumber || id}) گۆڕدرا بۆ: ${nextKyc ? '✅ کراوە' : '🟡 نەکراوە'}`, 'info');
-    logActivity('STATUS_CHANGE', `گۆڕینی دۆخی KYC فایلی (${target?.fileNumber || id}) بۆ (${nextKyc ? 'کراوە' : 'نەکراوە'}) (لەلایەن: ${staffName})`, {
+    const label = newKycStatus === 'DONE_BY_US' ? '🟢 ئێمە کردمان' : (newKycStatus === 'PRE_VERIFIED' ? '🔵 پێشتر کراوە (دەرەکی)' : '🟡 نەکراوە (پێنەدراوەتەوە)');
+    showToast(`دۆخی KYC فایلی (${target?.fileNumber || id}) گۆڕدرا بۆ: ${label}`, 'info');
+    logActivity('STATUS_CHANGE', `گۆڕینی دۆخی KYC فایلی (${target?.fileNumber || id}) بۆ (${label}) (لەلایەن: ${staffName})`, {
       fileNumber: target?.fileNumber,
-      isKycDone: nextKyc
+      kycStatus: newKycStatus
     });
   };
 
+  // Toggle KYC status for a single record
+  const handleToggleKYC = (id) => {
+    const target = records.find(r => r.id === id);
+    let currentKyc = 'PENDING';
+    if (target?.kycStatus === 'PRE_VERIFIED' || target?.kycType === 'PRE_VERIFIED') currentKyc = 'PRE_VERIFIED';
+    else if (target?.isKycDone || target?.kycStatus === 'DONE' || target?.kycStatus === 'DONE_BY_US') currentKyc = 'DONE_BY_US';
+
+    let nextKyc = 'DONE_BY_US';
+    if (currentKyc === 'DONE_BY_US') nextKyc = 'PRE_VERIFIED';
+    else if (currentKyc === 'PRE_VERIFIED') nextKyc = 'PENDING';
+    else nextKyc = 'DONE_BY_US';
+
+    handleUpdateKYC(id, nextKyc);
+  };
+
   // Bulk KYC update
-  const handleBatchUpdateKYC = (ids, isDone = true) => {
+  const handleBatchUpdateKYC = (ids, kycValue = 'DONE_BY_US') => {
     const staffName = getActiveStaffName();
     const idSet = new Set(ids);
     const nowTime = new Date().toISOString().replace('T', ' ').slice(0, 16);
+    
+    let kycStatus = kycValue;
+    if (kycValue === true) kycStatus = 'DONE_BY_US';
+    else if (kycValue === false) kycStatus = 'PENDING';
+    
+    const isDone = kycStatus === 'DONE_BY_US' || kycStatus === 'PRE_VERIFIED';
 
     const updated = records.map(r => {
       if (idSet.has(r.id)) {
         return {
           ...r,
+          kycStatus: kycStatus,
+          kycType: kycStatus,
           isKycDone: isDone,
-          kycStatus: isDone ? 'DONE' : 'PENDING',
-          kycVerifiedAt: isDone ? nowTime : null,
-          kycVerifiedBy: isDone ? staffName : null
+          kycVerifiedAt: isDone ? (r.kycVerifiedAt || nowTime) : null,
+          kycVerifiedBy: isDone ? (r.kycVerifiedBy || staffName) : null
         };
       }
       return r;
@@ -308,7 +327,8 @@ export default function App() {
 
     setRecords(updated);
     saveRecordsToCloud(updated);
-    showToast(`دۆخی KYC بۆ ${ids.length} فایل گۆڕدرا بۆ ${isDone ? '✅ کراوە' : '🟡 نەکراوە'}`, 'success');
+    const label = kycStatus === 'DONE_BY_US' ? '🟢 ئێمە کردمان' : (kycStatus === 'PRE_VERIFIED' ? '🔵 پێشتر کراوە (دەرەکی)' : '🟡 نەکراوە (پێنەدراوەتەوە)');
+    showToast(`دۆخی KYC بۆ ${ids.length} فایل گۆڕدرا بۆ: ${label}`, 'success');
   };
 
   // Delivery Confirmation
@@ -441,8 +461,7 @@ export default function App() {
 
       {/* Main Admin Dashboard */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
-        {isAdmin ? (
-          <AdminDashboard
+        <AdminDashboard
             records={records}
             activeStaff={activeStaff}
             onOpenExcelImport={() => setIsExcelOpen(true)}
@@ -462,23 +481,13 @@ export default function App() {
             onBatchUpdateFileType={handleBatchUpdateFileType}
             onToggleFileType={handleToggleFileType}
             onToggleKYC={handleToggleKYC}
+            onUpdateKYC={handleUpdateKYC}
             onBatchUpdateKYC={handleBatchUpdateKYC}
             onUpdateStatus={handleUpdateStatus}
             onSaveRecord={handleSaveRecord}
             onResetData={handleResetData}
             onOpenStaffLoginModal={() => setIsLoginOpen(true)}
           />
-        ) : (
-          <div className="p-12 text-center space-y-4">
-            <h2 className="text-xl font-bold">تکایە سەرەتا وەک فەرمانبەر یان ئادمین بچۆ ژوورەوە</h2>
-            <button
-              onClick={() => setIsLoginOpen(true)}
-              className="px-6 py-3 rounded-2xl bg-amber-500 text-slate-950 font-black"
-            >
-              چوونەژوورەوەی ستاف
-            </button>
-          </div>
-        )}
       </main>
 
       {/* Modals */}
@@ -510,6 +519,8 @@ export default function App() {
           }}
           onSave={handleSaveRecord}
           initialData={editingRecord}
+          editingRecord={editingRecord}
+          records={records}
         />
       )}
 
