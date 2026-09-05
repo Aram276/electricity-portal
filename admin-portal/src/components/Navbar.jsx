@@ -137,6 +137,18 @@ export default function Navbar({ currentView, setCurrentView, isAdmin, isAdminPa
                     </div>
                   )}
 
+                  {/* Printable A4 Poster Button */}
+                  <a
+                    href="/poster.html"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="کردنەوە و چاپکردنی پۆستەری A4 بۆ ژوورەکە"
+                    className="flex items-center gap-1 p-1.5 sm:px-2.5 sm:py-2 rounded-xl text-[10px] sm:text-xs font-bold text-sky-600 dark:text-sky-400 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 transition-all shadow-sm shrink-0"
+                  >
+                    <span>📄</span>
+                    <span className="hidden sm:inline">پۆستەری A4</span>
+                  </a>
+
                   <button
                     onClick={onAdminLogout}
                     title="دەرچوون"

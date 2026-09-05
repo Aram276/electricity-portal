@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="ku" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>پۆستەری بەدواداچوونی مامەڵەی کارەبا - پڕۆژەی ڕووناکی</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0284c7;
+      --primary-dark: #0369a1;
+      --navy: #0f172a;
+      --navy-light: #1e293b;
+      --gold: #d97706;
+      --gold-dark: #b45309;
+      --gold-light: #fef3c7;
+      --emerald: #059669;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    body {
+      font-family: 'Vazirmatn', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #94a3b8;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 24px;
+      color: #0f172a;
+    }
+
+    /* Screen Toolbar */
+    .toolbar {
+      position: sticky;
+      top: 15px;
+      z-index: 100;
+      display: flex;
+      gap: 14px;
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(12px);
+      padding: 12px 24px;
+      border-radius: 9999px;
+      box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.4);
+      margin-bottom: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .btn-print {
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      color: white;
+      border: none;
+      padding: 10px 26px;
+      border-radius: 9999px;
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.45);
+      transition: all 0.2s ease;
+    }
+
+    .btn-print:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(37, 99, 235, 0.6);
+    }
+
+    .btn-link {
+      background: rgba(255, 255, 255, 0.12);
+      color: #f1f5f9;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      padding: 10px 20px;
+      border-radius: 9999px;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-link:hover {
+      background: rgba(255, 255, 255, 0.22);
+      color: white;
+    }
+
+    /* A4 Poster Container */
+    .page-a4 {
+      width: 210mm;
+      height: 297mm;
+      background: #ffffff;
+      padding: 12mm 14mm 10mm 14mm;
+      position: relative;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+      border-radius: 6px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    /* Official Decorative Border */
+    .poster-frame {
+      position: absolute;
+      inset: 6mm;
+      border: 2.5px solid #0369a1;
+      border-radius: 20px;
+      pointer-events: none;
+    }
+
+    .inner-frame {
+      position: absolute;
+      inset: 7.5mm;
+      border: 1px solid #cbd5e1;
+      border-radius: 16px;
+      pointer-events: none;
+    }
+
+    .corner-accent {
+      position: absolute;
+      width: 32px;
+      height: 32px;
+      border-color: #d97706;
+      border-style: solid;
+      pointer-events: none;
+    }
+    .corner-tl { top: 6mm; left: 6mm; border-width: 5px 0 0 5px; border-top-left-radius: 20px; }
+    .corner-tr { top: 6mm; right: 6mm; border-width: 5px 5px 0 0; border-top-right-radius: 20px; }
+    .corner-bl { bottom: 6mm; left: 6mm; border-width: 0 0 5px 5px; border-bottom-left-radius: 20px; }
+    .corner-br { bottom: 6mm; right: 6mm; border-width: 0 5px 5px 0; border-bottom-right-radius: 20px; }
+
+    /* Header Section */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 12px;
+      margin-top: 2mm;
+    }
+
+    .header-logo-side {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .header-logo {
+      width: 76px;
+      height: 76px;
+      object-fit: contain;
+      filter: drop-shadow(0 4px 6px rgba(0,0,0,0.12));
+    }
+
+    .header-titles h2 {
+      font-size: 16px;
+      font-weight: 900;
+      color: #0f172a;
+      line-height: 1.3;
+    }
+
+    .header-titles h3 {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #0284c7;
+      margin-top: 3px;
+    }
+
+    .header-badge {
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      color: #f8fafc;
+      padding: 10px 18px;
+      border-radius: 14px;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
+      border: 1.5px solid #38bdf8;
+    }
+
+    .header-badge .tag {
+      font-size: 11px;
+      color: #38bdf8;
+      font-weight: 800;
+      margin-bottom: 2px;
+    }
+
+    .header-badge .value {
+      font-size: 14px;
+      font-weight: 900;
+      color: #ffffff;
+    }
+
+    /* Main Hero Banner */
+    .main-banner {
+      background: linear-gradient(135deg, #0f172a 0%, #0369a1 55%, #0284c7 100%);
+      border-radius: 22px;
+      padding: 18px 24px;
+      color: white;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 10px 25px -5px rgba(2, 132, 199, 0.4);
+      margin: 8px 0;
+      border: 2px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .main-banner::before {
+      content: '';
+      position: absolute;
+      top: -40px;
+      right: -40px;
+      width: 160px;
+      height: 160px;
+      background: radial-gradient(circle, rgba(245, 158, 11, 0.35) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+
+    .banner-sub {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(245, 158, 11, 0.2);
+      border: 1.5px solid #f59e0b;
+      color: #fef3c7;
+      padding: 5px 16px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .banner-title {
+      font-size: 28px;
+      font-weight: 900;
+      line-height: 1.25;
+      margin-bottom: 8px;
+      text-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+      color: #ffffff;
+    }
+
+    .banner-desc {
+      font-size: 14.5px;
+      font-weight: 600;
+      color: #e0f2fe;
+      max-width: 92%;
+      margin: 0 auto;
+      line-height: 1.5;
+    }
+
+    /* QR Center Card */
+    .qr-section {
+      display: flex;
+      gap: 22px;
+      align-items: center;
+      background: #f8fafc;
+      border: 2.5px solid #bae6fd;
+      border-radius: 24px;
+      padding: 18px 22px;
+      position: relative;
+      box-shadow: 0 8px 20px -5px rgba(0, 0, 0, 0.06);
+      margin: 6px 0;
+    }
+
+    .qr-box-wrapper {
+      flex-shrink: 0;
+      background: white;
+      padding: 14px;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.18);
+      border: 2px solid #0284c7;
+      text-align: center;
+      position: relative;
+    }
+
+    .qr-image {
+      width: 175px;
+      height: 175px;
+      display: block;
+      margin: 0 auto;
+      border-radius: 10px;
+    }
+
+    .qr-scan-badge {
+      position: absolute;
+      top: -12px;
+      right: 50%;
+      transform: translateX(50%);
+      background: #0f172a;
+      color: #38bdf8;
+      font-size: 11px;
+      font-weight: 900;
+      padding: 4px 14px;
+      border-radius: 999px;
+      white-space: nowrap;
+      border: 2px solid #38bdf8;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .qr-url-badge {
+      margin-top: 8px;
+      background: #f1f5f9;
+      color: #0369a1;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 5px 10px;
+      border-radius: 8px;
+      direction: ltr;
+      font-family: monospace;
+      border: 1px solid #cbd5e1;
+    }
+
+    .qr-text-side {
+      flex: 1;
+    }
+
+    .qr-text-side h2 {
+      font-size: 22px;
+      font-weight: 900;
+      color: #0f172a;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .qr-text-side p {
+      font-size: 14px;
+      color: #334155;
+      line-height: 1.65;
+      font-weight: 500;
+      margin-bottom: 12px;
+    }
+
+    .highlight-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #ecfdf5;
+      color: #065f46;
+      border: 1.5px solid #6ee7b7;
+      padding: 8px 14px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    /* 3 Easy Steps Section */
+    .steps-container {
+      margin: 6px 0;
+    }
+
+    .section-headline {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 16px;
+      font-weight: 900;
+      color: #0f172a;
+      margin-bottom: 10px;
+    }
+
+    .section-headline span {
+      background: #0284c7;
+      color: white;
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .step-card {
+      background: #ffffff;
+      border: 2px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 14px 12px;
+      text-align: center;
+      position: relative;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+    }
+
+    .step-num {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 17px;
+      font-weight: 900;
+      margin: 0 auto 8px auto;
+      box-shadow: 0 4px 10px rgba(2, 132, 199, 0.35);
+    }
+
+    .step-title {
+      font-size: 14.5px;
+      font-weight: 900;
+      color: #0f172a;
+      margin-bottom: 4px;
+    }
+
+    .step-desc {
+      font-size: 12px;
+      color: #475569;
+      line-height: 1.45;
+      font-weight: 600;
+    }
+
+    /* Features Grid */
+    .features-row {
+      display: flex;
+      justify-content: space-around;
+      gap: 8px;
+      background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+      border: 1.5px dashed #94a3b8;
+      border-radius: 14px;
+      padding: 12px 16px;
+      margin: 6px 0;
+    }
+
+    .feature-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12.5px;
+      font-weight: 800;
+      color: #1e293b;
+    }
+
+    .feature-icon {
+      font-size: 15px;
+    }
+
+    /* Footer */
+    .footer {
+      border-top: 2px solid #e2e8f0;
+      padding-top: 10px;
+      margin-bottom: 2mm;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .footer-brand {
+      font-size: 13px;
+      font-weight: 900;
+      color: #0f172a;
+    }
+
+    .footer-text {
+      font-size: 11.5px;
+      color: #64748b;
+      font-weight: 600;
+    }
+
+    .footer-support {
+      background: #0f172a;
+      color: #ffffff;
+      padding: 6px 16px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid #38bdf8;
+    }
+
+    /* Print settings */
+    @media print {
+      body {
+        background: transparent;
+        padding: 0;
+        margin: 0;
+      }
+
+      .toolbar {
+        display: none !important;
+      }
+
+      .page-a4 {
+        width: 100%;
+        height: 100vh;
+        box-shadow: none;
+        border-radius: 0;
+        padding: 10mm 12mm 8mm 12mm;
+        page-break-after: avoid;
+        page-break-inside: avoid;
+      }
+
+      @page {
+        size: A4 portrait;
+        margin: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Screen Only Toolbar -->
+  <div class="toolbar">
+    <button class="btn-print" onclick="window.print()">
+      <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+      </svg>
+      چاپکردنی پۆستەر (Print A4)
+    </button>
+    <a href="https://runaki-froshyari-wza-2.vercel.app/" target="_blank" class="btn-link">
+      <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+      </svg>
+      کردنەوەی پۆرتاڵ
+    </a>
+  </div>
+
+  <!-- A4 Printable Poster -->
+  <div class="page-a4">
+    <div class="poster-frame"></div>
+    <div class="inner-frame"></div>
+    <div class="corner-accent corner-tl"></div>
+    <div class="corner-accent corner-tr"></div>
+    <div class="corner-accent corner-bl"></div>
+    <div class="corner-accent corner-br"></div>
+
+    <!-- Header -->
+    <div class="header">
+      <div class="header-logo-side">
+        <img src="runaki-logo.png" alt="پڕۆژەی ڕووناکی" class="header-logo">
+        <div class="header-titles">
+          <h2>حکومەتی هەرێمی کوردستان - وەزارەتی کارەبا</h2>
+          <h3>بەڕێوەبەرایەتی دابەشکردنی کارەبا • پڕۆژەی ڕووناکی</h3>
+        </div>
+      </div>
+      <div class="header-badge">
+        <div class="tag">خزمەتگوزاری زیرەک</div>
+        <div class="value">بەشی فرۆشیاری وزە</div>
+      </div>
+    </div>
+
+    <!-- Main Title Banner -->
+    <div class="main-banner">
+      <div class="banner-sub">⚡ سیستەمی ئەلیکترۆنی بەدواداچوونی مامەڵەکان</div>
+      <h1 class="banner-title">ئاگاداری بۆ هاوڵاتیانی بەڕێز</h1>
+      <p class="banner-desc">بێ ئەوەی لە سەرەی چاوەڕوانیدا بوەستیت، لە ڕێگەی مۆبایلەکەتەوە ڕاستەوخۆ بزانە فۆڵدەر و مامەڵەکەت تەواوبووە یان نا!</p>
+    </div>
+
+    <!-- QR Core Card -->
+    <div class="qr-section">
+      <div class="qr-box-wrapper">
+        <div class="qr-scan-badge">📷 لەم کۆدە بدە</div>
+        <img src="official-qr-code.png" alt="QR Code" class="qr-image">
+        <div class="qr-url-badge">runaki-froshyari-wza-2.vercel.app</div>
+      </div>
+
+      <div class="qr-text-side">
+        <h2>
+          <span>🔍</span>
+          سکان بکە و بەدواداچوون بکە
+        </h2>
+        <p>
+          کامێرای مۆبایلەکەت ئاڕاستەی ئەم کۆدەی بەرامبەرت بکە بۆ کردنەوەی پۆرتاڵی فەرمی، پاشان بە نووسینی <b>ژمارەی بەشداربوو</b> دەتوانیت لە هەر شوێنێک بیت دۆخی وردی مامەڵەکەت ببینی.
+        </p>
+        <div class="highlight-pill">
+          <span>✨</span>
+          ئەنجامی ڕاستەوخۆ و خێرا بەبێ پێویستی بە هەژمار
+        </div>
+      </div>
+    </div>
+
+    <!-- Steps -->
+    <div class="steps-container">
+      <div class="section-headline">
+        <span>✓</span>
+        چۆن بەکاری بهێنم؟ (تەنها لە ٣ هەنگاوی ئاساندا)
+      </div>
+
+      <div class="steps-grid">
+        <div class="step-card">
+          <div class="step-num">١</div>
+          <div class="step-title">سکانکردنی کۆد</div>
+          <div class="step-desc">کامێرای مۆبایلەکەت بکەرەوە و لەم QR Codeـەی سەرەوە بدە بۆ چوونە ناو پۆرتاڵ.</div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num">٢</div>
+          <div class="step-title">نووسینی ژمارە</div>
+          <div class="step-desc">ژمارەی بەشداربووی کارەبا یان ژمارەی مۆبایل لە خانەی گەڕان بنووسە.</div>
+        </div>
+
+        <div class="step-card">
+          <div class="step-num">٣</div>
+          <div class="step-title">بینینی دۆخی فۆڵدەر</div>
+          <div class="step-desc">بزانە ئایا فۆڵدەرەکەت تەواوبووە و گەڕاوەتەوە یان لە قۆناغی کارکردندایە.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Extra Features Row -->
+    <div class="features-row">
+      <div class="feature-item">
+        <span class="feature-icon">⚡</span>
+        نوێکردنەوەی بەردەوامی داتاکان
+      </div>
+      <div class="feature-item">
+        <span class="feature-icon">🛡️</span>
+        سەلماندنی ناسنامە (KYC)
+      </div>
+      <div class="feature-item">
+        <span class="feature-icon">💬</span>
+        پەیوەندی ڕاستەوخۆی وەتسئاپ
+      </div>
+      <div class="feature-item">
+        <span class="feature-icon">⏱️</span>
+        کەمکردنەوەی کاتی چاوەڕوانی
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <div>
+        <div class="footer-brand">پڕۆژەی ڕووناکی • هۆبەی وردبینی و فرۆشیاری وزە</div>
+        <div class="footer-text">خزمەتگوزاری هاوبەشانی کارەبا لە سەرتاسەری کوردستان</div>
+      </div>
+      <div class="footer-support">
+        <span>📍</span>
+        هۆبەی پەیوەندیدار لە فەرمانگە
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>
