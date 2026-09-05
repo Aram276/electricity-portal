@@ -159,7 +159,12 @@ export default function AdminDashboard({
       else if (r.status === 'IN_PROGRESS') inProgress++;
       else if (r.status === 'DELIVERED') delivered++;
 
-      if (r.hasRealName) withNames++;
+      const hasReal = Boolean(
+        r.hasRealName === true || 
+        (r.citizenName && r.citizenName !== 'هاوبەشی کارەبا' && r.citizenName.trim() !== '' && !r.citizenName.startsWith('مانگی '))
+      );
+
+      if (hasReal) withNames++;
 
       if (r.fileType === 'YELLOW_FOLDER') {
         yellowFolders++;
@@ -181,7 +186,7 @@ export default function AdminDashboard({
 
       if (r.receiverName && r.receiverName.trim() !== '') withReceiver++;
 
-      if (isPNull || isINull || !r.hasRealName) incomplete++;
+      if (isPNull || isINull || !hasReal) incomplete++;
     }
 
     return { 
@@ -246,6 +251,10 @@ export default function AdminDashboard({
         const isPhoneMissing = !record.phoneNumber || record.phoneNumber === 'نیە' || record.phoneNumber.trim() === '';
         const isIdMissing = !record.accountNumber || record.accountNumber === 'نیە' || record.accountNumber.trim() === '' || record.accountNumber === '-';
         const hasReceiver = Boolean(record.receiverName && record.receiverName.trim() !== '');
+        const hasRealName = Boolean(
+          record.hasRealName === true || 
+          (record.citizenName && record.citizenName !== 'هاوبەشی کارەبا' && record.citizenName.trim() !== '' && !record.citizenName.startsWith('مانگی '))
+        );
         const kycVal = getRecordKYC(record);
 
         if (dataFilter === 'YELLOW_FOLDER' && record.fileType !== 'YELLOW_FOLDER') return false;
@@ -264,7 +273,7 @@ export default function AdminDashboard({
         if (dataFilter === 'NO_NAME' && hasRealName) return false;
         if (dataFilter === 'HAS_RECEIVER' && !hasReceiver) return false;
         if (dataFilter === 'NO_RECEIVER' && hasReceiver) return false;
-        if (dataFilter === 'INCOMPLETE' && !isPhoneMissing && !isIdMissing && hasRealName) return false;
+        if (dataFilter === 'INCOMPLETE' && (!isPhoneMissing && !isIdMissing && hasRealName)) return false;
       }
 
       return true;
@@ -572,9 +581,9 @@ export default function AdminDashboard({
             </div>
 
             <div 
-              onClick={() => setStatusFilter('COMPLETED')}
+              onClick={() => setStatusFilter(prev => prev === 'COMPLETED' ? 'ALL' : 'COMPLETED')}
               className={`p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border transition-all cursor-pointer ${
-                statusFilter === 'COMPLETED' ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 shadow-md' : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 hover:border-emerald-500'
+                statusFilter === 'COMPLETED' ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 shadow-md ring-2 ring-emerald-500/30' : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 hover:border-emerald-500'
               }`}
             >
               <div className="flex items-center justify-between text-emerald-700 dark:text-emerald-400 mb-1.5">
@@ -585,9 +594,9 @@ export default function AdminDashboard({
             </div>
 
             <div 
-              onClick={() => setStatusFilter('IN_PROGRESS')}
+              onClick={() => setStatusFilter(prev => prev === 'IN_PROGRESS' ? 'ALL' : 'IN_PROGRESS')}
               className={`p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border transition-all cursor-pointer col-span-2 sm:col-span-1 ${
-                statusFilter === 'IN_PROGRESS' ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-500 shadow-md' : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 hover:border-amber-500'
+                statusFilter === 'IN_PROGRESS' ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-500 shadow-md ring-2 ring-amber-500/30' : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 hover:border-amber-500'
               }`}
             >
               <div className="flex items-center justify-between text-amber-700 dark:text-amber-400 mb-1.5">
