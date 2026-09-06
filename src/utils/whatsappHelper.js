@@ -36,6 +36,8 @@ export function cleanIraqiPhone(phoneStr) {
   return digits;
 }
 
+import { saveWhatsAppTemplateToCloud } from './cloudSync';
+
 export function getCustomWhatsAppTemplate() {
   return localStorage.getItem('electricity_whatsapp_template') || DEFAULT_WHATSAPP_TEMPLATE;
 }
@@ -43,6 +45,8 @@ export function getCustomWhatsAppTemplate() {
 export function saveCustomWhatsAppTemplate(template) {
   if (template && typeof template === 'string') {
     localStorage.setItem('electricity_whatsapp_template', template);
+    window.dispatchEvent(new CustomEvent('whatsapp_template_updated', { detail: template }));
+    saveWhatsAppTemplateToCloud(template);
   }
 }
 

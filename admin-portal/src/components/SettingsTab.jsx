@@ -34,6 +34,8 @@ import {
   subscribeToFooterSettings, 
   subscribeToStaffAccounts, 
   saveStaffAccountsToCloud, 
+  subscribeToWhatsAppTemplate,
+  saveWhatsAppTemplateToCloud,
   DEFAULT_STAFF, 
   logActivity 
 } from '../utils/cloudSync';
@@ -100,9 +102,16 @@ export default function SettingsTab({ onResetData, records = [], activeStaff = n
       }
     });
 
+    const unsubWa = subscribeToWhatsAppTemplate((cloudTemplate) => {
+      if (cloudTemplate && typeof cloudTemplate === 'string') {
+        setWaTemplate(cloudTemplate);
+      }
+    });
+
     return () => {
       if (typeof unsubFooter === 'function') unsubFooter();
       if (typeof unsubStaff === 'function') unsubStaff();
+      if (typeof unsubWa === 'function') unsubWa();
     };
   }, []);
 
@@ -304,16 +313,20 @@ export default function SettingsTab({ onResetData, records = [], activeStaff = n
   const handleSaveWaTemplate = (e) => {
     e.preventDefault();
     saveCustomWhatsAppTemplate(waTemplate);
+    saveWhatsAppTemplateToCloud(waTemplate);
     setWaSaved(true);
-    setTimeout(() => setWaSaved(false), 3000);
+    const staffName = activeStaff?.name || 'ئادمین';
+    logActivity('STATUS_CHANGE', `دەستکاریکردنی دەقی فەرمیی نامەی وەتسئاپ (لەلایەن: ${staffName})`, { length: waTemplate?.length });
+    setTimeout(() => setWaSaved(false), 4000);
   };
 
   const handleResetWaTemplate = () => {
     if (window.confirm('ئایا دڵنیایت لە گەڕاندنەوەی دەقی نامەی واتسئاپ بۆ دەقی بنەڕەت؟')) {
       setWaTemplate(DEFAULT_WHATSAPP_TEMPLATE);
       saveCustomWhatsAppTemplate(DEFAULT_WHATSAPP_TEMPLATE);
+      saveWhatsAppTemplateToCloud(DEFAULT_WHATSAPP_TEMPLATE);
       setWaSaved(true);
-      setTimeout(() => setWaSaved(false), 3000);
+      setTimeout(() => setWaSaved(false), 4000);
     }
   };
 

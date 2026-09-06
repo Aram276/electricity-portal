@@ -71,6 +71,7 @@ export default function BulkWhatsAppModal({
     setCurrentIndex(0);
     setSentCount(0);
     setSkippedCount(0);
+    setCustomTemplate(getCustomWhatsAppTemplate());
   }, [isOpen, targetGroup, selectedIds, records]);
 
   if (!isOpen) return null;

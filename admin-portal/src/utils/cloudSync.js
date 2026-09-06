@@ -336,4 +336,62 @@ export async function saveStaffAccountsToCloud(staffList) {
   }
 }
 
+const WA_DOC_REF = doc(db, 'portal_data', 'whatsapp_template');
+
+/**
+ * Subscribe to WhatsApp Message Template from Firestore Cloud.
+ */
+export function subscribeToWhatsAppTemplate(onUpdateCallback) {
+  try {
+    // Initial local value callback
+    const initialLocal = localStorage.getItem('electricity_whatsapp_template');
+    if (initialLocal) {
+      onUpdateCallback(initialLocal);
+    }
+
+    const unsubscribe = onSnapshot(WA_DOC_REF, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        if (data && data.template && typeof data.template === 'string') {
+          localStorage.setItem('electricity_whatsapp_template', data.template);
+          onUpdateCallback(data.template);
+          return;
+        }
+      }
+      const local = localStorage.getItem('electricity_whatsapp_template');
+      if (local) {
+        onUpdateCallback(local);
+      }
+    }, (err) => {
+      console.warn('WhatsApp template cloud sync error, using local:', err);
+      const local = localStorage.getItem('electricity_whatsapp_template');
+      if (local) onUpdateCallback(local);
+    });
+
+    return unsubscribe;
+  } catch (err) {
+    console.error('Failed to subscribe to whatsapp template:', err);
+    return () => {};
+  }
+}
+
+/**
+ * Save WhatsApp template to Firestore Cloud and local cache.
+ */
+export async function saveWhatsAppTemplateToCloud(template) {
+  try {
+    if (template && typeof template === 'string') {
+      localStorage.setItem('electricity_whatsapp_template', template);
+      window.dispatchEvent(new CustomEvent('whatsapp_template_updated', { detail: template }));
+      await setDoc(WA_DOC_REF, {
+        template: template,
+        lastUpdated: new Date().toISOString()
+      });
+    }
+  } catch (err) {
+    console.error('Failed to save whatsapp template to cloud:', err);
+  }
+}
+
+
 
