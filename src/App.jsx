@@ -237,7 +237,7 @@ export default function App() {
       );
     } else {
       const newRec = {
-        id: 'rec-' + Date.now(),
+        id: formData.id || ('rec-' + Date.now()),
         ...processedData
       };
       updated = [newRec, ...records];

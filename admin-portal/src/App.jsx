@@ -158,8 +158,8 @@ export default function App() {
     } else {
       const newRecord = {
         ...recordData,
-        id: `rec-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-        createdAt: new Date().toISOString().split('T')[0],
+        id: recordData.id || `rec-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+        createdAt: recordData.createdAt || new Date().toISOString().split('T')[0],
         handledBy: staffName
       };
       updated = [newRecord, ...records];

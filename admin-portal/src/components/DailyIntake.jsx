@@ -49,8 +49,6 @@ export default function DailyIntake({ records = [], onSaveRecord, onDeleteRecord
     isKycDone: false
   });
 
-  const [localSubmitted, setLocalSubmitted] = useState([]);
-
   // Sync initial fileNumber when records first load
   useEffect(() => {
     setFormData(prev => {
@@ -96,20 +94,10 @@ export default function DailyIntake({ records = [], onSaveRecord, onDeleteRecord
     }));
   };
 
-  // Combined list of records entered today
+  // List of records entered today
   const todayList = useMemo(() => {
-    const fromRecords = (records || []).filter(r => r.submissionDate === todayStr);
-    const map = new Map();
-    // Add local ones first
-    localSubmitted.forEach(item => {
-      if (item && item.id) map.set(item.id, item);
-    });
-    // Add records from prop
-    fromRecords.forEach(item => {
-      if (item && item.id && !map.has(item.id)) map.set(item.id, item);
-    });
-    return Array.from(map.values());
-  }, [records, localSubmitted, todayStr]);
+    return (records || []).filter(r => r.submissionDate === todayStr);
+  }, [records, todayStr]);
 
   const handleEditSave = () => {
     if (!editingItem) return;
@@ -122,9 +110,6 @@ export default function DailyIntake({ records = [], onSaveRecord, onDeleteRecord
     if (onSaveRecord) {
       onSaveRecord(updated, updated.id);
     }
-    setLocalSubmitted(prev =>
-      prev.map(p => p.id === updated.id ? { ...updated } : p)
-    );
     setEditingItem(null);
   };
 
@@ -171,7 +156,6 @@ export default function DailyIntake({ records = [], onSaveRecord, onDeleteRecord
     if (onSaveRecord) {
       onSaveRecord(newRecord, null);
     }
-    setLocalSubmitted(prev => [newRecord, ...prev]);
 
     // Calculate next file number for next entry
     const currentNumInt = parseInt(cleanFileNum, 10);
@@ -579,7 +563,6 @@ export default function DailyIntake({ records = [], onSaveRecord, onDeleteRecord
                           onClick={() => {
                             if (window.confirm(`ئایا دڵنیایت لە سڕینەوەی فایلی #${item.fileNumber}؟`)) {
                               if (onDeleteRecord) onDeleteRecord(item.id);
-                              setLocalSubmitted(prev => prev.filter(p => p.id !== item.id));
                               if (editingItem?.id === item.id) setEditingItem(null);
                             }
                           }}
