@@ -224,22 +224,85 @@ export async function parseExcelFile(file) {
 }
 
 export function exportToExcel(records, filename = 'co2_file_records.xlsx') {
-  const exportData = records.map((r) => ({
-    'Name': r.hasRealName ? r.citizenName : '',
-    'ID': r.accountNumber !== 'نیە' ? r.accountNumber : '',
-    'Phone Number': r.phoneNumber !== 'نیە' ? r.phoneNumber : '',
-    'Status': r.status === 'COMPLETED' ? 'Done' : (r.status === 'DELIVERED' ? 'Delivered' : 'Not Done'),
-    'number file': r.fileNumber,
-    'date': r.deliveredDate || '',
-    'name of recive': r.receiverName || '',
-    'جۆری دۆسیە': r.fileType === 'YELLOW_FOLDER' ? 'فایلی زەرد' : 'ئەوراق'
-  }));
+  if (!Array.isArray(records) || records.length === 0) {
+    alert('هیچ دۆسیەیەک بەردەست نیە بۆ هەناردەکردن!');
+    return;
+  }
+
+  const exportData = records.map((r, idx) => {
+    const rawName = (r.citizenName || '').trim();
+    const cleanName = (rawName && rawName !== 'هاوبەشی کارەبا') ? rawName : (rawName || 'هاوبەشی کارەبا');
+    const cleanAccount = (r.accountNumber && r.accountNumber !== 'نیە') ? r.accountNumber : '';
+    const cleanPhone = (r.phoneNumber && r.phoneNumber !== 'نیە') ? r.phoneNumber : '';
+    
+    let statusEng = 'Not Done';
+    let statusKurdish = 'لە کاردایە (Not Done)';
+    if (r.status === 'COMPLETED') {
+      statusEng = 'Done';
+      statusKurdish = 'تەواوبووە (Done)';
+    } else if (r.status === 'DELIVERED') {
+      statusEng = 'Delivered';
+      statusKurdish = 'تەسلیمکراوەتەوە (Delivered)';
+    }
+
+    const kycText = r.kycStatus === 'DONE_BY_US' ? 'ئێمە کردمان' : (r.kycStatus === 'PRE_VERIFIED' ? 'پێشتر کراوە (دەرەکی)' : 'نەکراوە');
+
+    return {
+      'ڕیزبەندی': idx + 1,
+      'Name': cleanName,
+      'ID': cleanAccount,
+      'Phone Number': cleanPhone,
+      'Status': statusEng,
+      'دۆخی مامەڵە': statusKurdish,
+      'number file': r.fileNumber || '',
+      'جۆری دۆسیە': r.fileType === 'YELLOW_FOLDER' ? 'فایلی زەرد' : 'ئەوراق',
+      'دۆخی KYC': kycText,
+      'date': r.deliveredDate || '',
+      'name of recive': r.receiverName || '',
+      'بەرواری تۆمارکردن': r.submissionDate || '',
+      'بەرواری تەواوبوون': r.completionDate || '',
+      'فەرمانبەری پەیوەندیدار': r.deliveredBy || r.handledBy || 'ژووری ١٩',
+      'تێبینییەکان': r.notes || '',
+      'شوێنی سندوق لە ئەرشیف': r.archiveLocation || ''
+    };
+  });
 
   const worksheet = XLSX.utils.json_to_sheet(exportData);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Records');
 
-  XLSX.writeFile(workbook, filename);
+  // Auto-calculate column widths
+  const colKeys = Object.keys(exportData[0] || {});
+  worksheet['!cols'] = colKeys.map(key => {
+    let maxLen = key.length;
+    for (let i = 0; i < exportData.length; i++) {
+      const val = exportData[i][key];
+      const strLen = val ? String(val).length : 0;
+      if (strLen > maxLen) maxLen = strLen;
+    }
+    return { wch: Math.min(Math.max(maxLen + 3, 12), 45) };
+  });
+
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'دۆسیەکانی کارەبا');
+
+  // Trigger universal download using Blob
+  try {
+    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8' });
+    
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    }, 300);
+  } catch (e) {
+    // Fallback
+    XLSX.writeFile(workbook, filename);
+  }
 }
 
 export function downloadStarterTemplate() {

@@ -353,11 +353,15 @@ export default function AdminDashboard({
     }
   };
 
-  const handleExport = () => {
-    const dataToExport = selectedIds.length > 0 
-      ? records.filter(r => selectedIds.includes(r.id))
-      : filteredRecords;
-    exportToExcel(dataToExport, `co2_file_records_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  const handleExport = (exportOnlyFiltered = false) => {
+    let dataToExport = records;
+    if (selectedIds.length > 0) {
+      dataToExport = records.filter(r => selectedIds.includes(r.id));
+    } else if (exportOnlyFiltered && filteredRecords.length > 0) {
+      dataToExport = filteredRecords;
+    }
+    const count = dataToExport.length;
+    exportToExcel(dataToExport, `Roonaki_Electricity_Records_${count}_files_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
   // Generate page number list for pagination controls
@@ -518,15 +522,38 @@ export default function AdminDashboard({
                 <span>ئەپڵۆدی ئێکسڵ</span>
               </button>
 
-              <button
-                onClick={handleExport}
-                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold text-xs sm:text-sm border border-slate-300 dark:border-slate-700 transition-colors shadow-sm"
-              >
-                <Download className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <span>
-                  {selectedIds.length > 0 ? `هەناردەی (${selectedIds.length}) فایل` : 'هەناردەکردن'}
-                </span>
-              </button>
+              {/* Export All or Filtered Excel Button */}
+              {selectedIds.length > 0 ? (
+                <button
+                  onClick={() => handleExport(false)}
+                  title="هەناردەکردنی تەنها ئەو فایلانەی هەڵتبژاردوون"
+                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm shadow-md shadow-emerald-600/25 transition-all active:scale-95"
+                >
+                  <Download className="w-4 h-4 shrink-0" />
+                  <span>هەناردەی هەڵبژێردراو ({selectedIds.length})</span>
+                </button>
+              ) : (
+                <div className="flex items-center gap-1.5 flex-1 sm:flex-none">
+                  <button
+                    onClick={() => handleExport(false)}
+                    title="هەناردەکردنی سەرجەم دۆسیەکانی داتابەیس بۆ ناو فایلی ئێکسڵ"
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-black text-xs sm:text-sm border border-slate-300 dark:border-slate-700 transition-colors shadow-sm"
+                  >
+                    <Download className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span>داگرتنی ئێکسڵ ({records.length})</span>
+                  </button>
+
+                  {filteredRecords.length < records.length && (
+                    <button
+                      onClick={() => handleExport(true)}
+                      title="هەناردەکردنی تەنها ئەو فایلانەی فلتەرکراون لە خشتەکەدا"
+                      className="px-2.5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-900 dark:text-amber-300 text-xs font-bold transition-all"
+                    >
+                      فلتەرکراو ({filteredRecords.length})
+                    </button>
+                  )}
+                </div>
+              )}
 
               <button
                 onClick={onOpenAddModal}
