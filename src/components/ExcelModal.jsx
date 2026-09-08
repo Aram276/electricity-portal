@@ -197,7 +197,7 @@ export default function ExcelModal({ isOpen, onClose, onImportSuccess }) {
             </div>
 
             {/* Import Mode Selection */}
-            <div className="space-y-2">
+            <div className="space-y-3">
               <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">شێوازی داخڵکردن هەڵبژێرە:</label>
               <div className="grid grid-cols-2 gap-3">
                 <button
@@ -210,10 +210,10 @@ export default function ExcelModal({ isOpen, onClose, onImportSuccess }) {
                   }`}
                 >
                   <div className="flex items-center justify-between mb-1">
-                    <span className="font-bold text-sm">زیادکردن (Append)</span>
+                    <span className="font-bold text-sm">زیادکردن (پێشنیارکراو)</span>
                     {importMode === 'append' && <Check className="w-4 h-4 text-amber-500" />}
                   </div>
-                  <span className="text-xs text-slate-500 dark:text-slate-400 block">داتای نوێ بخەرە سەر داتاکانی پێشوو</span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400 block">داتای نوێ دەخرێتە سەر داتاکانی ئێستا بەبێ سڕینەوە</span>
                 </button>
 
                 <button
@@ -226,12 +226,21 @@ export default function ExcelModal({ isOpen, onClose, onImportSuccess }) {
                   }`}
                 >
                   <div className="flex items-center justify-between mb-1">
-                    <span className="font-bold text-sm text-rose-600 dark:text-rose-300">جێگرتنەوە (Replace)</span>
+                    <span className="font-bold text-sm text-rose-600 dark:text-rose-300">جێگرتنەوە (تەنها بۆ دەستپێکی نوێ)</span>
                     {importMode === 'replace' && <Check className="w-4 h-4 text-rose-500" />}
                   </div>
-                  <span className="text-xs text-slate-500 dark:text-slate-400 block">سڕینەوەی داتای پێشوو و دانانی ئەم فایلە</span>
+                  <span className="text-xs text-rose-500 dark:text-rose-400 block font-semibold">ئاگاداری: هەموو داتاکانی ئێستا دەسڕێتەوە</span>
                 </button>
               </div>
+
+              {importMode === 'replace' && (
+                <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-500/40 text-rose-800 dark:text-rose-200 text-xs space-y-2">
+                  <div className="flex items-start gap-2 font-bold">
+                    <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                    <span>ئاگاداربە! شێوازی جێگرتنەوە هەموو ئەو فایلە نوێیانەی بە دەست داخڵت کردوون دەسڕێتەوە ئەگەر لەناو ئەم ئێکسڵە نەبن. سیستەم بە شێوەی ئۆتۆماتیک پێش جێگرتنەوە باکئەپ (Backup) وەردەگرێت.</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Confirmation Buttons */}

@@ -60,6 +60,27 @@ export function subscribeToCloudRecords(onUpdateCallback) {
  */
 export async function saveRecordsToCloud(records) {
   try {
+    const existing = getStoredRecords();
+    if (existing && existing.length > 0) {
+      // Keep a local safety backup snapshot
+      localStorage.setItem('electricity_portal_records_safety_backup', JSON.stringify(existing));
+      localStorage.setItem('electricity_portal_backup_time', new Date().toISOString());
+
+      // If replacing with fewer records, save backup to Firestore backup collection
+      if (records.length < existing.length) {
+        try {
+          const BACKUP_DOC = doc(db, 'portal_data', 'electricity_records_backup');
+          await setDoc(BACKUP_DOC, {
+            records: existing,
+            backupTimestamp: new Date().toISOString(),
+            reason: `Auto backup before count change (${existing.length} -> ${records.length})`
+          });
+        } catch (bErr) {
+          console.warn('Backup write note:', bErr);
+        }
+      }
+    }
+
     saveRecords(records); // save locally first
     await setDoc(DOC_REF, {
       records: records,

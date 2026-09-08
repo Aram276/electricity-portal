@@ -1,0 +1,2237 @@
+[
+  {
+    "details": {
+      "citizenName": "هاوبەشی کارەبا",
+      "status": "COMPLETED",
+      "fileNumber": "296"
+    },
+    "title": "گۆڕینی دۆخی فایلی (296) بۆ (COMPLETED) (لەلایەن: ئارام)",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE",
+    "id": "log-1788863985470-3k2ld7",
+    "timestamp": "2026-09-08 13:39:45"
+  },
+  {
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE",
+    "title": "گۆڕینی دۆخی KYC فایلی (296) بۆ (🟢 ئێمە کردمان) (لەلایەن: ئارام)",
+    "timestamp": "2026-09-08 13:39:38",
+    "details": {
+      "fileNumber": "296",
+      "kycStatus": "DONE_BY_US"
+    },
+    "id": "log-1788863978981-9940qn"
+  },
+  {
+    "user": "ڕەعد (بەڕێوبەر سەرەکی)",
+    "type": "STATUS_CHANGE",
+    "details": {
+      "fileNumber": "2"
+    },
+    "title": "گۆڕینی جۆری فایلی (2) (لەلایەن: ڕەعد)",
+    "id": "log-1788862116634-2o6u7g",
+    "timestamp": "2026-09-08 13:08:36"
+  },
+  {
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "EXCEL_IMPORT",
+    "details": {
+      "count": 932,
+      "mode": "replace"
+    },
+    "timestamp": "2026-09-08 13:02:34",
+    "title": "هاوردەکردنی ئێکسڵ (932 دۆسیە بە شێوازی جێگرتنەوە) (لەلایەن: ئارام)",
+    "id": "log-1788861754817-466lim"
+  },
+  {
+    "details": {
+      "mode": "replace",
+      "count": 837
+    },
+    "title": "هاوردەکردنی ئێکسڵ (837 دۆسیە بە شێوازی جێگرتنەوە) (لەلایەن: ئارام)",
+    "id": "log-1788861688511-dkao57",
+    "timestamp": "2026-09-08 13:01:28",
+    "type": "EXCEL_IMPORT",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)"
+  },
+  {
+    "timestamp": "2026-09-08 12:49:52",
+    "id": "log-1788860992780-tzd9gq",
+    "title": "تەسلیمکردنەوەی فایلی (141) بە (احلام یوسف) (لەلایەن: ئارام)",
+    "type": "DELIVERY",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "details": {
+      "date": "2026-09-08 12:49",
+      "receiverName": "احلام یوسف",
+      "fileNumber": "141"
+    }
+  },
+  {
+    "id": "log-1788860970209-u2sjuf",
+    "timestamp": "2026-09-08 12:49:30",
+    "title": "گۆڕینی دۆخی فایلی (141) بۆ (COMPLETED) (لەلایەن: ئارام)",
+    "details": {
+      "fileNumber": "141",
+      "citizenName": "هاوبەشی کارەبا",
+      "status": "COMPLETED"
+    },
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE"
+  },
+  {
+    "title": "گۆڕینی دۆخی فایلی (722) بۆ (COMPLETED) (لەلایەن: ئارام)",
+    "id": "log-1788860879279-luf4v1",
+    "details": {
+      "citizenName": "دیار ابراهیم",
+      "status": "COMPLETED",
+      "fileNumber": "722"
+    },
+    "timestamp": "2026-09-08 12:47:59",
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)"
+  },
+  {
+    "timestamp": "2026-09-08 12:47:58",
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "details": {
+      "fileNumber": "712",
+      "status": "COMPLETED",
+      "citizenName": "هاوبەشی کارەبا"
+    },
+    "id": "log-1788860878078-f0emm2",
+    "title": "گۆڕینی دۆخی فایلی (712) بۆ (COMPLETED) (لەلایەن: ئارام)"
+  },
+  {
+    "details": {
+      "citizenName": "هاوبەشی کارەبا",
+      "status": "COMPLETED",
+      "fileNumber": "305"
+    },
+    "id": "log-1788860877139-l0pilk",
+    "title": "گۆڕینی دۆخی فایلی (305) بۆ (COMPLETED) (لەلایەن: ئارام)",
+    "timestamp": "2026-09-08 12:47:57",
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)"
+  },
+  {
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE",
+    "title": "گۆڕینی دۆخی فایلی (302) بۆ (COMPLETED) (لەلایەن: ئارام)",
+    "details": {
+      "citizenName": "هاوبەشی کارەبا",
+      "status": "COMPLETED",
+      "fileNumber": "302"
+    },
+    "id": "log-1788860875720-r3c89q",
+    "timestamp": "2026-09-08 12:47:55"
+  },
+  {
+    "details": {
+      "fileNumber": "205",
+      "kycStatus": "PENDING"
+    },
+    "timestamp": "2026-09-08 12:47:31",
+    "title": "گۆڕینی دۆخی KYC فایلی (205) بۆ (🟡 نەکراوە (پێنەدراوەتەوە)) (لەلایەن: ئارام)",
+    "id": "log-1788860851614-jikrqh",
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)"
+  },
+  {
+    "title": "گۆڕینی دۆخی فایلی (205) بۆ (IN_PROGRESS) (لەلایەن: ئارام)",
+    "details": {
+      "citizenName": "هاوبەشی کارەبا",
+      "status": "IN_PROGRESS",
+      "fileNumber": "205"
+    },
+    "timestamp": "2026-09-08 12:47:29",
+    "id": "log-1788860849132-ugsbil",
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)"
+  },
+  {
+    "title": "گۆڕینی دۆخی فایلی (205) بۆ (COMPLETED) (لەلایەن: ئارام)",
+    "timestamp": "2026-09-08 12:47:21",
+    "id": "log-1788860841348-vehyfm",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE",
+    "details": {
+      "citizenName": "هاوبەشی کارەبا",
+      "status": "COMPLETED",
+      "fileNumber": "205"
+    }
+  },
+  {
+    "type": "EXCEL_IMPORT",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "title": "هاوردەکردنی ئێکسڵ (932 دۆسیە بە شێوازی تێکەڵکردن) (لەلایەن: ئارام)",
+    "id": "log-1788860701734-sjntb0",
+    "timestamp": "2026-09-08 12:45:01",
+    "details": {
+      "mode": "append",
+      "count": 932
+    }
+  },
+  {
+    "timestamp": "2026-09-08 12:30:38",
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "id": "log-1788859838453-fjhxhe",
+    "details": {},
+    "title": "چوونەژوورەوەی فەرمانبەر: (ئارام) بە ناوی بەکارهێنەری [aram]"
+  },
+  {
+    "timestamp": "2026-09-08 11:48:03",
+    "type": "EDIT_RECORD",
+    "user": "ڕەعد (بەڕێوبەر سەرەکی)",
+    "title": "دەستکاریکردنی فایلی (2) بۆ هاووڵاتی (هاوبەشی کارەبا) (لەلایەن: ڕەعد)",
+    "details": {
+      "citizenName": "هاوبەشی کارەبا",
+      "fileNumber": "2"
+    },
+    "id": "log-1788857283916-fizoes"
+  },
+  {
+    "id": "log-1788856945507-hdwplh",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "title": "چوونەژوورەوەی فەرمانبەر: (ئارام) بە ناوی بەکارهێنەری [aram]",
+    "type": "STATUS_CHANGE",
+    "timestamp": "2026-09-08 11:42:25",
+    "details": {}
+  },
+  {
+    "timestamp": "2026-09-08 11:35:36",
+    "id": "log-1788856536975-nsgv5c",
+    "title": "چوونەژوورەوەی فەرمانبەر: (ڕەعد) بە ناوی بەکارهێنەری [raad]",
+    "user": "ڕەعد (بەڕێوبەر سەرەکی)",
+    "type": "STATUS_CHANGE",
+    "details": {}
+  },
+  {
+    "id": "log-1788856512431-mmlhvy",
+    "details": {},
+    "title": "چوونەژوورەوەی فەرمانبەر: (ئارام) بە ناوی بەکارهێنەری [aram]",
+    "timestamp": "2026-09-08 11:35:12",
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)"
+  },
+  {
+    "type": "DELIVERY",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "timestamp": "2026-09-08 11:15:34",
+    "details": {
+      "date": "2026-09-08 11:15",
+      "receiverName": "هێلین محامی",
+      "fileNumber": "722"
+    },
+    "id": "log-1788855334263-amclwr",
+    "title": "تەسلیمکردنەوەی فایلی (722) بە (هێلین محامی) (لەلایەن: ئارام)"
+  },
+  {
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "EDIT_RECORD",
+    "timestamp": "2026-09-08 11:15:11",
+    "title": "دەستکاریکردنی فایلی (305) بۆ هاووڵاتی (هاوبەشی کارەبا) (لەلایەن: ئارام)",
+    "details": {
+      "citizenName": "هاوبەشی کارەبا",
+      "fileNumber": "305"
+    },
+    "id": "log-1788855311159-kra5hu"
+  },
+  {
+    "type": "DELIVERY",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "timestamp": "2026-09-08 11:14:57",
+    "details": {
+      "date": "2026-09-08 11:14",
+      "fileNumber": "712",
+      "receiverName": "هێلین محامی"
+    },
+    "title": "تەسلیمکردنەوەی فایلی (712) بە (هێلین محامی) (لەلایەن: ئارام)",
+    "id": "log-1788855297017-6c5mxx"
+  },
+  {
+    "details": {
+      "citizenName": "هاوبەشی کارەبا",
+      "fileNumber": "305",
+      "status": "DELIVERED"
+    },
+    "id": "log-1788855276459-duvgqq",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE",
+    "timestamp": "2026-09-08 11:14:36",
+    "title": "گۆڕینی دۆخی فایلی (305) بۆ (DELIVERED) (لەلایەن: ئارام)"
+  },
+  {
+    "id": "log-1788855274505-x1yhk4",
+    "type": "DELIVERY",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "details": {
+      "date": "2026-09-08 11:14",
+      "fileNumber": "302",
+      "receiverName": "هێلین محامی"
+    },
+    "title": "تەسلیمکردنەوەی فایلی (302) بە (هێلین محامی) (لەلایەن: ئارام)",
+    "timestamp": "2026-09-08 11:14:34"
+  },
+  {
+    "title": "تۆمارکردنی فایلی نوێی (972) بۆ هاووڵاتی (شێرزاد عزیز) (لەلایەن: ئارام)",
+    "timestamp": "2026-09-08 11:13:40",
+    "details": {
+      "fileNumber": "972",
+      "citizenName": "شێرزاد عزیز"
+    },
+    "type": "ADD_RECORD",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "id": "log-1788855220337-0g9jxq"
+  },
+  {
+    "timestamp": "2026-09-08 11:06:05",
+    "details": {
+      "fileNumber": "967"
+    },
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "title": "گۆڕینی جۆری فایلی (967) (لەلایەن: ئارام)",
+    "id": "log-1788854765527-o13ju5"
+  },
+  {
+    "details": {
+      "fileNumber": "966"
+    },
+    "title": "گۆڕینی جۆری فایلی (966) (لەلایەن: ئارام)",
+    "timestamp": "2026-09-08 11:06:04",
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "id": "log-1788854764373-rui4p9"
+  },
+  {
+    "id": "log-1788854762889-lo8ecw",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE",
+    "title": "گۆڕینی جۆری فایلی (965) (لەلایەن: ئارام)",
+    "details": {
+      "fileNumber": "965"
+    },
+    "timestamp": "2026-09-08 11:06:02"
+  },
+  {
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "id": "log-1788854757332-ffk229",
+    "title": "گۆڕینی جۆری فایلی (964) (لەلایەن: ئارام)",
+    "details": {
+      "fileNumber": "964"
+    },
+    "timestamp": "2026-09-08 11:05:57"
+  },
+  {
+    "timestamp": "2026-09-08 11:05:56",
+    "id": "log-1788854756219-ep17lx",
+    "details": {
+      "fileNumber": "963"
+    },
+    "title": "گۆڕینی جۆری فایلی (963) (لەلایەن: ئارام)",
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)"
+  },
+  {
+    "title": "گۆڕینی دۆخی فایلی (963) بۆ (DELIVERED) (لەلایەن: ئارام)",
+    "details": {
+      "fileNumber": "963",
+      "status": "DELIVERED",
+      "citizenName": "بەرێز هادی"
+    },
+    "timestamp": "2026-09-08 11:02:42",
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "id": "log-1788854562635-d8yjfa"
+  },
+  {
+    "timestamp": "2026-09-08 11:00:08",
+    "id": "log-1788854408261-ciwjvd",
+    "title": "گۆڕینی دۆخی KYC فایلی (440) بۆ (🟢 ئێمە کردمان) (لەلایەن: ئارام)",
+    "details": {
+      "fileNumber": "440",
+      "kycStatus": "DONE_BY_US"
+    },
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE"
+  },
+  {
+    "timestamp": "2026-09-08 11:00:04",
+    "details": {
+      "citizenName": "هاوبەشی کارەبا",
+      "fileNumber": "440",
+      "status": "DELIVERED"
+    },
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "id": "log-1788854404656-lk4ofs",
+    "title": "گۆڕینی دۆخی فایلی (440) بۆ (DELIVERED) (لەلایەن: ئارام)"
+  },
+  {
+    "title": "تۆمارکردنی فایلی نوێی (971) بۆ هاووڵاتی (مشیر عیسا) (لەلایەن: ئارام)",
+    "details": {
+      "citizenName": "مشیر عیسا",
+      "fileNumber": "971"
+    },
+    "type": "ADD_RECORD",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "timestamp": "2026-09-08 10:55:52",
+    "id": "log-1788854152233-i275s0"
+  },
+  {
+    "type": "ADD_RECORD",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "id": "log-1788853715781-a3afnr",
+    "timestamp": "2026-09-08 10:48:35",
+    "details": {
+      "citizenName": "شیروان مصطفا",
+      "fileNumber": "966"
+    },
+    "title": "تۆمارکردنی فایلی نوێی (966) بۆ هاووڵاتی (شیروان مصطفا) (لەلایەن: ئارام)"
+  },
+  {
+    "details": {
+      "citizenName": "شێروان مصطفی",
+      "fileNumber": "966"
+    },
+    "id": "log-1788853446815-r52ot4",
+    "type": "DELETE_RECORD",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "timestamp": "2026-09-08 10:44:06",
+    "title": "سڕینەوەی فایلی (966) بۆ هاووڵاتی (شێروان مصطفی) (لەلایەن: ئارام)"
+  },
+  {
+    "details": {
+      "citizenName": "هاوبەشی کارەبا",
+      "status": "IN_PROGRESS",
+      "fileNumber": "538"
+    },
+    "timestamp": "2026-09-08 10:33:50",
+    "id": "log-1788852830789-lhzjmq",
+    "title": "گۆڕینی دۆخی فایلی (538) بۆ (IN_PROGRESS) (لەلایەن: ڕەعد)",
+    "type": "STATUS_CHANGE",
+    "user": "ڕەعد (بەڕێوبەر سەرەکی)"
+  },
+  {
+    "id": "log-1788852816622-bvrxs6",
+    "details": {
+      "citizenName": "هاوبەشی کارەبا",
+      "status": "DELIVERED",
+      "fileNumber": "538"
+    },
+    "timestamp": "2026-09-08 10:33:36",
+    "title": "گۆڕینی دۆخی فایلی (538) بۆ (DELIVERED) (لەلایەن: ڕەعد)",
+    "type": "STATUS_CHANGE",
+    "user": "ڕەعد (بەڕێوبەر سەرەکی)"
+  },
+  {
+    "id": "log-1788852811843-win9xu",
+    "timestamp": "2026-09-08 10:33:31",
+    "type": "STATUS_CHANGE",
+    "user": "ڕەعد (بەڕێوبەر سەرەکی)",
+    "details": {
+      "citizenName": "هاوبەشی کارەبا",
+      "fileNumber": "538",
+      "status": "COMPLETED"
+    },
+    "title": "گۆڕینی دۆخی فایلی (538) بۆ (COMPLETED) (لەلایەن: ڕەعد)"
+  },
+  {
+    "id": "log-1788852712347-4y74c7",
+    "details": {
+      "fileNumber": "970",
+      "citizenName": "سافی حمد"
+    },
+    "title": "تۆمارکردنی فایلی نوێی (970) بۆ هاووڵاتی (سافی حمد) (لەلایەن: ئارام)",
+    "timestamp": "2026-09-08 10:31:52",
+    "type": "ADD_RECORD",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)"
+  },
+  {
+    "timestamp": "2026-09-08 10:30:53",
+    "title": "تۆمارکردنی فایلی نوێی (969) بۆ هاووڵاتی (شهرام حسن) (لەلایەن: ئارام)",
+    "type": "ADD_RECORD",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "details": {
+      "fileNumber": "969",
+      "citizenName": "شهرام حسن"
+    },
+    "id": "log-1788852653701-pw0v4m"
+  },
+  {
+    "type": "ADD_RECORD",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "timestamp": "2026-09-08 10:29:40",
+    "details": {
+      "citizenName": "صابر",
+      "fileNumber": "968"
+    },
+    "id": "log-1788852580010-h4mgtp",
+    "title": "تۆمارکردنی فایلی نوێی (968) بۆ هاووڵاتی (صابر) (لەلایەن: ئارام)"
+  },
+  {
+    "details": {
+      "fileNumber": "967",
+      "citizenName": "احمد مولود"
+    },
+    "timestamp": "2026-09-08 10:21:18",
+    "title": "تۆمارکردنی فایلی نوێی (967) بۆ هاووڵاتی (احمد مولود) (لەلایەن: ئارام)",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "ADD_RECORD",
+    "id": "log-1788852078703-43mow8"
+  },
+  {
+    "id": "log-1788852001286-jxag2s",
+    "details": {
+      "citizenName": "شێروان مصطفی",
+      "fileNumber": "966"
+    },
+    "title": "تۆمارکردنی فایلی نوێی (966) بۆ هاووڵاتی (شێروان مصطفی) (لەلایەن: ئارام)",
+    "type": "ADD_RECORD",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "timestamp": "2026-09-08 10:20:01"
+  },
+  {
+    "id": "log-1788851986938-dg8slf",
+    "details": {
+      "fileNumber": "966",
+      "citizenName": "شیروان مصطفی"
+    },
+    "type": "ADD_RECORD",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "timestamp": "2026-09-08 10:19:46",
+    "title": "تۆمارکردنی فایلی نوێی (966) بۆ هاووڵاتی (شیروان مصطفی) (لەلایەن: ئارام)"
+  },
+  {
+    "title": "تۆمارکردنی فایلی نوێی (965) بۆ هاووڵاتی (کەیوان ولی علی) (لەلایەن: ئارام)",
+    "details": {
+      "fileNumber": "965",
+      "citizenName": "کەیوان ولی علی"
+    },
+    "id": "log-1788851754760-lkjfsa",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "ADD_RECORD",
+    "timestamp": "2026-09-08 10:15:54"
+  },
+  {
+    "title": "تۆمارکردنی فایلی نوێی (964) بۆ هاووڵاتی (سلێمان حمد) (لەلایەن: ئارام)",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "ADD_RECORD",
+    "timestamp": "2026-09-08 10:14:48",
+    "details": {
+      "fileNumber": "964",
+      "citizenName": "سلێمان حمد"
+    },
+    "id": "log-1788851688399-9aqxp3"
+  },
+  {
+    "details": {
+      "citizenName": "بەرێز هادی",
+      "fileNumber": "963"
+    },
+    "id": "log-1788851616972-ryib6i",
+    "timestamp": "2026-09-08 10:13:36",
+    "title": "تۆمارکردنی فایلی نوێی (963) بۆ هاووڵاتی (بەرێز هادی) (لەلایەن: ئارام)",
+    "type": "ADD_RECORD",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)"
+  },
+  {
+    "timestamp": "2026-09-08 10:10:22",
+    "id": "log-1788851422909-17yvfc",
+    "details": {
+      "fileNumber": "962",
+      "citizenName": "احمد ابراهیم"
+    },
+    "title": "تۆمارکردنی فایلی نوێی (962) بۆ هاووڵاتی (احمد ابراهیم) (لەلایەن: ئارام)",
+    "type": "ADD_RECORD",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)"
+  },
+  {
+    "details": {
+      "count": 3,
+      "fileType": "PAPER"
+    },
+    "timestamp": "2026-09-08 10:08:51",
+    "id": "log-1788851331306-lq6wmv",
+    "title": "گۆڕینی بەکۆمەڵی جۆری دۆسیەی (3) فایل بۆ (PAPER) (لەلایەن: ئارام)",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "BATCH_STATUS"
+  },
+  {
+    "type": "EDIT_RECORD",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "title": "دەستکاریکردنی فایلی (958) بۆ هاووڵاتی (کوردستان کریم پیرداود) (لەلایەن: ئارام)",
+    "timestamp": "2026-09-08 10:08:35",
+    "id": "log-1788851315561-dzhljk",
+    "details": {
+      "citizenName": "کوردستان کریم پیرداود",
+      "fileNumber": "958"
+    }
+  },
+  {
+    "title": "دەستکاریکردنی فایلی (958) بۆ هاووڵاتی (کوردستان کریم پیرداود) (لەلایەن: ئارام)",
+    "type": "EDIT_RECORD",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "details": {
+      "citizenName": "کوردستان کریم پیرداود",
+      "fileNumber": "958"
+    },
+    "id": "log-1788851307983-gcl8tk",
+    "timestamp": "2026-09-08 10:08:27"
+  },
+  {
+    "details": {
+      "citizenName": "یوسف محمد",
+      "fileNumber": "957"
+    },
+    "id": "log-1788851299846-tmzv1c",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "EDIT_RECORD",
+    "timestamp": "2026-09-08 10:08:19",
+    "title": "دەستکاریکردنی فایلی (957) بۆ هاووڵاتی (یوسف محمد) (لەلایەن: ئارام)"
+  },
+  {
+    "title": "تۆمارکردنی فایلی نوێی (961) بۆ هاووڵاتی (عبدللە حامد) (لەلایەن: ئارام)",
+    "id": "log-1788851222636-7czyev",
+    "timestamp": "2026-09-08 10:07:02",
+    "type": "ADD_RECORD",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "details": {
+      "fileNumber": "961",
+      "citizenName": "عبدللە حامد"
+    }
+  },
+  {
+    "type": "ADD_RECORD",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "details": {
+      "citizenName": "محمد حیدر صدیق",
+      "fileNumber": "960"
+    },
+    "title": "تۆمارکردنی فایلی نوێی (960) بۆ هاووڵاتی (محمد حیدر صدیق) (لەلایەن: ئارام)",
+    "id": "log-1788851148200-sf61x8",
+    "timestamp": "2026-09-08 10:05:48"
+  },
+  {
+    "title": "تۆمارکردنی فایلی نوێی (959) بۆ هاووڵاتی (عبدللە حسین) (لەلایەن: ئارام)",
+    "id": "log-1788850996545-4lldb6",
+    "details": {
+      "citizenName": "عبدللە حسین",
+      "fileNumber": "959"
+    },
+    "timestamp": "2026-09-08 10:03:16",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "ADD_RECORD"
+  },
+  {
+    "timestamp": "2026-09-08 10:02:13",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "ADD_RECORD",
+    "details": {
+      "citizenName": "کوردستان کریم پیرداود",
+      "fileNumber": "958"
+    },
+    "id": "log-1788850933188-vsxae2",
+    "title": "تۆمارکردنی فایلی نوێی (958) بۆ هاووڵاتی (کوردستان کریم پیرداود) (لەلایەن: ئارام)"
+  },
+  {
+    "id": "log-1788850579416-ag86rs",
+    "details": {
+      "fileNumber": "957",
+      "citizenName": "یوسف محمد"
+    },
+    "timestamp": "2026-09-08 09:56:19",
+    "title": "تۆمارکردنی فایلی نوێی (957) بۆ هاووڵاتی (یوسف محمد) (لەلایەن: ئارام)",
+    "type": "ADD_RECORD",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)"
+  },
+  {
+    "id": "log-1788850497190-5tu8fh",
+    "details": {
+      "citizenName": "نجات اومر ابراهیم",
+      "fileNumber": "956"
+    },
+    "title": "دەستکاریکردنی فایلی (956) بۆ هاووڵاتی (نجات اومر ابراهیم) (لەلایەن: ئارام)",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "EDIT_RECORD",
+    "timestamp": "2026-09-08 09:54:57"
+  },
+  {
+    "type": "ADD_RECORD",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "title": "تۆمارکردنی فایلی نوێی (956) بۆ هاووڵاتی (نجات اومر ابراهیم) (لەلایەن: ئارام)",
+    "details": {
+      "citizenName": "نجات اومر ابراهیم",
+      "fileNumber": "956"
+    },
+    "timestamp": "2026-09-08 09:48:29",
+    "id": "log-1788850109209-lic678"
+  },
+  {
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "title": "گۆڕینی دۆخی فایلی (751) بۆ (DELIVERED) (لەلایەن: ئارام)",
+    "details": {
+      "citizenName": "دەوەن ئومێد",
+      "fileNumber": "751",
+      "status": "DELIVERED"
+    },
+    "timestamp": "2026-09-08 09:22:16",
+    "id": "log-1788848536843-e2ze3n"
+  },
+  {
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "title": "گۆڕینی دۆخی فایلی (433) بۆ (DELIVERED) (لەلایەن: ئارام)",
+    "details": {
+      "status": "DELIVERED",
+      "fileNumber": "433",
+      "citizenName": "هاوبەشی کارەبا"
+    },
+    "timestamp": "2026-09-08 09:17:05",
+    "id": "log-1788848225619-dhkfd6"
+  },
+  {
+    "title": "گۆڕینی دۆخی فایلی (232) بۆ (COMPLETED) (لەلایەن: ڕەعد)",
+    "timestamp": "2026-09-08 09:04:52",
+    "details": {
+      "citizenName": "هاوبەشی کارەبا",
+      "status": "COMPLETED",
+      "fileNumber": "232"
+    },
+    "id": "log-1788847492450-yk09n5",
+    "type": "STATUS_CHANGE",
+    "user": "ڕەعد (بەڕێوبەر سەرەکی)"
+  },
+  {
+    "id": "log-1788846460417-1drutk",
+    "type": "ADD_RECORD",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "details": {
+      "citizenName": "احمد ضاهر",
+      "fileNumber": "955"
+    },
+    "timestamp": "2026-09-08 08:47:40",
+    "title": "تۆمارکردنی فایلی نوێی (955) بۆ هاووڵاتی (احمد ضاهر) (لەلایەن: ئارام)"
+  },
+  {
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "ADD_RECORD",
+    "timestamp": "2026-09-08 08:46:00",
+    "id": "log-1788846360290-rchb49",
+    "title": "تۆمارکردنی فایلی نوێی (954) بۆ هاووڵاتی (ماریە مصطفی) (لەلایەن: ئارام)",
+    "details": {
+      "citizenName": "ماریە مصطفی",
+      "fileNumber": "954"
+    }
+  },
+  {
+    "details": {
+      "fileNumber": "416",
+      "citizenName": "هاوبەشی کارەبا",
+      "status": "DELIVERED"
+    },
+    "type": "STATUS_CHANGE",
+    "user": "ڕەعد (بەڕێوبەر سەرەکی)",
+    "timestamp": "2026-09-07 13:23:43",
+    "title": "گۆڕینی دۆخی فایلی (416) بۆ (DELIVERED) (لەلایەن: ڕەعد)",
+    "id": "log-1788776623529-nh3k3m"
+  },
+  {
+    "user": "ڕەعد (بەڕێوبەر سەرەکی)",
+    "details": {
+      "receiverName": "رسول ابراهیم",
+      "fileNumber": "70",
+      "date": "2026-09-07 13:20"
+    },
+    "type": "DELIVERY",
+    "timestamp": "2026-09-07 13:20:16",
+    "id": "log-1788776416154-ln1qxo",
+    "title": "تەسلیمکردنەوەی فایلی (70) بە (رسول ابراهیم) (لەلایەن: ڕەعد)"
+  },
+  {
+    "id": "log-1788775536733-6p8bjp",
+    "details": {
+      "fileNumber": "181",
+      "receiverName": "کاک زریان",
+      "date": "2026-09-07 13:05"
+    },
+    "title": "تەسلیمکردنەوەی فایلی (181) بە (کاک زریان) (لەلایەن: ئارام)",
+    "type": "DELIVERY",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "timestamp": "2026-09-07 13:05:36"
+  },
+  {
+    "id": "log-1788775518571-qpt5at",
+    "title": "گۆڕینی دۆخی فایلی (181) بۆ (COMPLETED) (لەلایەن: ئارام)",
+    "timestamp": "2026-09-07 13:05:18",
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "details": {
+      "fileNumber": "181",
+      "citizenName": "هاوبەشی کارەبا",
+      "status": "COMPLETED"
+    }
+  },
+  {
+    "title": "تەسلیمکردنەوەی فایلی (738) بە (ریبین ازاد صابر) (لەلایەن: ئارام)",
+    "timestamp": "2026-09-07 12:31:03",
+    "id": "log-1788773463056-bd5uva",
+    "details": {
+      "receiverName": "ریبین ازاد صابر",
+      "date": "2026-09-07 12:30",
+      "fileNumber": "738"
+    },
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "DELIVERY"
+  },
+  {
+    "title": "تەسلیمکردنەوەی فایلی (364) بە (شەوکەت) (لەلایەن: ئارام)",
+    "details": {
+      "date": "2026-09-07 12:02",
+      "receiverName": "شەوکەت",
+      "fileNumber": "364"
+    },
+    "id": "log-1788771760041-uopceb",
+    "type": "DELIVERY",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "timestamp": "2026-09-07 12:02:40"
+  },
+  {
+    "title": "گۆڕینی دۆخی فایلی (364) بۆ (COMPLETED) (لەلایەن: ئارام)",
+    "timestamp": "2026-09-07 12:02:27",
+    "details": {
+      "status": "COMPLETED",
+      "fileNumber": "364",
+      "citizenName": "هاوبەشی کارەبا"
+    },
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE",
+    "id": "log-1788771747098-g2ussn"
+  },
+  {
+    "timestamp": "2026-09-07 12:02:25",
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "title": "گۆڕینی دۆخی KYC فایلی (364) بۆ (🟢 ئێمە کردمان) (لەلایەن: ئارام)",
+    "details": {
+      "kycStatus": "DONE_BY_US",
+      "fileNumber": "364"
+    },
+    "id": "log-1788771745149-5k2nom"
+  },
+  {
+    "timestamp": "2026-09-07 11:35:48",
+    "id": "log-1788770148341-f7x5ti",
+    "type": "STATUS_CHANGE",
+    "title": "گۆڕینی دۆخی فایلی (129) بۆ (DELIVERED) (لەلایەن: ئارام)",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "details": {
+      "status": "DELIVERED",
+      "citizenName": "هاوبەشی کارەبا",
+      "fileNumber": "129"
+    }
+  },
+  {
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "id": "log-1788769346281-srlzsb",
+    "timestamp": "2026-09-07 11:22:26",
+    "title": "گۆڕینی دۆخی KYC فایلی (685) بۆ (🟢 ئێمە کردمان) (لەلایەن: ئارام)",
+    "details": {
+      "kycStatus": "DONE_BY_US",
+      "fileNumber": "685"
+    }
+  },
+  {
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "timestamp": "2026-09-07 11:22:22",
+    "id": "log-1788769342712-0jrn7p",
+    "title": "گۆڕینی دۆخی فایلی (685) بۆ (DELIVERED) (لەلایەن: ئارام)",
+    "details": {
+      "citizenName": "هاوبەشی کارەبا",
+      "status": "DELIVERED",
+      "fileNumber": "685"
+    }
+  },
+  {
+    "title": "گۆڕینی دۆخی فایلی (533) بۆ (DELIVERED) (لەلایەن: ئارام)",
+    "timestamp": "2026-09-07 11:03:11",
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "id": "log-1788768191294-aavixk",
+    "details": {
+      "fileNumber": "533",
+      "citizenName": "هاوبەشی کارەبا",
+      "status": "DELIVERED"
+    }
+  },
+  {
+    "title": "تەسلیمکردنەوەی فایلی (290) بە (ئارام علی احمد) (لەلایەن: ئارام)",
+    "type": "DELIVERY",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "id": "log-1788764258772-1z1tgm",
+    "timestamp": "2026-09-07 09:57:38",
+    "details": {
+      "date": "2026-09-07 09:57",
+      "fileNumber": "290",
+      "receiverName": "ئارام علی احمد"
+    }
+  },
+  {
+    "title": "گۆڕینی دۆخی فایلی (290) بۆ (COMPLETED) (لەلایەن: ئارام)",
+    "details": {
+      "citizenName": "هاوبەشی کارەبا",
+      "fileNumber": "290",
+      "status": "COMPLETED"
+    },
+    "id": "log-1788764234715-pbbkzi",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE",
+    "timestamp": "2026-09-07 09:57:14"
+  },
+  {
+    "title": "گۆڕینی دۆخی فایلی (637) بۆ (DELIVERED) (لەلایەن: ئارام)",
+    "details": {
+      "fileNumber": "637",
+      "status": "DELIVERED",
+      "citizenName": "هاوبەشی کارەبا"
+    },
+    "id": "log-1788764042730-5cxvop",
+    "timestamp": "2026-09-07 09:54:02",
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)"
+  },
+  {
+    "title": "سڕینەوەی فایلی (177) بۆ هاووڵاتی (هاوبەشی کارەبا) (لەلایەن: ئارام)",
+    "details": {
+      "citizenName": "هاوبەشی کارەبا",
+      "fileNumber": "177"
+    },
+    "type": "DELETE_RECORD",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "id": "log-1788763753639-7ryftf",
+    "timestamp": "2026-09-07 09:49:13"
+  },
+  {
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "title": "گۆڕینی دۆخی فایلی (177) بۆ (COMPLETED) (لەلایەن: ئارام)",
+    "details": {
+      "status": "COMPLETED",
+      "fileNumber": "177",
+      "citizenName": "هاوبەشی کارەبا"
+    },
+    "timestamp": "2026-09-07 09:31:32",
+    "id": "log-1788762692176-nhundd"
+  },
+  {
+    "timestamp": "2026-09-07 09:30:37",
+    "details": {
+      "fileNumber": "177",
+      "citizenName": "هاوبەشی کارەبا"
+    },
+    "id": "log-1788762637071-yq705g",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "ADD_RECORD",
+    "title": "تۆمارکردنی فایلی نوێی (177) بۆ هاووڵاتی (هاوبەشی کارەبا) (لەلایەن: ئارام)"
+  },
+  {
+    "details": {
+      "fileNumber": "689",
+      "citizenName": "ڕێبوار صادق",
+      "status": "DELIVERED"
+    },
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE",
+    "title": "گۆڕینی دۆخی فایلی (689) بۆ (DELIVERED) (لەلایەن: ئارام)",
+    "timestamp": "2026-09-07 09:29:11",
+    "id": "log-1788762551857-l0klje"
+  },
+  {
+    "timestamp": "2026-09-07 09:29:09",
+    "type": "EDIT_RECORD",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "details": {
+      "fileNumber": "689",
+      "citizenName": "ڕێبوار صادق"
+    },
+    "title": "دەستکاریکردنی فایلی (689) بۆ هاووڵاتی (ڕێبوار صادق) (لەلایەن: ئارام)",
+    "id": "log-1788762549363-0qf6q5"
+  },
+  {
+    "timestamp": "2026-09-07 09:28:05",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE",
+    "id": "log-1788762485869-gk5fep",
+    "details": {
+      "fileNumber": "54",
+      "kycStatus": "DONE_BY_US"
+    },
+    "title": "گۆڕینی دۆخی KYC فایلی (54) بۆ (🟢 ئێمە کردمان) (لەلایەن: ئارام)"
+  },
+  {
+    "title": "گۆڕینی دۆخی فایلی (54) بۆ (DELIVERED) (لەلایەن: ئارام)",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE",
+    "id": "log-1788762484199-9swpgv",
+    "timestamp": "2026-09-07 09:28:04",
+    "details": {
+      "status": "DELIVERED",
+      "citizenName": "هاوبەشی کارەبا",
+      "fileNumber": "54"
+    }
+  },
+  {
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "details": {
+      "citizenName": "هاوبەشی کارەبا",
+      "status": "COMPLETED",
+      "fileNumber": "848"
+    },
+    "timestamp": "2026-09-07 08:35:00",
+    "title": "گۆڕینی دۆخی فایلی (848) بۆ (COMPLETED) (لەلایەن: ئارام)",
+    "id": "log-1788759300537-gnpedi"
+  },
+  {
+    "timestamp": "2026-09-07 08:34:58",
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "title": "گۆڕینی دۆخی KYC فایلی (848) بۆ (🔵 پێشتر کراوە (دەرەکی)) (لەلایەن: ئارام)",
+    "id": "log-1788759298077-gu8pp2",
+    "details": {
+      "fileNumber": "848",
+      "kycStatus": "PRE_VERIFIED"
+    }
+  },
+  {
+    "details": {
+      "kycStatus": "DONE_BY_US",
+      "fileNumber": "848"
+    },
+    "id": "log-1788759293383-vfves3",
+    "title": "گۆڕینی دۆخی KYC فایلی (848) بۆ (🟢 ئێمە کردمان) (لەلایەن: ئارام)",
+    "timestamp": "2026-09-07 08:34:53",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE"
+  },
+  {
+    "id": "log-1788716538569-5ugkm7",
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "details": {
+      "length": 607
+    },
+    "title": "دەستکاریکردنی دەقی فەرمیی نامەی وەتسئاپ (لەلایەن: ئارام)",
+    "timestamp": "2026-09-06 20:42:18"
+  },
+  {
+    "timestamp": "2026-09-06 20:41:52",
+    "details": {
+      "length": 607
+    },
+    "id": "log-1788716512891-v1vnxj",
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "title": "دەستکاریکردنی دەقی فەرمیی نامەی وەتسئاپ (لەلایەن: ئارام)"
+  },
+  {
+    "id": "log-1788716189292-8z8ud9",
+    "title": "سڕینەوەی فایلی (954) بۆ هاووڵاتی (ئارام عباس) (لەلایەن: ئارام)",
+    "details": {
+      "fileNumber": "954",
+      "citizenName": "ئارام عباس"
+    },
+    "type": "DELETE_RECORD",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "timestamp": "2026-09-06 20:36:29"
+  },
+  {
+    "type": "ADD_RECORD",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "details": {
+      "citizenName": "ئارام عباس",
+      "fileNumber": "954"
+    },
+    "timestamp": "2026-09-06 20:36:19",
+    "id": "log-1788716179806-ah0sn4",
+    "title": "تۆمارکردنی فایلی نوێی (954) بۆ هاووڵاتی (ئارام عباس) (لەلایەن: ئارام)"
+  },
+  {
+    "id": "log-1788712910247-guu8rc",
+    "title": "سڕینەوەی فایلی (954) بۆ هاووڵاتی (saad ibrahim) (لەلایەن: ڕەعد)",
+    "details": {
+      "citizenName": "saad ibrahim",
+      "fileNumber": "954"
+    },
+    "timestamp": "2026-09-06 19:41:50",
+    "user": "ڕەعد (بەڕێوبەر سەرەکی)",
+    "type": "DELETE_RECORD"
+  },
+  {
+    "details": {
+      "fileNumber": "954",
+      "citizenName": "saad ibrahim"
+    },
+    "title": "تۆمارکردنی فایلی نوێی (954) بۆ هاووڵاتی (saad ibrahim) (لەلایەن: ڕەعد)",
+    "timestamp": "2026-09-06 19:40:38",
+    "user": "ڕەعد (بەڕێوبەر سەرەکی)",
+    "type": "ADD_RECORD",
+    "id": "log-1788712838512-2myxsh"
+  },
+  {
+    "title": "سڕینەوەی ئەکاونتی فەرمانبەر: [جێگر]",
+    "id": "log-1788688714075-6osgx5",
+    "timestamp": "2026-09-06 12:58:34",
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "details": {}
+  },
+  {
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "timestamp": "2026-09-06 12:58:32",
+    "title": "سڕینەوەی ئەکاونتی فەرمانبەر: [ئامێز]",
+    "id": "log-1788688712092-nuqav5",
+    "details": {}
+  },
+  {
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE",
+    "id": "log-1788688684180-tvpdy0",
+    "timestamp": "2026-09-06 12:58:04",
+    "details": {},
+    "title": "چوونەژوورەوەی فەرمانبەر: (ئارام) بە ناوی بەکارهێنەری [aram]"
+  },
+  {
+    "id": "log-1788688655288-8j5xfq",
+    "title": "چوونەژوورەوەی فەرمانبەر: (ڕەعد) بە ناوی بەکارهێنەری [raad]",
+    "user": "ڕەعد (بەڕێوبەر سەرەکی)",
+    "type": "STATUS_CHANGE",
+    "timestamp": "2026-09-06 12:57:35",
+    "details": {}
+  },
+  {
+    "timestamp": "2026-09-06 12:25:20",
+    "title": "گۆڕینی دۆخی KYC فایلی (221) بۆ (🟢 ئێمە کردمان) (لەلایەن: ئارام)",
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "details": {
+      "fileNumber": "221",
+      "kycStatus": "DONE_BY_US"
+    },
+    "id": "log-1788686720533-j9usti"
+  },
+  {
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "id": "log-1788686717056-2zd7g4",
+    "timestamp": "2026-09-06 12:25:17",
+    "title": "گۆڕینی دۆخی فایلی (221) بۆ (DELIVERED) (لەلایەن: ئارام)",
+    "details": {
+      "fileNumber": "221",
+      "status": "DELIVERED",
+      "citizenName": "هاوبەشی کارەبا"
+    }
+  },
+  {
+    "id": "log-1788685322088-bavel5",
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "title": "گۆڕینی دۆخی KYC فایلی (38) بۆ (🟢 ئێمە کردمان) (لەلایەن: ئارام)",
+    "details": {
+      "kycStatus": "DONE_BY_US",
+      "fileNumber": "38"
+    },
+    "timestamp": "2026-09-06 12:02:02"
+  },
+  {
+    "title": "گۆڕینی دۆخی KYC فایلی (936) بۆ (🟢 ئێمە کردمان) (لەلایەن: ئارام)",
+    "details": {
+      "kycStatus": "DONE_BY_US",
+      "fileNumber": "936"
+    },
+    "timestamp": "2026-09-06 12:01:59",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE",
+    "id": "log-1788685319145-s1q9y1"
+  },
+  {
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE",
+    "timestamp": "2026-09-06 12:01:57",
+    "details": {
+      "fileNumber": "936",
+      "citizenName": "رهاب حماد",
+      "status": "DELIVERED"
+    },
+    "id": "log-1788685317093-kyyw8y",
+    "title": "گۆڕینی دۆخی فایلی (936) بۆ (DELIVERED) (لەلایەن: ئارام)"
+  },
+  {
+    "id": "log-1788684124480-pezpcm",
+    "details": {
+      "fileNumber": "612",
+      "kycStatus": "DONE_BY_US"
+    },
+    "timestamp": "2026-09-06 11:42:04",
+    "title": "گۆڕینی دۆخی KYC فایلی (612) بۆ (🟢 ئێمە کردمان) (لەلایەن: ئارام)",
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)"
+  },
+  {
+    "id": "log-1788684117902-bi4u7n",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE",
+    "details": {
+      "fileNumber": "35",
+      "kycStatus": "DONE_BY_US"
+    },
+    "title": "گۆڕینی دۆخی KYC فایلی (35) بۆ (🟢 ئێمە کردمان) (لەلایەن: ئارام)",
+    "timestamp": "2026-09-06 11:41:57"
+  },
+  {
+    "id": "log-1788684114511-1kka6e",
+    "title": "گۆڕینی دۆخی KYC فایلی (29) بۆ (🟢 ئێمە کردمان) (لەلایەن: ئارام)",
+    "details": {
+      "fileNumber": "29",
+      "kycStatus": "DONE_BY_US"
+    },
+    "timestamp": "2026-09-06 11:41:54",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE"
+  },
+  {
+    "timestamp": "2026-09-06 11:41:50",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE",
+    "details": {
+      "fileNumber": "29",
+      "citizenName": "هاوبەشی کارەبا",
+      "status": "DELIVERED"
+    },
+    "id": "log-1788684110363-wxgqor",
+    "title": "گۆڕینی دۆخی فایلی (29) بۆ (DELIVERED) (لەلایەن: ئارام)"
+  },
+  {
+    "timestamp": "2026-09-06 11:28:01",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE",
+    "title": "گۆڕینی دۆخی فایلی (438) بۆ (DELIVERED) (لەلایەن: ئارام)",
+    "details": {
+      "status": "DELIVERED",
+      "citizenName": "هاوبەشی کارەبا",
+      "fileNumber": "438"
+    },
+    "id": "log-1788683281916-sxenwy"
+  },
+  {
+    "title": "گۆڕینی دۆخی فایلی (938) بۆ (DELIVERED) (لەلایەن: ئارام)",
+    "id": "log-1788683269162-xjx1p5",
+    "timestamp": "2026-09-06 11:27:49",
+    "details": {
+      "status": "DELIVERED",
+      "citizenName": "سعدی حسن",
+      "fileNumber": "938"
+    },
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)"
+  },
+  {
+    "timestamp": "2026-09-06 11:27:21",
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "details": {
+      "status": "DELIVERED",
+      "citizenName": "هاوبەشی کارەبا",
+      "fileNumber": "843"
+    },
+    "id": "log-1788683241492-32zmat",
+    "title": "گۆڕینی دۆخی فایلی (843) بۆ (DELIVERED) (لەلایەن: ئارام)"
+  },
+  {
+    "timestamp": "2026-09-06 11:11:37",
+    "title": "گۆڕینی دۆخی فایلی (942) بۆ (DELIVERED) (لەلایەن: ئارام)",
+    "details": {
+      "fileNumber": "942",
+      "status": "DELIVERED",
+      "citizenName": "اسماعیل کریم"
+    },
+    "id": "log-1788682297849-7d40ik",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE"
+  },
+  {
+    "id": "log-1788680653112-bcunsd",
+    "timestamp": "2026-09-06 10:44:13",
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "title": "گۆڕینی دۆخی فایلی (35) بۆ (DELIVERED) (لەلایەن: ئارام)",
+    "details": {
+      "fileNumber": "35",
+      "citizenName": "هاوبەشی کارەبا",
+      "status": "DELIVERED"
+    }
+  },
+  {
+    "id": "log-1788680543380-b9mmmd",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "ADD_RECORD",
+    "details": {
+      "fileNumber": "953",
+      "citizenName": "ریاض زیندین خالد"
+    },
+    "timestamp": "2026-09-06 10:42:23",
+    "title": "تۆمارکردنی فایلی نوێی (953) بۆ هاووڵاتی (ریاض زیندین خالد) (لەلایەن: ئارام)"
+  },
+  {
+    "details": {
+      "fileNumber": "952",
+      "citizenName": "حسین محمد عبدللە"
+    },
+    "timestamp": "2026-09-06 10:41:27",
+    "type": "ADD_RECORD",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "id": "log-1788680487707-c1wdqd",
+    "title": "تۆمارکردنی فایلی نوێی (952) بۆ هاووڵاتی (حسین محمد عبدللە) (لەلایەن: ئارام)"
+  },
+  {
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "ADD_RECORD",
+    "title": "تۆمارکردنی فایلی نوێی (951) بۆ هاووڵاتی (حیات رشید) (لەلایەن: ئارام)",
+    "id": "log-1788680442527-ngr83r",
+    "details": {
+      "citizenName": "حیات رشید",
+      "fileNumber": "951"
+    },
+    "timestamp": "2026-09-06 10:40:42"
+  },
+  {
+    "timestamp": "2026-09-06 10:40:01",
+    "details": {
+      "fileNumber": "950",
+      "citizenName": "هادی مامند"
+    },
+    "title": "تۆمارکردنی فایلی نوێی (950) بۆ هاووڵاتی (هادی مامند) (لەلایەن: ئارام)",
+    "type": "ADD_RECORD",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "id": "log-1788680401205-zoeikw"
+  },
+  {
+    "timestamp": "2026-09-06 10:39:24",
+    "details": {
+      "fileNumber": "949",
+      "citizenName": "مزگەوتی گوندی قەرەچناغە"
+    },
+    "id": "log-1788680364766-bf1ocr",
+    "title": "تۆمارکردنی فایلی نوێی (949) بۆ هاووڵاتی (مزگەوتی گوندی قەرەچناغە) (لەلایەن: ئارام)",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "ADD_RECORD"
+  },
+  {
+    "id": "log-1788680295639-j8y646",
+    "details": {
+      "fileNumber": "934",
+      "citizenName": "جنگی جواد"
+    },
+    "type": "ADD_RECORD",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "timestamp": "2026-09-06 10:38:15",
+    "title": "تۆمارکردنی فایلی نوێی (934) بۆ هاووڵاتی (جنگی جواد) (لەلایەن: ئارام)"
+  },
+  {
+    "title": "تۆمارکردنی فایلی نوێی (948) بۆ هاووڵاتی (عبدللە عمر عبدللە) (لەلایەن: ئارام)",
+    "details": {
+      "fileNumber": "948",
+      "citizenName": "عبدللە عمر عبدللە"
+    },
+    "id": "log-1788680271960-x34cgg",
+    "timestamp": "2026-09-06 10:37:51",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "ADD_RECORD"
+  },
+  {
+    "title": "تۆمارکردنی فایلی نوێی (947) بۆ هاووڵاتی (خطاب مهدی) (لەلایەن: ئارام)",
+    "details": {
+      "fileNumber": "947",
+      "citizenName": "خطاب مهدی"
+    },
+    "id": "log-1788680191124-fyavii",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "ADD_RECORD",
+    "timestamp": "2026-09-06 10:36:31"
+  },
+  {
+    "timestamp": "2026-09-06 09:57:13",
+    "details": {},
+    "type": "STATUS_CHANGE",
+    "id": "log-1788677833982-zmveke",
+    "user": "ڕەعد (بەڕێوبەر سەرەکی)",
+    "title": "چوونەژوورەوەی فەرمانبەر: (ڕەعد) بە ناوی بەکارهێنەری [raad]"
+  },
+  {
+    "id": "log-1788677817722-k5xw86",
+    "title": "گۆڕینی پاسۆردی هەژمار بۆ: [ڕەعد]",
+    "details": {},
+    "type": "STATUS_CHANGE",
+    "user": "ڕەعد (بەڕێوبەر سەرەکی)",
+    "timestamp": "2026-09-06 09:56:57"
+  },
+  {
+    "title": "تەسلیمکردنەوەی فایلی (386) بە (شیمال عبدالوهاب) (لەلایەن: ئارام)",
+    "timestamp": "2026-09-06 09:48:19",
+    "details": {
+      "fileNumber": "386",
+      "receiverName": "شیمال عبدالوهاب",
+      "date": "2026-09-06 09:47"
+    },
+    "id": "log-1788677299113-zeoutx",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "DELIVERY"
+  },
+  {
+    "timestamp": "2026-09-06 09:47:49",
+    "id": "log-1788677269483-jhpn6g",
+    "title": "گۆڕینی دۆخی فایلی (386) بۆ (COMPLETED) (لەلایەن: ئارام)",
+    "details": {
+      "citizenName": "هاوبەشی کارەبا",
+      "fileNumber": "386",
+      "status": "COMPLETED"
+    },
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)"
+  },
+  {
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE",
+    "id": "log-1788677267245-fkl70w",
+    "title": "گۆڕینی دۆخی KYC فایلی (386) بۆ (🟢 ئێمە کردمان) (لەلایەن: ئارام)",
+    "timestamp": "2026-09-06 09:47:47",
+    "details": {
+      "fileNumber": "386",
+      "kycStatus": "DONE_BY_US"
+    }
+  },
+  {
+    "title": "گۆڕینی دۆخی فایلی (858) بۆ (DELIVERED) (لەلایەن: ئارام)",
+    "id": "log-1788676589442-j8vqpa",
+    "timestamp": "2026-09-06 09:36:29",
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "details": {
+      "fileNumber": "858",
+      "status": "DELIVERED",
+      "citizenName": "صابر ڕشید"
+    }
+  },
+  {
+    "details": {
+      "fileNumber": "858",
+      "citizenName": "صابر ڕشید"
+    },
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "EDIT_RECORD",
+    "id": "log-1788676585712-prirec",
+    "timestamp": "2026-09-06 09:36:25",
+    "title": "دەستکاریکردنی فایلی (858) بۆ هاووڵاتی (صابر ڕشید) (لەلایەن: ئارام)"
+  },
+  {
+    "timestamp": "2026-09-06 09:32:06",
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "title": "گۆڕینی دۆخی فایلی (428) بۆ (DELIVERED) (لەلایەن: ئارام)",
+    "id": "log-1788676326305-8c3r5q",
+    "details": {
+      "status": "DELIVERED",
+      "fileNumber": "428",
+      "citizenName": "هاوبەشی کارەبا"
+    }
+  },
+  {
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE",
+    "id": "log-1788676261985-td9b3z",
+    "details": {
+      "fileNumber": "273",
+      "citizenName": "هاوبەشی کارەبا",
+      "status": "DELIVERED"
+    },
+    "timestamp": "2026-09-06 09:31:01",
+    "title": "گۆڕینی دۆخی فایلی (273) بۆ (DELIVERED) (لەلایەن: ئارام)"
+  },
+  {
+    "details": {
+      "citizenName": "شوان یوسف",
+      "fileNumber": "946"
+    },
+    "id": "log-1788675644040-a62tvp",
+    "timestamp": "2026-09-06 09:20:44",
+    "title": "تۆمارکردنی فایلی نوێی (946) بۆ هاووڵاتی (شوان یوسف) (لەلایەن: ئارام)",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "ADD_RECORD"
+  },
+  {
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE",
+    "title": "گۆڕینی دۆخی فایلی (937) بۆ (COMPLETED) (لەلایەن: ئارام)",
+    "details": {
+      "fileNumber": "937",
+      "status": "COMPLETED",
+      "citizenName": "هۆشەنگ سامی عمر"
+    },
+    "id": "log-1788675435046-o1j9gt",
+    "timestamp": "2026-09-06 09:17:15"
+  },
+  {
+    "timestamp": "2026-09-06 09:17:05",
+    "details": {
+      "fileNumber": "937",
+      "citizenName": "هۆشەنگ سامی عمر"
+    },
+    "type": "EDIT_RECORD",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "id": "log-1788675425982-8xsr8r",
+    "title": "دەستکاریکردنی فایلی (937) بۆ هاووڵاتی (هۆشەنگ سامی عمر) (لەلایەن: ئارام)"
+  },
+  {
+    "timestamp": "2026-09-06 09:15:02",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE",
+    "title": "گۆڕینی دۆخی فایلی (944) بۆ (COMPLETED) (لەلایەن: ئارام)",
+    "details": {
+      "citizenName": "شیرین عبدللە",
+      "status": "COMPLETED",
+      "fileNumber": "944"
+    },
+    "id": "log-1788675302527-swwpy6"
+  },
+  {
+    "timestamp": "2026-09-06 09:12:48",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "ADD_RECORD",
+    "title": "تۆمارکردنی فایلی نوێی (945) بۆ هاووڵاتی (شوان غریب) (لەلایەن: ئارام)",
+    "id": "log-1788675168796-zl2lh3",
+    "details": {
+      "fileNumber": "945",
+      "citizenName": "شوان غریب"
+    }
+  },
+  {
+    "timestamp": "2026-09-06 09:11:59",
+    "id": "log-1788675119334-s5k451",
+    "title": "تۆمارکردنی فایلی نوێی (944) بۆ هاووڵاتی (شیرین عبدللە) (لەلایەن: ئارام)",
+    "type": "ADD_RECORD",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "details": {
+      "fileNumber": "944",
+      "citizenName": "شیرین عبدللە"
+    }
+  },
+  {
+    "title": "تۆمارکردنی فایلی نوێی (943) بۆ هاووڵاتی (توفیق) (لەلایەن: ئارام)",
+    "timestamp": "2026-09-06 09:10:06",
+    "id": "log-1788675006388-dzkh05",
+    "details": {
+      "citizenName": "توفیق",
+      "fileNumber": "943"
+    },
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "ADD_RECORD"
+  },
+  {
+    "type": "ADD_RECORD",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "id": "log-1788674956486-f4g754",
+    "timestamp": "2026-09-06 09:09:16",
+    "details": {
+      "fileNumber": "942",
+      "citizenName": "اسماعیل کریم"
+    },
+    "title": "تۆمارکردنی فایلی نوێی (942) بۆ هاووڵاتی (اسماعیل کریم) (لەلایەن: ئارام)"
+  },
+  {
+    "details": {
+      "citizenName": "بدرالدین صدرالدین",
+      "fileNumber": "941"
+    },
+    "type": "ADD_RECORD",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "title": "تۆمارکردنی فایلی نوێی (941) بۆ هاووڵاتی (بدرالدین صدرالدین) (لەلایەن: ئارام)",
+    "id": "log-1788674842371-vvkv29",
+    "timestamp": "2026-09-06 09:07:22"
+  },
+  {
+    "timestamp": "2026-09-06 09:06:26",
+    "type": "ADD_RECORD",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "details": {
+      "citizenName": "کوثر سلێمان",
+      "fileNumber": "940"
+    },
+    "title": "تۆمارکردنی فایلی نوێی (940) بۆ هاووڵاتی (کوثر سلێمان) (لەلایەن: ئارام)",
+    "id": "log-1788674786518-xrfrjm"
+  },
+  {
+    "details": {
+      "citizenName": "ابوزید رشید",
+      "fileNumber": "939"
+    },
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "ADD_RECORD",
+    "timestamp": "2026-09-06 09:04:48",
+    "id": "log-1788674688012-6oq6ul",
+    "title": "تۆمارکردنی فایلی نوێی (939) بۆ هاووڵاتی (ابوزید رشید) (لەلایەن: ئارام)"
+  },
+  {
+    "timestamp": "2026-09-06 09:03:34",
+    "title": "تۆمارکردنی فایلی نوێی (938) بۆ هاووڵاتی (سعدی حسن) (لەلایەن: ئارام)",
+    "id": "log-1788674614160-nnqs7x",
+    "details": {
+      "fileNumber": "938",
+      "citizenName": "سعدی حسن"
+    },
+    "type": "ADD_RECORD",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)"
+  },
+  {
+    "id": "log-1788674562020-5nolun",
+    "timestamp": "2026-09-06 09:02:42",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "ADD_RECORD",
+    "title": "تۆمارکردنی فایلی نوێی (937) بۆ هاووڵاتی (هۆشونگ سامی عمر) (لەلایەن: ئارام)",
+    "details": {
+      "fileNumber": "937",
+      "citizenName": "هۆشونگ سامی عمر"
+    }
+  },
+  {
+    "type": "ADD_RECORD",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "timestamp": "2026-09-06 09:01:04",
+    "details": {
+      "citizenName": "رهاب حماد",
+      "fileNumber": "936"
+    },
+    "title": "تۆمارکردنی فایلی نوێی (936) بۆ هاووڵاتی (رهاب حماد) (لەلایەن: ئارام)",
+    "id": "log-1788674464875-19ssym"
+  },
+  {
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "ADD_RECORD",
+    "timestamp": "2026-09-06 08:58:03",
+    "title": "تۆمارکردنی فایلی نوێی (935) بۆ هاووڵاتی (حکیم عثمان) (لەلایەن: ئارام)",
+    "id": "log-1788674283048-uz95wi",
+    "details": {
+      "citizenName": "حکیم عثمان",
+      "fileNumber": "935"
+    }
+  },
+  {
+    "timestamp": "2026-09-06 08:56:02",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE",
+    "title": "گۆڕینی جۆری فایلی (934) (لەلایەن: ئارام)",
+    "details": {
+      "fileNumber": "934"
+    },
+    "id": "log-1788674162577-y3ymdy"
+  },
+  {
+    "type": "ADD_RECORD",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "details": {
+      "fileNumber": "934",
+      "citizenName": "جنگی جواد"
+    },
+    "title": "تۆمارکردنی فایلی نوێی (934) بۆ هاووڵاتی (جنگی جواد) (لەلایەن: ئارام)",
+    "id": "log-1788674129261-vnhvmm",
+    "timestamp": "2026-09-06 08:55:29"
+  },
+  {
+    "timestamp": "2026-09-06 08:44:52",
+    "details": {
+      "fileNumber": "846",
+      "citizenName": "هاوبەشی کارەبا",
+      "status": "COMPLETED"
+    },
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "id": "log-1788673492709-pl2ahk",
+    "title": "گۆڕینی دۆخی فایلی (846) بۆ (COMPLETED) (لەلایەن: ئارام)"
+  },
+  {
+    "details": {
+      "fileNumber": "3",
+      "kycStatus": "PRE_VERIFIED"
+    },
+    "title": "گۆڕینی دۆخی KYC فایلی (3) بۆ (🔵 پێشتر کراوە (دەرەکی)) (لەلایەن: ئارام)",
+    "timestamp": "2026-09-04 15:17:06",
+    "id": "log-1788524226485-d5eio5",
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)"
+  },
+  {
+    "id": "log-1788523109754-ujsoj7",
+    "timestamp": "2026-09-04 14:58:29",
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "details": {},
+    "title": "چوونەژوورەوەی فەرمانبەر: (ئارام) بە ناوی بەکارهێنەری [aram]"
+  },
+  {
+    "title": "چوونەژوورەوەی فەرمانبەر: (ئارام) بە ناوی بەکارهێنەری [aram]",
+    "id": "log-1788522789560-pg2vhe",
+    "timestamp": "2026-09-04 14:53:09",
+    "details": {},
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE"
+  },
+  {
+    "timestamp": "2026-09-04 14:52:35",
+    "title": "چوونەژوورەوەی فەرمانبەر: (ئارام) بە ناوی بەکارهێنەری [aram]",
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "details": {},
+    "id": "log-1788522755327-w1eimf"
+  },
+  {
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "id": "log-1788522746278-50nd7e",
+    "timestamp": "2026-09-04 14:52:26",
+    "title": "چوونەژوورەوەی فەرمانبەر: (ئارام) بە ناوی بەکارهێنەری [aram]",
+    "details": {}
+  },
+  {
+    "timestamp": "2026-09-04 14:52:01",
+    "details": {},
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE",
+    "id": "log-1788522721464-5xrtj1",
+    "title": "چوونەژوورەوەی فەرمانبەر: (ئارام) بە ناوی بەکارهێنەری [aram]"
+  },
+  {
+    "id": "log-1788522489338-pwgsox",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE",
+    "title": "چوونەژوورەوەی فەرمانبەر: (ئارام) بە ناوی بەکارهێنەری [aram]",
+    "timestamp": "2026-09-04 14:48:09",
+    "details": {}
+  },
+  {
+    "title": "گۆڕینی دۆخی KYC فایلی (2) بۆ (نەکراوە) (لەلایەن: ئارام)",
+    "details": {
+      "fileNumber": "2",
+      "isKycDone": false
+    },
+    "timestamp": "2026-09-04 14:39:40",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE",
+    "id": "log-1788521980353-rx987j"
+  },
+  {
+    "details": {
+      "isKycDone": true,
+      "fileNumber": "2"
+    },
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "timestamp": "2026-09-04 14:38:49",
+    "title": "گۆڕینی دۆخی KYC فایلی (2) بۆ (کراوە) (لەلایەن: ئارام)",
+    "id": "log-1788521929613-3a1dum"
+  },
+  {
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE",
+    "id": "log-1788521423804-kpn9nm",
+    "timestamp": "2026-09-04 14:30:23",
+    "title": "گۆڕینی دۆخی KYC فایلی (2) بۆ (نەکراوە) (لەلایەن: ئارام)",
+    "details": {
+      "fileNumber": "2",
+      "isKycDone": false
+    }
+  },
+  {
+    "title": "گۆڕینی دۆخی KYC فایلی (2) بۆ (کراوە) (لەلایەن: ئارام)",
+    "timestamp": "2026-09-04 14:30:22",
+    "details": {
+      "isKycDone": true,
+      "fileNumber": "2"
+    },
+    "id": "log-1788521422806-5zl5lu",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE"
+  },
+  {
+    "timestamp": "2026-09-04 14:26:20",
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "id": "log-1788521180384-x7v5ep",
+    "details": {},
+    "title": "چوونەژوورەوەی فەرمانبەر: (ئارام) بە ناوی بەکارهێنەری [aram]"
+  },
+  {
+    "details": {},
+    "title": "زیادکردنی یوزەری نوێ: [جێگر] (@jegr)",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE",
+    "timestamp": "2026-09-04 13:25:39",
+    "id": "log-1788517539627-1xpltv"
+  },
+  {
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE",
+    "title": "زیادکردنی یوزەری نوێ: [ئامێز] (@amez)",
+    "timestamp": "2026-09-04 13:24:13",
+    "details": {},
+    "id": "log-1788517453653-jxcd6x"
+  },
+  {
+    "id": "log-1788517346397-kxyq2n",
+    "timestamp": "2026-09-04 13:22:26",
+    "details": {},
+    "title": "چوونەژوورەوەی فەرمانبەر: (ئارام) بە ناوی بەکارهێنەری [aram]",
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)"
+  },
+  {
+    "timestamp": "2026-09-04 09:50:54",
+    "details": {},
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE",
+    "title": "چوونەژوورەوەی فەرمانبەر: (ئارام) بە ناوی بەکارهێنەری [aram]",
+    "id": "log-1788504654955-9rh292"
+  },
+  {
+    "details": {
+      "fileNumber": "901",
+      "citizenName": "نجات طە رسول",
+      "status": "IN_PROGRESS"
+    },
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "timestamp": "2026-09-04 06:50:00",
+    "title": "گۆڕینی دۆخی فایلی (901) بۆ (IN_PROGRESS) (لەلایەن: ئارام)",
+    "id": "log-1788504600372-axgptn"
+  },
+  {
+    "details": {
+      "citizenName": "نجات طە رسول",
+      "fileNumber": "901",
+      "status": "COMPLETED"
+    },
+    "timestamp": "2026-09-04 06:49:52",
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "id": "log-1788504592583-iz5n3p",
+    "title": "گۆڕینی دۆخی فایلی (901) بۆ (COMPLETED) (لەلایەن: ئارام)"
+  },
+  {
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "timestamp": "2026-09-04 09:44:50",
+    "title": "چوونەژوورەوەی فەرمانبەر: (ئارام) بە ناوی بەکارهێنەری [aram]",
+    "details": {},
+    "id": "log-1788504290248-oak50h"
+  },
+  {
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "details": {},
+    "title": "چوونەژوورەوەی فەرمانبەر: (ئارام) بە ناوی بەکارهێنەری [aram]",
+    "timestamp": "2026-09-04 09:44:08",
+    "id": "log-1788504248002-953ngx"
+  },
+  {
+    "title": "چوونەژوورەوەی فەرمانبەر: (ئارام) بە ناوی بەکارهێنەری [aram]",
+    "id": "log-1788502281894-dsj3r4",
+    "details": {},
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE",
+    "timestamp": "2026-09-04 06:11:21"
+  },
+  {
+    "id": "log-1788502203139-pkping",
+    "title": "گۆڕینی دۆخی فایلی (602) بۆ (IN_PROGRESS) (لەلایەن: ئارام)",
+    "details": {
+      "status": "IN_PROGRESS",
+      "citizenName": "هاوبەشی کارەبا",
+      "fileNumber": "602"
+    },
+    "timestamp": "2026-09-04 06:10:03",
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)"
+  },
+  {
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "title": "گۆڕینی دۆخی فایلی (602) بۆ (COMPLETED) (لەلایەن: ئارام)",
+    "details": {
+      "fileNumber": "602",
+      "citizenName": "هاوبەشی کارەبا",
+      "status": "COMPLETED"
+    },
+    "timestamp": "2026-09-04 06:10:01",
+    "id": "log-1788502201463-19xmih"
+  },
+  {
+    "timestamp": "2026-09-04 06:06:22",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE",
+    "details": {},
+    "id": "log-1788501982310-48mevw",
+    "title": "چوونەژوورەوەی فەرمانبەر: (ئارام) بە ناوی بەکارهێنەری [aram]"
+  },
+  {
+    "type": "STATUS_CHANGE",
+    "user": "ڕەعد (بەڕێوبەر سەرەکی)",
+    "details": {},
+    "title": "چوونەژوورەوەی فەرمانبەر: (ڕەعد) بە ناوی بەکارهێنەری [raad]",
+    "timestamp": "2026-09-03 20:34:38",
+    "id": "log-1788467678868-3ktnza"
+  },
+  {
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE",
+    "title": "گۆڕینی دۆخی فایلی (621) بۆ (IN_PROGRESS) (لەلایەن: ئارام)",
+    "timestamp": "2026-09-03 20:05:44",
+    "details": {
+      "citizenName": "هاوبەشی کارەبا",
+      "status": "IN_PROGRESS",
+      "fileNumber": "621"
+    },
+    "id": "log-1788465944184-02rzis"
+  },
+  {
+    "details": {},
+    "id": "log-1788465565597-6zzmg0",
+    "timestamp": "2026-09-03 19:59:25",
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "title": "دەستکاریکردنی زانیارییەکانی یوزەر: [ڕەعد] (@raad)"
+  },
+  {
+    "timestamp": "2026-09-03 19:58:40",
+    "id": "log-1788465520396-v5ha22",
+    "title": "چوونەژوورەوەی فەرمانبەر: (ئارام) بە ناوی بەکارهێنەری [aram]",
+    "details": {},
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)"
+  },
+  {
+    "timestamp": "2026-09-03 19:33:23",
+    "details": {
+      "fileNumber": "621",
+      "citizenName": "هاوبەشی کارەبا"
+    },
+    "title": "تۆمارکردنی فایلی نوێی (621) بۆ هاووڵاتی (هاوبەشی کارەبا) (لەلایەن: ڕەعد)",
+    "type": "ADD_RECORD",
+    "user": "ڕەعد (فەرمانبەری ژووری ١٩)",
+    "id": "log-1788464003515-r98f5j"
+  },
+  {
+    "title": "چوونەژوورەوەی فەرمانبەر: (ڕەعد) بە ناوی بەکارهێنەری [raad]",
+    "timestamp": "2026-09-03 19:26:43",
+    "id": "log-1788463603000-y66ba1",
+    "type": "STATUS_CHANGE",
+    "user": "ڕەعد (فەرمانبەری ژووری ١٩)",
+    "details": {}
+  },
+  {
+    "timestamp": "2026-09-03 19:24:57",
+    "id": "log-1788463497045-i23ulz",
+    "user": "ڕەعد (فەرمانبەری ژووری ١٩)",
+    "type": "STATUS_CHANGE",
+    "details": {},
+    "title": "چوونەژوورەوەی فەرمانبەر: (ڕەعد) بە ناوی بەکارهێنەری [raad]"
+  },
+  {
+    "user": "ڕەعد (فەرمانبەری ژووری ١٩)",
+    "type": "STATUS_CHANGE",
+    "details": {},
+    "id": "log-1788463272473-yqfda2",
+    "title": "چوونەژوورەوەی فەرمانبەر: (ڕەعد) بە ناوی بەکارهێنەری [raad]",
+    "timestamp": "2026-09-03 19:21:12"
+  },
+  {
+    "type": "STATUS_CHANGE",
+    "user": "ڕەعد (فەرمانبەری ژووری ١٩)",
+    "details": {},
+    "timestamp": "2026-09-03 19:20:29",
+    "id": "log-1788463229964-3jtfut",
+    "title": "چوونەژوورەوەی فەرمانبەر: (ڕەعد) بە ناوی بەکارهێنەری [raad]"
+  },
+  {
+    "title": "چوونەژوورەوەی فەرمانبەر: (ئارام) بە ناوی بەکارهێنەری [aram]",
+    "id": "log-1788463140726-dy9ztu",
+    "details": {},
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE",
+    "timestamp": "2026-09-03 19:19:00"
+  },
+  {
+    "title": "چوونەژوورەوەی فەرمانبەر: (ئارام) بە ناوی بەکارهێنەری [aram]",
+    "timestamp": "2026-09-03 19:08:29",
+    "id": "log-1788462509430-m43snl",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE",
+    "details": {}
+  },
+  {
+    "id": "log-1788462494361-1ad238",
+    "title": "چوونەژوورەوەی فەرمانبەر: (ئارام) بە ناوی بەکارهێنەری [aram]",
+    "details": {},
+    "timestamp": "2026-09-03 19:08:14",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE"
+  },
+  {
+    "id": "log-1788462426181-xhacu1",
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "details": {},
+    "title": "چوونەژوورەوەی فەرمانبەر: (ئارام) بە ناوی بەکارهێنەری [aram]",
+    "timestamp": "2026-09-03 19:07:06"
+  },
+  {
+    "timestamp": "2026-09-03 19:06:19",
+    "title": "چوونەژوورەوەی فەرمانبەر: (ئارام) بە ناوی بەکارهێنەری [aram]",
+    "details": {},
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE",
+    "id": "log-1788462379256-9vxoke"
+  },
+  {
+    "id": "log-1788462316770-xjqhka",
+    "title": "گۆڕینی دۆخی فایلی (51) بۆ (COMPLETED) (لەلایەن: ئارام)",
+    "details": {
+      "fileNumber": "51",
+      "status": "COMPLETED",
+      "citizenName": "هاوبەشی کارەبا"
+    },
+    "timestamp": "2026-09-03 19:05:16",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE"
+  },
+  {
+    "timestamp": "2026-09-03 19:05:12",
+    "details": {
+      "citizenName": "هاوبەشی کارەبا",
+      "fileNumber": "51",
+      "status": "IN_PROGRESS"
+    },
+    "title": "گۆڕینی دۆخی فایلی (51) بۆ (IN_PROGRESS) (لەلایەن: ئارام)",
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "id": "log-1788462312260-c7qvg7"
+  },
+  {
+    "id": "log-1788462258895-97pkvn",
+    "title": "چوونەژوورەوەی فەرمانبەر: (ئارام) بە ناوی بەکارهێنەری [aram]",
+    "details": {},
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE",
+    "timestamp": "2026-09-03 19:04:18"
+  },
+  {
+    "id": "log-1788461273144-be41q3",
+    "timestamp": "2026-09-03 18:47:53",
+    "title": "چوونەژوورەوەی فەرمانبەر: (ئارام) بە ناوی بەکارهێنەری [aram]",
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "details": {}
+  },
+  {
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "details": {},
+    "timestamp": "2026-09-03 18:44:02",
+    "id": "log-1788461042975-wp0wiy",
+    "title": "چوونەژوورەوەی فەرمانبەر: (ئارام) بە ناوی بەکارهێنەری [aram]"
+  },
+  {
+    "id": "log-1788461013376-41094j",
+    "title": "چوونەژوورەوەی فەرمانبەر: (ئارام) بە ناوی بەکارهێنەری [aram]",
+    "timestamp": "2026-09-03 18:43:33",
+    "details": {},
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE"
+  },
+  {
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE",
+    "title": "چوونەژوورەوەی فەرمانبەر: (ئارام) بە ناوی بەکارهێنەری [aram]",
+    "timestamp": "2026-09-03 18:41:17",
+    "id": "log-1788460877980-bd2xyh",
+    "details": {}
+  },
+  {
+    "title": "چوونەژوورەوەی فەرمانبەر: (ئارام) بە ناوی بەکارهێنەری [aram]",
+    "timestamp": "2026-09-03 18:38:33",
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "details": {},
+    "id": "log-1788460713736-lvz2qw"
+  },
+  {
+    "details": {
+      "citizenName": "ئارام عباس",
+      "fileNumber": "934"
+    },
+    "timestamp": "2026-09-03 18:34:05",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "title": "سڕینەوەی فایلی (934) بۆ هاووڵاتی (ئارام عباس) (لەلایەن: ئارام)",
+    "type": "DELETE_RECORD",
+    "id": "log-1788460445296-5k0d8s"
+  },
+  {
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "id": "log-1788460393368-6n5cxm",
+    "type": "ADD_RECORD",
+    "title": "تۆمارکردنی فایلی نوێی (934) بۆ هاووڵاتی (ئارام عباس) (لەلایەن: ئارام)",
+    "details": {
+      "fileNumber": "934",
+      "citizenName": "ئارام عباس"
+    },
+    "timestamp": "2026-09-03 18:33:13"
+  },
+  {
+    "details": {},
+    "timestamp": "2026-09-03 18:32:45",
+    "title": "چوونەژوورەوەی فەرمانبەر: (ئارام) بە ناوی بەکارهێنەری [aram]",
+    "id": "log-1788460365447-1sj57j",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE"
+  },
+  {
+    "details": {},
+    "id": "log-1788460044283-1bsd4u",
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "timestamp": "2026-09-03 18:27:24",
+    "title": "چوونەژوورەوەی فەرمانبەر: (ئارام) بە ناوی بەکارهێنەری [aram]"
+  },
+  {
+    "id": "log-1788459888213-gb0xbw",
+    "title": "چوونەژوورەوەی فەرمانبەر: (ئارام) بە ناوی بەکارهێنەری [aram]",
+    "timestamp": "2026-09-03 18:24:48",
+    "details": {},
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)"
+  },
+  {
+    "details": {},
+    "timestamp": "2026-09-03 18:18:28",
+    "id": "log-1788459508982-txm512",
+    "title": "چوونەژوورەوەی فەرمانبەر: (ئارام) بە ناوی بەکارهێنەری [aram]",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE"
+  },
+  {
+    "details": {},
+    "id": "log-1788459102816-xg9f7w",
+    "timestamp": "2026-09-03 18:11:42",
+    "title": "چوونەژوورەوەی فەرمانبەر: (ئارام) بە ناوی بەکارهێنەری [aram]",
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)"
+  },
+  {
+    "id": "log-1788459038036-t1yit6",
+    "timestamp": "2026-09-03 18:10:38",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE",
+    "details": {
+      "fileNumber": "51",
+      "status": "COMPLETED",
+      "citizenName": "هاوبەشی کارەبا"
+    },
+    "title": "گۆڕینی دۆخی فایلی (51) بۆ (COMPLETED) (لەلایەن: ئارام)"
+  },
+  {
+    "id": "log-1788459034972-yt6r8p",
+    "timestamp": "2026-09-03 18:10:34",
+    "details": {
+      "citizenName": "هاوبەشی کارەبا",
+      "fileNumber": "51",
+      "status": "IN_PROGRESS"
+    },
+    "title": "گۆڕینی دۆخی فایلی (51) بۆ (IN_PROGRESS) (لەلایەن: ئارام)",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE"
+  },
+  {
+    "title": "چوونەژوورەوەی فەرمانبەر: (ئارام) بە ناوی بەکارهێنەری [aram]",
+    "id": "log-1788458807901-zyf6kz",
+    "details": {},
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "timestamp": "2026-09-03 18:06:47"
+  },
+  {
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "STATUS_CHANGE",
+    "details": {},
+    "id": "log-1788457849203-88iczi",
+    "title": "چوونەژوورەوەی فەرمانبەر: (ئارام) بە ناوی بەکارهێنەری [aram]",
+    "timestamp": "2026-09-03 17:50:49"
+  },
+  {
+    "timestamp": "2026-09-03 17:49:29",
+    "user": "ڕەعد (فەرمانبەری ژووری ١٩)",
+    "type": "STATUS_CHANGE",
+    "details": {},
+    "title": "دەستکاریکردنی زانیارییەکانی یوزەر: [ڕەعد] (@raad)",
+    "id": "log-1788457769628-glth"
+  },
+  {
+    "id": "log-1788457573721-61f6",
+    "type": "STATUS_CHANGE",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "title": "چوونەژوورەوەی فەرمانبەر: (ئارام) بە ناوی بەکارهێنەری [aram]",
+    "details": {},
+    "timestamp": "2026-09-03 17:46:13"
+  },
+  {
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "type": "DELETE_RECORD",
+    "timestamp": "2026-09-07 09:48:28",
+    "title": "سڕینەوەی فایلی (177) بۆ هاووڵاتی (هاوبەشی کارەبا) (لەلایەن: ئارام)",
+    "details": {
+      "fileNumber": "177",
+      "citizenName": "هاوبەشی کارەبا"
+    },
+    "id": "log-1788763708266-1y87lj"
+  },
+  {
+    "timestamp": "2026-09-08 10:43:45",
+    "details": {
+      "fileType": "PAPER",
+      "count": 5
+    },
+    "title": "گۆڕینی بەکۆمەڵی جۆری دۆسیەی (5) فایل بۆ (PAPER) (لەلایەن: ئارام)",
+    "type": "BATCH_STATUS",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "id": "log-1788853425032-w6dyyz"
+  },
+  {
+    "title": "سڕینەوەی فایلی (rec-1788851986429) بۆ هاووڵاتی (نەزانراو) (لەلایەن: ئارام)",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "details": {},
+    "type": "DELETE_RECORD",
+    "id": "log-1788853757302-ut67na",
+    "timestamp": "2026-09-08 10:49:17"
+  },
+  {
+    "id": "log-1788853738370-fv3ofs",
+    "title": "سڕینەوەی فایلی (rec-1788851986429) بۆ هاووڵاتی (نەزانراو) (لەلایەن: ئارام)",
+    "details": {},
+    "type": "DELETE_RECORD",
+    "user": "ئارام (بەڕێوەبەری سەرەکی)",
+    "timestamp": "2026-09-08 10:48:58"
+  }
+]
