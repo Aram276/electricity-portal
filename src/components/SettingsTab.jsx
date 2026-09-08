@@ -36,9 +36,12 @@ import {
   saveStaffAccountsToCloud, 
   subscribeToWhatsAppTemplate,
   saveWhatsAppTemplateToCloud,
+  takeCloudBackup,
+  getLatestCloudBackup,
   DEFAULT_STAFF, 
   logActivity 
 } from '../utils/cloudSync';
+import { exportToExcel } from '../utils/excelHelper';
 import {
   getCustomWhatsAppTemplate,
   saveCustomWhatsAppTemplate,
@@ -1026,31 +1029,114 @@ export default function SettingsTab({ onResetData, records = [], activeStaff = n
       </div>
 
       {/* Backup, Restore and Maintenance */}
-      <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 space-y-4 shadow-xl transition-colors">
-        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-          <div className="flex items-center gap-2 text-slate-900 dark:text-white font-bold text-sm">
-            <Download className="w-4 h-4 text-emerald-500" />
-            <span>پاڵپشتی و پاراستنی زانیارییەکان (Cloud Backup & Restore)</span>
+      <div className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 space-y-6 shadow-xl transition-colors">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4 gap-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-black text-slate-900 dark:text-white">
+                سیستەمی پاراستنی داتا و باکئەپی کلاود (Cloud Auto-Backup & Safety)
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                سیستەم بە شێوەیەکی ئۆتۆماتیک پێش هەر گۆڕانکاری و هاوردەیەک باکئەپ لە کلاود دەگرێت
+              </p>
+            </div>
           </div>
-          <span className="text-[11px] text-slate-400 font-mono">
-            کۆی فایلەکان: {recordsCount}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 text-xs font-bold border border-emerald-500/30">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>Auto-Backup چالاکە</span>
+            </span>
+            <span className="text-xs text-slate-400 font-mono font-bold bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-xl">
+              کۆی فایلەکان: {recordsCount}
+            </span>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* Live Cloud Snapshot Info Card */}
+        <div className="p-5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-slate-50 to-blue-500/10 dark:from-emerald-950/30 dark:via-slate-950/60 dark:to-blue-950/30 border border-emerald-500/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200">
+              <Clock className="w-4 h-4 text-emerald-500" />
+              <span>دۆخی پاراستنی ئێستای کلاود:</span>
+            </div>
+            <p className="text-xs text-slate-600 dark:text-slate-400">
+              هەموو داتاکانت پارێزراون. دەتوانیت هەر کاتێک بتەوێت بە یەک کلیک باکئەپێکی دەستبەجێ (Snapshot) وەربگریت یان بیگەڕێنیتەوە.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            <button
+              type="button"
+              onClick={async () => {
+                if (!records || !records.length) return;
+                const res = await takeCloudBackup(records, 'باکئەپی دەستی لەلایەن بەڕێوەبەر لە تابی ڕێکخستنەکان');
+                if (res) {
+                  alert(`سەرکەوتوو بوو! باکئەپی (${records.length}) دۆسیە لە کلاود سەیڤ کرا.`);
+                } else {
+                  alert('هەڵەیەک لە سەیڤکردنی باکئەپ ڕوویدا.');
+                }
+              }}
+              className="w-full md:w-auto px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 active:scale-95"
+            >
+              <Shield className="w-4 h-4" />
+              <span>وەرگرتنی باکئەپی دەستبەجێ (Take Snapshot)</span>
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                if (window.confirm('ئایا دڵنیایت لە پشکنین و گەڕاندنەوەی داتاکان لە دوایین باکئەپی کلاود؟')) {
+                  const backupData = await getLatestCloudBackup();
+                  if (backupData && Array.isArray(backupData.records) && backupData.records.length > 0) {
+                    if (onResetData) onResetData(backupData.records);
+                    alert(`بە سەرکەوتوویی (${backupData.records.length}) دۆسیە لە باکئەپی کلاود گەڕێنرانەوە!`);
+                  } else {
+                    alert('هیچ باکئەپێکی کلاود نەدۆزرایەوە.');
+                  }
+                }
+              }}
+              className="w-full md:w-auto px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-500/25 transition-all flex items-center justify-center gap-2 active:scale-95"
+            >
+              <RefreshCw className="w-4 h-4" />
+              <span>گەڕاندنەوە لە کلاود باکئەپ</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           
-          {/* Download JSON Backup */}
+          {/* Download Excel Backup */}
           <button
             type="button"
-            onClick={handleBackupJSON}
+            onClick={() => {
+              if (!records.length) return;
+              exportToExcel(records, `Roonaki_Full_Cloud_Backup_${records.length}_files_${new Date().toISOString().slice(0, 10)}.xlsx`);
+            }}
             className="p-4 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/20 border-2 border-emerald-500/30 hover:border-emerald-500 text-right space-y-1 transition-all shadow-sm active:scale-95 group"
           >
             <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-bold text-xs sm:text-sm">
               <Download className="w-4 h-4 group-hover:translate-y-0.5 transition-transform" />
-              <span>داگرتنی کۆپی یەدەگ (JSON)</span>
+              <span>داگرتنی ئێکسڵ (Excel Backup)</span>
             </div>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              دابەزاندنی تەواوی داتابەیس بۆ سەر کۆمپیوتەر
+              دابەزاندنی تەواوی فایلەکان بە فایلی ئێکسڵ
+            </p>
+          </button>
+
+          {/* Download JSON Backup */}
+          <button
+            type="button"
+            onClick={handleBackupJSON}
+            className="p-4 rounded-2xl bg-cyan-50/60 dark:bg-cyan-950/20 border-2 border-cyan-500/30 hover:border-cyan-500 text-right space-y-1 transition-all shadow-sm active:scale-95 group"
+          >
+            <div className="flex items-center gap-2 text-cyan-700 dark:text-cyan-400 font-bold text-xs sm:text-sm">
+              <Download className="w-4 h-4 group-hover:translate-y-0.5 transition-transform" />
+              <span>داگرتنی کۆپی (JSON)</span>
+            </div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              دابەزاندنی کۆپیی داتابەیس بە فایلی JSON
             </p>
           </button>
 
@@ -1085,7 +1171,7 @@ export default function SettingsTab({ onResetData, records = [], activeStaff = n
             />
             <div className="flex items-center gap-2 text-blue-700 dark:text-blue-400 font-bold text-xs sm:text-sm">
               <RefreshCw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" />
-              <span>گەڕاندنەوەی کۆپی یەدەگ</span>
+              <span>گەڕاندنەوە لە فایلی JSON</span>
             </div>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
               ئەپڵۆدکردنی فایلی JSON بۆ گەڕاندنەوە
@@ -1100,10 +1186,10 @@ export default function SettingsTab({ onResetData, records = [], activeStaff = n
           >
             <div className="flex items-center gap-2 text-rose-700 dark:text-rose-400 font-bold text-xs sm:text-sm">
               <AlertTriangle className="w-4 h-4" />
-              <span>گەڕاندنەوە بۆ سەرەتا</span>
+              <span>گەڕاندنەوە بۆ دەستپێک</span>
             </div>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              سڕینەوەی هەموو داتاکان بە دۆخی پاک
+              سڕینەوەی داتاکان بە دۆخی پاک
             </p>
           </button>
 

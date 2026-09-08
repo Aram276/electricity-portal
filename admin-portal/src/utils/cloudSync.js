@@ -397,20 +397,40 @@ export function subscribeToWhatsAppTemplate(onUpdateCallback) {
 }
 
 /**
- * Save WhatsApp template to Firestore Cloud and local cache.
+ * Cloud Backup & Safety Management
  */
-export async function saveWhatsAppTemplateToCloud(template) {
+const BACKUP_DOC_REF = doc(db, 'portal_data', 'electricity_records_backup');
+
+export async function takeCloudBackup(records, reason = 'باکئەپی دەستی لەلایەن بەڕێوەبەر') {
   try {
-    if (template && typeof template === 'string') {
-      localStorage.setItem('electricity_whatsapp_template', template);
-      window.dispatchEvent(new CustomEvent('whatsapp_template_updated', { detail: template }));
-      await setDoc(WA_DOC_REF, {
-        template: template,
-        lastUpdated: new Date().toISOString()
-      });
-    }
+    if (!records || !records.length) return false;
+    const backupPayload = {
+      records: records,
+      backupTimestamp: new Date().toISOString(),
+      timestampFormatted: getLocalTimestamp(true),
+      count: records.length,
+      reason
+    };
+    await setDoc(BACKUP_DOC_REF, backupPayload);
+    localStorage.setItem('electricity_portal_records_safety_backup', JSON.stringify(records));
+    localStorage.setItem('electricity_portal_backup_time', new Date().toISOString());
+    return backupPayload;
   } catch (err) {
-    console.error('Failed to save whatsapp template to cloud:', err);
+    console.error('Failed to save cloud backup:', err);
+    return false;
+  }
+}
+
+export async function getLatestCloudBackup() {
+  try {
+    const snap = await getDoc(BACKUP_DOC_REF);
+    if (snap.exists()) {
+      return snap.data();
+    }
+    return null;
+  } catch (err) {
+    console.error('Failed to get cloud backup:', err);
+    return null;
   }
 }
 
