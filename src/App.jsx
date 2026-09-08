@@ -177,8 +177,10 @@ export default function App() {
               ...combined[idx],
               citizenName: (newRec.hasRealName && newRec.citizenName !== 'هاوبەشی کارەبا') ? newRec.citizenName : combined[idx].citizenName,
               hasRealName: (newRec.hasRealName || combined[idx].hasRealName),
-              phoneNumber: (newRec.phoneNumber && newRec.phoneNumber !== 'نیە') ? newRec.phoneNumber : combined[idx].phoneNumber,
+              accountNumber: newRec.accountNumber || combined[idx].accountNumber || '',
+              phoneNumber: (newRec.phoneNumber && newRec.phoneNumber !== 'نیە') ? newRec.phoneNumber : (combined[idx].phoneNumber || 'نیە'),
               status: (newRec.status !== 'IN_PROGRESS' || combined[idx].status === 'IN_PROGRESS') ? newRec.status : combined[idx].status,
+              kycStatus: (newRec.kycStatus && newRec.kycStatus !== 'PENDING') ? newRec.kycStatus : (combined[idx].kycStatus || 'PENDING'),
               deliveredDate: newRec.deliveredDate || combined[idx].deliveredDate,
               receiverName: newRec.receiverName || combined[idx].receiverName,
               fileType: newRec.fileType || combined[idx].fileType
@@ -193,7 +195,13 @@ export default function App() {
         }
       });
 
-      updated = combined;
+      // Sort numerically by fileNumber
+      updated = combined.sort((a, b) => {
+        const numA = parseInt(a.fileNumber, 10) || 0;
+        const numB = parseInt(b.fileNumber, 10) || 0;
+        return numA - numB;
+      });
+
       showToast(`${addedCount} فایلی نوێ زیادکران، ${updatedCount} فایل زانیارییەکانیان نوێکرانەوە بەبێ دووبارەبوونەوە`, 'success');
       logActivity('EXCEL_IMPORT', `هاوردەکردنی ئێکسڵ: ${newRecords.length} دۆسیە هاوردە کران`, { count: newRecords.length });
     }

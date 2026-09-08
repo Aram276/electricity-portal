@@ -131,14 +131,37 @@ export default function App() {
       const existingFileMap = new Map();
       records.forEach(r => {
         const key = String(r.fileNumber || r.id).trim().toLowerCase();
-        existingFileMap.set(key, r);
+        existingFileMap.set(key, { ...r });
       });
+
       newRecords.forEach(r => {
         const key = String(r.fileNumber || r.id).trim().toLowerCase();
-        existingFileMap.set(key, r);
+        if (existingFileMap.has(key)) {
+          const existing = existingFileMap.get(key);
+          existingFileMap.set(key, {
+            ...existing,
+            ...r,
+            citizenName: (r.citizenName && r.citizenName !== 'هاوبەشی کارەبا') ? r.citizenName : existing.citizenName,
+            accountNumber: r.accountNumber || existing.accountNumber || '',
+            phoneNumber: (r.phoneNumber && r.phoneNumber !== 'نیە') ? r.phoneNumber : (existing.phoneNumber || 'نیە'),
+            status: existing.status && existing.status !== 'IN_PROGRESS' ? existing.status : (r.status || existing.status),
+            kycStatus: existing.kycStatus && existing.kycStatus !== 'PENDING' ? existing.kycStatus : (r.kycStatus || existing.kycStatus),
+            deliveredDate: existing.deliveredDate || r.deliveredDate,
+            receiverName: existing.receiverName || r.receiverName
+          });
+        } else {
+          existingFileMap.set(key, r);
+        }
       });
-      updated = Array.from(existingFileMap.values());
-      showToast(`${newRecords.length} دۆسیەی نوێ بە سەرکەوتوویی زیادکران`, 'success');
+
+      // Sort numerically by fileNumber
+      updated = Array.from(existingFileMap.values()).sort((a, b) => {
+        const numA = parseInt(a.fileNumber, 10) || 0;
+        const numB = parseInt(b.fileNumber, 10) || 0;
+        return numA - numB;
+      });
+
+      showToast(`${newRecords.length} دۆسیە بە سەرکەوتوویی تێکەڵ کران و زانیارییەکان نوێکرانەوە`, 'success');
     }
 
     setRecords(updated);
