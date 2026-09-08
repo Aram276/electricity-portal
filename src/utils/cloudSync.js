@@ -397,6 +397,24 @@ export function subscribeToWhatsAppTemplate(onUpdateCallback) {
 }
 
 /**
+ * Save WhatsApp template to Firestore Cloud and local cache.
+ */
+export async function saveWhatsAppTemplateToCloud(template) {
+  try {
+    if (template && typeof template === 'string') {
+      localStorage.setItem('electricity_whatsapp_template', template);
+      window.dispatchEvent(new CustomEvent('whatsapp_template_updated', { detail: template }));
+      await setDoc(WA_DOC_REF, {
+        template: template,
+        lastUpdated: new Date().toISOString()
+      });
+    }
+  } catch (err) {
+    console.error('Failed to save whatsapp template to cloud:', err);
+  }
+}
+
+/**
  * Cloud Backup & Safety Management
  */
 const BACKUP_DOC_REF = doc(db, 'portal_data', 'electricity_records_backup');
