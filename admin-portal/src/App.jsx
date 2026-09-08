@@ -154,7 +154,16 @@ export default function App() {
     if (editingRecord) {
       updated = records.map(r => r.id === editingRecord.id ? { ...recordData, id: r.id, handledBy: staffName } : r);
       showToast(`فایلی (${recordData.fileNumber}) بە سەرکەوتوویی دەستکاری کرا`, 'success');
-      logActivity('EDIT_RECORD', `دەستکاریکردنی فایلی (${recordData.fileNumber}) بۆ هاووڵاتی (${recordData.citizenName}) (لەلایەن: ${staffName})`, { fileNumber: recordData.fileNumber, citizenName: recordData.citizenName });
+      logActivity('EDIT_RECORD', `دەستکاریکردنی فایلی (${recordData.fileNumber}) بۆ هاووڵاتی (${recordData.citizenName}) (لەلایەن: ${staffName})`, { 
+        fileNumber: recordData.fileNumber, 
+        citizenName: recordData.citizenName,
+        accountNumber: recordData.accountNumber || '',
+        phoneNumber: recordData.phoneNumber || '',
+        status: recordData.status,
+        kycStatus: recordData.kycStatus,
+        fileType: recordData.fileType,
+        archiveLocation: recordData.archiveLocation
+      });
     } else {
       const newRecord = {
         ...recordData,
@@ -164,7 +173,16 @@ export default function App() {
       };
       updated = [newRecord, ...records];
       showToast(`فایلی نوێ بە ژمارەی (${recordData.fileNumber}) زیادکرا`, 'success');
-      logActivity('ADD_RECORD', `تۆمارکردنی فایلی نوێی (${recordData.fileNumber}) بۆ هاووڵاتی (${recordData.citizenName}) (لەلایەن: ${staffName})`, { fileNumber: recordData.fileNumber, citizenName: recordData.citizenName });
+      logActivity('ADD_RECORD', `تۆمارکردنی فایلی نوێی (${recordData.fileNumber}) بۆ هاووڵاتی (${recordData.citizenName}) (لەلایەن: ${staffName})`, { 
+        fileNumber: recordData.fileNumber, 
+        citizenName: recordData.citizenName,
+        accountNumber: recordData.accountNumber || '',
+        phoneNumber: recordData.phoneNumber || '',
+        status: recordData.status,
+        kycStatus: recordData.kycStatus,
+        fileType: recordData.fileType,
+        archiveLocation: recordData.archiveLocation
+      });
     }
 
     setRecords(updated);

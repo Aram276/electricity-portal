@@ -233,7 +233,16 @@ export default function App() {
       logActivity(
         isDelivered ? 'DELIVERY' : 'STATUS_CHANGE',
         `دەستکاریکردنی فایلی (${processedData.fileNumber}) [${processedData.citizenName}] (لەلایەن: ${staffName})`,
-        { fileNumber: processedData.fileNumber, citizenName: processedData.citizenName, status: processedData.status }
+        { 
+          fileNumber: processedData.fileNumber, 
+          citizenName: processedData.citizenName, 
+          accountNumber: processedData.accountNumber || '',
+          phoneNumber: processedData.phoneNumber || '',
+          status: processedData.status,
+          kycStatus: processedData.kycStatus,
+          fileType: processedData.fileType,
+          archiveLocation: processedData.archiveLocation
+        }
       );
     } else {
       const newRec = {
@@ -244,7 +253,13 @@ export default function App() {
       showToast('مامەڵەی نوێ لە سێرڤەری گشتی بە سەرکەوتوویی تۆمار کرا', 'success');
       logActivity('CREATE', `تۆمارکردنی فایلی نوێی (${processedData.fileNumber}) بە ناوی [${processedData.citizenName}] (لەلایەن: ${staffName})`, {
         fileNumber: processedData.fileNumber,
-        citizenName: processedData.citizenName
+        citizenName: processedData.citizenName,
+        accountNumber: processedData.accountNumber || '',
+        phoneNumber: processedData.phoneNumber || '',
+        status: processedData.status,
+        kycStatus: processedData.kycStatus,
+        fileType: processedData.fileType,
+        archiveLocation: processedData.archiveLocation
       });
     }
     setRecords(updated);
