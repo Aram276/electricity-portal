@@ -56,6 +56,7 @@ export default function App() {
   // Toast notification
   const [toast, setToast] = useState(null);
   const [isAdminPath, setIsAdminPath] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Check URL path on mount & hashchange
   useEffect(() => {
@@ -692,6 +693,8 @@ export default function App() {
         onAdminLogout={handleAdminLogout}
         isDarkMode={isDarkMode}
         onToggleTheme={toggleTheme}
+        onToggleSidebar={() => setIsSidebarOpen(prev => !prev)}
+        isSidebarOpen={isSidebarOpen}
       />
 
       {/* Main Content Area */}
@@ -706,6 +709,8 @@ export default function App() {
             records={records}
             trashRecords={trashRecords}
             activeStaff={activeStaff}
+            isSidebarOpen={isSidebarOpen}
+            setIsSidebarOpen={setIsSidebarOpen}
             onOpenExcelImport={() => setIsExcelOpen(true)}
             onOpenAddModal={() => { setEditingRecord(null); setIsRecordModalOpen(true); }}
             onOpenEditModal={(rec) => { setEditingRecord(rec); setIsRecordModalOpen(true); }}

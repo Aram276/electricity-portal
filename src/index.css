@@ -119,29 +119,178 @@
   background: #f59e0b;
 }
 
+/* Custom Scrollbar for Drawer & Tables */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(245, 158, 11, 0.3);
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(245, 158, 11, 0.7);
+}
+
+/* Slide-over Drawer Animations */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-slideInRight {
+  animation: slideInRight 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-out forwards;
+}
+
 /* Print Styles for Receipts and Archive Box Manifests */
 @media print {
+  @page {
+    size: A4 portrait;
+    margin: 8mm 8mm 8mm 8mm;
+  }
+
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 100% !important;
+    overflow: visible !important;
+    font-size: 11pt !important;
+  }
+
+  /* Hide app navigation, modals backdrop, footers and control toolbars */
+  nav, footer, .no-print, header {
+    display: none !important;
+  }
+
+  /* Reset all modal containers so they don't clip the printable content */
+  .fixed, 
+  .inset-0, 
+  .backdrop-blur-md, 
+  .backdrop-blur-sm, 
+  .overflow-y-auto, 
+  .overflow-hidden, 
+  .max-h-\[96vh\], 
+  .max-h-\[95vh\],
+  .max-h-\[92vh\] {
+    position: static !important;
+    overflow: visible !important;
+    max-height: none !important;
+    max-width: 100% !important;
+    height: auto !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+  }
+
+  /* Hide everything by default except the target printable sections */
   body * {
     visibility: hidden;
   }
-  #printable-receipt, #printable-receipt *,
-  #printable-box-area, #printable-box-area * {
-    visibility: visible;
+
+  #printable-receipt,
+  #printable-receipt *,
+  #printable-box-area,
+  #printable-box-area * {
+    visibility: visible !important;
   }
-  #printable-receipt, #printable-box-area {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    background: white !important;
-    color: black !important;
+
+  #printable-receipt,
+  #printable-box-area {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
   }
+
   .page-break-box {
-    page-break-after: always;
-    break-after: page;
+    page-break-after: always !important;
+    break-after: page !important;
+    margin-bottom: 0 !important;
+    border: none !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    color: #000000 !important;
   }
-  .no-print {
-    display: none !important;
+
+  /* Clean Professional Table Print Layout */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    page-break-inside: auto !important;
+    border: 1px solid #cbd5e1 !important;
+  }
+
+  th {
+    background-color: #0f172a !important;
+    color: #ffffff !important;
+    font-weight: 900 !important;
+    border: 1px solid #0f172a !important;
+    padding: 6px 8px !important;
+    font-size: 10.5pt !important;
+  }
+
+  td {
+    border: 1px solid #e2e8f0 !important;
+    padding: 4px 6px !important;
+    font-size: 10pt !important;
+  }
+
+  tr {
+    page-break-inside: avoid !important;
+    page-break-after: auto !important;
+  }
+
+  tr:nth-child(even) {
+    background-color: #f8fafc !important;
+  }
+
+  thead {
+    display: table-header-group !important;
+  }
+
+  tfoot {
+    display: table-footer-group !important;
+  }
+
+  /* Force browsers to print exact background colors and borders */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 }
 

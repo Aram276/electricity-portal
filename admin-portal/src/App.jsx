@@ -31,10 +31,9 @@ import { CheckCircle2, Info, Cloud } from 'lucide-react';
 export default function App() {
   const [records, setRecords] = useState(() => deduplicateRecords(getStoredRecords()));
   const [trashRecords, setTrashRecords] = useState(() => getStoredTrash());
-  const [currentView, setCurrentView] = useState('admin'); // 'citizen' | 'admin' - Default to admin in admin-portal
+  const [currentView, setCurrentView] = useState('citizen'); // 'citizen' | 'admin'
   const [isAdmin, setIsAdmin] = useState(() => isAdminAuthenticated());
   const [activeStaff, setActiveStaff] = useState(() => {
-    if (!isAdminAuthenticated()) return null;
     try {
       return JSON.parse(localStorage.getItem('electricity_active_staff') || 'null');
     } catch (e) {
@@ -47,7 +46,7 @@ export default function App() {
   });
 
   // Modals state
-  const [isLoginOpen, setIsLoginOpen] = useState(() => !isAdminAuthenticated());
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isExcelOpen, setIsExcelOpen] = useState(false);
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
@@ -56,24 +55,31 @@ export default function App() {
 
   // Toast notification
   const [toast, setToast] = useState(null);
-  const [isAdminPath, setIsAdminPath] = useState(true);
+  const [isAdminPath, setIsAdminPath] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  // Check authentication status on mount & hashchange
+  // Check URL path on mount & hashchange
   useEffect(() => {
-    const isAuth = isAdminAuthenticated();
-    setIsAdmin(isAuth);
-    setIsAdminPath(true);
-
-    if (!isAuth) {
-      setIsLoginOpen(true);
-    } else {
-      setCurrentView('admin');
-    }
-
     const checkAdminUrl = () => {
-      setIsAdminPath(true);
-      if (!isAdminAuthenticated()) {
-        setIsLoginOpen(true);
+      const path = window.location.pathname.toLowerCase();
+      const hash = window.location.hash.toLowerCase();
+      const search = window.location.search.toLowerCase();
+      
+      const isDirectAdmin = 
+        path.includes('/admin') || 
+        hash.includes('admin') || 
+        search.includes('admin') || 
+        path.endsWith('/manage') ||
+        window.location.port === '5174' ||
+        window.location.port === '5175';
+
+      if (isDirectAdmin) {
+        setIsAdminPath(true);
+        if (!isAdminAuthenticated()) {
+          setIsLoginOpen(true);
+        } else {
+          setCurrentView('admin');
+        }
       }
     };
 
@@ -93,6 +99,8 @@ export default function App() {
       }
     };
     window.addEventListener('keydown', handleKeyDown);
+
+    setIsAdmin(isAdminAuthenticated());
 
     // Live Cloud Subscription to Firebase Firestore
     const unsubscribe = subscribeToCloudRecords((cloudRecords) => {
@@ -161,8 +169,8 @@ export default function App() {
     setActiveStaff(null);
     localStorage.removeItem('electricity_active_staff');
     sessionStorage.removeItem('electricity_portal_admin_session');
-    setIsLoginOpen(true);
-    showToast('دەرچوون لە ئەژمێری ئادمین ئەنجامدرا', 'info');
+    setCurrentView('citizen');
+    showToast('دەرچوون لە ئەژمێری فەرمانبەر بە سەرکەوتوویی ئەنجامدرا', 'info');
   };
 
   // Smart Excel Import handler
@@ -685,6 +693,8 @@ export default function App() {
         onAdminLogout={handleAdminLogout}
         isDarkMode={isDarkMode}
         onToggleTheme={toggleTheme}
+        onToggleSidebar={() => setIsSidebarOpen(prev => !prev)}
+        isSidebarOpen={isSidebarOpen}
       />
 
       {/* Main Content Area */}
@@ -699,6 +709,8 @@ export default function App() {
             records={records}
             trashRecords={trashRecords}
             activeStaff={activeStaff}
+            isSidebarOpen={isSidebarOpen}
+            setIsSidebarOpen={setIsSidebarOpen}
             onOpenExcelImport={() => setIsExcelOpen(true)}
             onOpenAddModal={() => { setEditingRecord(null); setIsRecordModalOpen(true); }}
             onOpenEditModal={(rec) => { setEditingRecord(rec); setIsRecordModalOpen(true); }}

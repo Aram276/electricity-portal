@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useDeferredValue, useEffect } from 'react';
+import React, { useState, useMemo, useDeferredValue, useEffect, useRef } from 'react';
 import { 
   FileSpreadsheet, 
   Plus, 
@@ -32,10 +32,13 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
-  ChevronsRight
+  ChevronsRight,
+  Menu,
+  MoreVertical
 } from 'lucide-react';
 import { STATUS_CONFIG, FILE_TYPES, KYC_CONFIG, getRecordKYC } from '../constants/status';
 import { exportToExcel } from '../utils/excelHelper';
+import RoonakiLogo from './RoonakiLogo';
 import DailyIntake from './DailyIntake';
 import SettingsTab from './SettingsTab';
 import AnalyticsTab from './AnalyticsTab';
@@ -90,6 +93,152 @@ function normalizeKurdishFuzzy(str) {
     .trim();
 }
 
+// 3-Dots Interactive Actions Popover Menu Component (کردارەکان ⁝)
+function RowActionsDropdown({
+  record,
+  isOpen,
+  onToggle,
+  allowDeliver = true,
+  allowEdit = true,
+  allowDelete = true,
+  onOpenDeliveryModal,
+  onOpenEditModal,
+  onOpenPrintModal,
+  onSetTimelineRecord,
+  onSetDeleteTarget
+}) {
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        if (isOpen) onToggle(null);
+      }
+    }
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [isOpen, onToggle]);
+
+  return (
+    <div className="relative inline-block text-right" ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onToggle(isOpen ? null : record.id);
+        }}
+        title="کردارەکانی دۆسیە ⁝"
+        className={`p-2 rounded-xl border transition-all active:scale-90 flex items-center justify-center cursor-pointer ${
+          isOpen
+            ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-md ring-2 ring-amber-500/50'
+            : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700 shadow-xs'
+        }`}
+      >
+        <MoreVertical className="w-4 h-4 pointer-events-none" />
+      </button>
+
+      {isOpen && (
+        <div 
+          onMouseDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+          className="absolute left-0 top-full mt-1.5 w-56 rounded-2xl bg-white dark:bg-slate-900 border-2 border-amber-500/50 shadow-2xl z-[9999] py-1.5 text-xs font-bold divide-y divide-slate-100 dark:divide-slate-800/80 animate-fadeIn text-right"
+        >
+          
+          <div className="py-1">
+            {allowDeliver && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onToggle(null);
+                  if (onOpenDeliveryModal) onOpenDeliveryModal(record);
+                }}
+                className="w-full px-3 py-2 text-right text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 flex items-center gap-2.5 transition-colors cursor-pointer"
+              >
+                <PackageCheck className="w-4 h-4 shrink-0 text-blue-500 pointer-events-none" />
+                <span>تەسلیمکردنەوە (وەرگیراوەتەوە) ⚡</span>
+              </button>
+            )}
+
+            {allowEdit && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onToggle(null);
+                  if (onOpenEditModal) onOpenEditModal(record);
+                }}
+                className="w-full px-3 py-2 text-right text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 flex items-center gap-2.5 transition-colors cursor-pointer"
+              >
+                <Edit className="w-4 h-4 shrink-0 text-emerald-500 pointer-events-none" />
+                <span>دەستکاریکردنی فایل</span>
+              </button>
+            )}
+          </div>
+
+          <div className="py-1">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onToggle(null);
+                if (onSetTimelineRecord) onSetTimelineRecord(record);
+              }}
+              className="w-full px-3 py-2 text-right text-purple-700 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/40 flex items-center gap-2.5 transition-colors cursor-pointer"
+            >
+              <Clock className="w-4 h-4 shrink-0 text-purple-500 pointer-events-none" />
+              <span>مێژوو و هێڵی کاتیی فایل</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onToggle(null);
+                if (onOpenPrintModal) onOpenPrintModal(record);
+              }}
+              className="w-full px-3 py-2 text-right text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 flex items-center gap-2.5 transition-colors cursor-pointer"
+            >
+              <Printer className="w-4 h-4 shrink-0 text-amber-500 pointer-events-none" />
+              <span>پرێنتکردنی پسوولەی فەرمی</span>
+            </button>
+          </div>
+
+          {allowDelete && (
+            <div className="py-1">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onToggle(null);
+                  if (onSetDeleteTarget) onSetDeleteTarget({ id: record.id, fileNumber: record.fileNumber, citizenName: record.citizenName });
+                }}
+                className="w-full px-3 py-2 text-right text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex items-center gap-2.5 transition-colors cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4 shrink-0 text-rose-500 pointer-events-none" />
+                <span>سڕینەوە بۆ سەلەی خۆڵ</span>
+              </button>
+            </div>
+          )}
+
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AdminDashboard({
   records,
   trashRecords = [],
@@ -115,7 +264,9 @@ export default function AdminDashboard({
   onBatchEditRecords,
   onUpdateStatus,
   onSaveRecord,
-  onResetData
+  onResetData,
+  isSidebarOpen: externalIsSidebarOpen,
+  setIsSidebarOpen: externalSetIsSidebarOpen
 }) {
   const [activeTab, setActiveTab] = useState('records');
   const [searchTerm, setSearchTerm] = useState('');
@@ -146,6 +297,34 @@ export default function AdminDashboard({
     archiveLocation: '',
     notes: ''
   });
+  // Sidebar Drawer state & Row Actions dropdown state
+  const [internalIsSidebarOpen, setInternalIsSidebarOpen] = useState(false);
+  const isSidebarOpen = externalIsSidebarOpen !== undefined ? externalIsSidebarOpen : internalIsSidebarOpen;
+  const setIsSidebarOpen = externalSetIsSidebarOpen || setInternalIsSidebarOpen;
+  const [openRowMenuId, setOpenRowMenuId] = useState(null);
+
+  const handleStatusChangeWithStaff = (recordId, newStatus) => {
+    const target = records.find(r => r.id === recordId);
+    if (!target) return;
+
+    const staffName = activeStaff?.name ? `${activeStaff.name}` : (activeStaff?.username || 'فەرمانبەری ژووری ١٩');
+    const nowTime = new Date().toISOString().replace('T', ' ').slice(0, 16);
+
+    const updates = { status: newStatus };
+    if (newStatus === 'DELIVERED' || newStatus === 'COMPLETED') {
+      updates.deliveredDate = target.deliveredDate || nowTime;
+      updates.deliveredBy = target.deliveredBy || staffName;
+      updates.handledBy = target.handledBy || staffName;
+      updates.isKycDone = true;
+      updates.kycStatus = 'DONE';
+    }
+
+    if (onSaveRecord) {
+      onSaveRecord({ ...target, ...updates }, recordId);
+    } else if (onUpdateStatus) {
+      onUpdateStatus(recordId, newStatus);
+    }
+  };
 
   // Add audit note to file timeline
   const handleTimelineNote = (recordId, noteObj) => {
@@ -443,146 +622,337 @@ export default function AdminDashboard({
         </div>
       )}
 
-      {/* Top Admin Header & Sub-Navigation */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white dark:bg-slate-900/95 border border-slate-200 dark:border-amber-500/30 p-4 sm:p-6 rounded-2xl sm:rounded-3xl backdrop-blur-xl shadow-lg transition-colors">
+      {/* Top Admin Header Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900/95 border border-slate-200 dark:border-amber-500/30 p-4 sm:p-5 rounded-2xl sm:rounded-3xl backdrop-blur-xl shadow-lg transition-colors">
         <div>
           <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 text-xs font-bold mb-1">
-            <Zap className="w-4 h-4 fill-amber-500 dark:fill-amber-400 shrink-0" />
-            <span>پەنێڵی بەڕێوەبردن | فرۆشیاری وزە ٢</span>
+            <Zap className="w-4 h-4 fill-amber-500 shrink-0" />
+            <span>پەنێڵی بەڕێوەبردن | فرۆشیاری وزە ٢ - ژووری ١٩</span>
           </div>
-          <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 dark:text-white">
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
             بەڕێوەبردنی فایلەکانی دائیرەی کارەبا ({records.length} دۆسیە)
           </h2>
-          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-0.5">
-            جیاکردنەوەی فایلی زەرد 📁 و ئەوراق 📄، پەڕەبەندی خێرا، و سڕینەوەی بەکۆمەڵ
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            جیاکردنەوەی فایلی زەرد 📁 و ئەوراق 📄، پەڕەبەندی خێرا، و بەڕێوەبردنی گشتی
           </p>
         </div>
 
-        {/* Sub-tabs switch */}
-        <div className="flex items-center gap-1.5 sm:gap-2 bg-slate-100 dark:bg-[#060a14] p-1.5 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-800 overflow-x-auto max-w-full">
-          <button
-            onClick={() => setActiveTab('records')}
-            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-black whitespace-nowrap transition-all ${
-              activeTab === 'records'
-                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white'
-            }`}
-          >
-            <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            <span>گشت فایلەکان ({records.length})</span>
-          </button>
-
-          {allowCreate && (
-            <button
-              onClick={() => setActiveTab('daily')}
-              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-black whitespace-nowrap transition-all ${
-                activeTab === 'daily'
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white'
-              }`}
-            >
-              <PlusCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span>داخڵکردنی خێرا</span>
-            </button>
-          )}
-
-          {allowDeliver && (
-            <button
-              onClick={() => setIsFastCheckoutOpen(true)}
-              title="تەسلیمکردنەوەی خێرای دۆسیەی هاووڵاتی لە کاتی قەرەباڵغی (ژووری ١٩)"
-              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-black bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-md shadow-amber-500/25 whitespace-nowrap transition-all active:scale-95 border border-amber-400/50"
-            >
-              <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" />
-              <span>تەسلیمکردنی خێرا ⚡</span>
-            </button>
-          )}
-
-          {allowBroadcast && (
-            <button
-              onClick={() => setIsBulkWhatsAppOpen(true)}
-              title="ناردنی نامەی فەرمی بەکۆمەڵ لە ڕێگەی واتسئاپ بۆ هاووڵاتییان"
-              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-black bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/25 whitespace-nowrap transition-all active:scale-95"
-            >
-              <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span>نامەی بەکۆمەڵ 📢</span>
-            </button>
-          )}
-
-          <button
-            onClick={() => setIsArchiveBoxesOpen(true)}
-            title="دروستکردن و چاپکردنی لیستی بۆکسەکانی ئەرشیف (١٥٠ دۆسیەیی بۆ هەر بۆکسێک) بۆ ژووری ١٩"
-            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-black bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/25 whitespace-nowrap transition-all active:scale-95 border border-indigo-500/40"
-          >
-            <Folder className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            <span>بۆکسەکانی ئەرشیف (١٥٠) 📦</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('analytics')}
-            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-black whitespace-nowrap transition-all ${
-              activeTab === 'analytics'
-                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white'
-            }`}
-          >
-            <BarChart3 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            <span>ئامار و شیکاری</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('activity')}
-            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-black whitespace-nowrap transition-all ${
-              activeTab === 'activity'
-                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white'
-            }`}
-          >
-            <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            <span>تۆماری چالاکی 🛡️</span>
-          </button>
-
-          {allowImport && (
-            <button
-              onClick={() => { setActiveTab('records'); onOpenExcelImport(); }}
-              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-black bg-slate-800 hover:bg-slate-700 text-white shadow-md whitespace-nowrap transition-all active:scale-95"
-            >
-              <UploadCloud className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
-              <span>ئەپڵۆدی ئێکسڵ</span>
-            </button>
-          )}
-
-          {allowDelete && (
-            <button
-              onClick={() => setActiveTab('trash')}
-              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-black whitespace-nowrap transition-all ${
-                activeTab === 'trash'
-                  ? 'bg-red-600 text-white shadow-md shadow-red-600/30'
-                  : 'text-red-500 hover:bg-red-500/10'
-              }`}
-            >
-              <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span>سەلەی خۆڵ</span>
-              {trashRecords && trashRecords.length > 0 && (
-                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-red-500 text-white">
-                  {trashRecords.length}
-                </span>
-              )}
-            </button>
-          )}
-
-          <button
-            onClick={() => setActiveTab('settings')}
-            className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-black whitespace-nowrap transition-all ${
-              activeTab === 'settings'
-                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white'
-            }`}
-          >
-            <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            <span>ڕێکخستن</span>
-          </button>
+        <div className="flex items-center gap-2.5">
+          {/* Active View Indicator Badge */}
+          <div className="px-3.5 py-2 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-black border border-slate-200 dark:border-slate-700 flex items-center gap-2 shadow-sm">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>
+              {activeTab === 'records' && 'گشت فایلەکان (خشتە)'}
+              {activeTab === 'daily' && 'داخڵکردنی خێرا (ڕۆژانە)'}
+              {activeTab === 'analytics' && 'ئامار و شیکاری'}
+              {activeTab === 'activity' && 'تۆماری چالاکی'}
+              {activeTab === 'trash' && 'سەلەی خۆڵ'}
+              {activeTab === 'settings' && 'ڕێکخستن'}
+            </span>
+          </div>
         </div>
       </div>
+
+      {/* ── ULTRA-MODERN SLIDE-OVER SIDEBAR DRAWER (سڵایدباڕی مۆدێرن) ── */}
+      {isSidebarOpen && (
+        <div className="fixed inset-0 z-[999] h-screen w-screen overflow-hidden animate-fadeIn font-kurdish">
+          {/* Glassmorphic Dark Backdrop */}
+          <div 
+            className="fixed inset-0 z-[1000] bg-slate-950/75 backdrop-blur-md transition-opacity duration-300"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+
+          {/* Drawer Panel (Zero gap, flush against top, bottom and right edge) */}
+          <div className="fixed top-0 right-0 bottom-0 z-[1001] h-screen w-full max-w-md bg-white dark:bg-[#090e1c] border-l border-slate-200/80 dark:border-amber-500/20 shadow-2xl flex flex-col justify-between overflow-hidden animate-slideInRight text-right">
+              
+              {/* Drawer Header (Fixed) */}
+              <div className="px-5 py-4 sm:px-6 sm:py-5 border-b border-slate-200/60 dark:border-slate-800/80 flex items-center justify-between bg-gradient-to-l from-amber-500/10 via-transparent to-transparent shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="p-1 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center shadow-md shadow-amber-500/15 shrink-0">
+                    <RoonakiLogo className="h-9 w-auto" showText={false} />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-slate-900 dark:text-white text-base leading-tight">
+                      مێنیوی سەرەکی پۆرتاڵ
+                    </h3>
+                    <p className="text-[11px] text-amber-600 dark:text-amber-400 font-bold">
+                      پڕۆژەی ڕووناکی • فرۆشیاری وزە ٢
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800/80 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-700 transition-all flex items-center justify-center active:scale-90 cursor-pointer"
+                  title="داخستن (Esc)"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Drawer Scrollable Content */}
+              <div className="flex-1 overflow-y-auto px-5 py-4 sm:px-6 space-y-6 custom-scrollbar">
+                
+                {/* Section 1: Main Tabs */}
+                <div className="space-y-2">
+                  <div className="text-[11px] font-black text-slate-400 dark:text-slate-500 px-2 uppercase tracking-wider flex items-center justify-between">
+                    <span>بەشە سەرەکییەکان</span>
+                    <span className="text-[10px] text-amber-500 font-normal">Navigation</span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => { setActiveTab('records'); setIsSidebarOpen(false); }}
+                    className={`w-full flex items-center justify-between p-3 rounded-2xl text-xs sm:text-sm font-black transition-all ${
+                      activeTab === 'records'
+                        ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 ring-2 ring-amber-400/50'
+                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-transparent hover:border-slate-200 dark:hover:border-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-xl ${activeTab === 'records' ? 'bg-slate-950 text-amber-400' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'}`}>
+                        <Layers className="w-4 h-4" />
+                      </div>
+                      <div className="text-right">
+                        <div>گشت فایلەکان (خشتە)</div>
+                        <div className={`text-[10px] font-normal ${activeTab === 'records' ? 'text-slate-900' : 'text-slate-400'}`}>
+                          گەڕان و بەڕێوەبردنی تەواوی دۆسیەکان
+                        </div>
+                      </div>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-mono font-black ${
+                      activeTab === 'records' ? 'bg-slate-950 text-amber-400' : 'bg-amber-500/15 text-amber-800 dark:text-amber-400'
+                    }`}>
+                      {records.length}
+                    </span>
+                  </button>
+
+                  {allowCreate && (
+                    <button
+                      type="button"
+                      onClick={() => { setActiveTab('daily'); setIsSidebarOpen(false); }}
+                      className={`w-full flex items-center justify-between p-3 rounded-2xl text-xs sm:text-sm font-black transition-all ${
+                        activeTab === 'daily'
+                          ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 ring-2 ring-amber-400/50'
+                          : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-transparent hover:border-slate-200 dark:hover:border-slate-700'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-xl ${activeTab === 'daily' ? 'bg-slate-950 text-emerald-400' : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'}`}>
+                          <PlusCircle className="w-4 h-4" />
+                        </div>
+                        <div className="text-right">
+                          <div>داخڵکردنی خێرا (ڕۆژانە)</div>
+                          <div className={`text-[10px] font-normal ${activeTab === 'daily' ? 'text-slate-900' : 'text-slate-400'}`}>
+                            تۆمارکردنی یەک لەدوای یەکی کارمەندان
+                          </div>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-full border border-emerald-500/30">نوێ</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => { setActiveTab('analytics'); setIsSidebarOpen(false); }}
+                    className={`w-full flex items-center justify-between p-3 rounded-2xl text-xs sm:text-sm font-black transition-all ${
+                      activeTab === 'analytics'
+                        ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 ring-2 ring-amber-400/50'
+                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-transparent hover:border-slate-200 dark:hover:border-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-xl ${activeTab === 'analytics' ? 'bg-slate-950 text-sky-400' : 'bg-sky-500/15 text-sky-600 dark:text-sky-400'}`}>
+                        <BarChart3 className="w-4 h-4" />
+                      </div>
+                      <div className="text-right">
+                        <div>ئامار و شیکاری گشتی</div>
+                        <div className={`text-[10px] font-normal ${activeTab === 'analytics' ? 'text-slate-900' : 'text-slate-400'}`}>
+                          ڕێژەی ئەنجامدان، فایلی زەرد و ئەوراق
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => { setActiveTab('activity'); setIsSidebarOpen(false); }}
+                    className={`w-full flex items-center justify-between p-3 rounded-2xl text-xs sm:text-sm font-black transition-all ${
+                      activeTab === 'activity'
+                        ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 ring-2 ring-amber-400/50'
+                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-transparent hover:border-slate-200 dark:hover:border-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-xl ${activeTab === 'activity' ? 'bg-slate-950 text-indigo-400' : 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400'}`}>
+                        <ShieldCheck className="w-4 h-4" />
+                      </div>
+                      <div className="text-right">
+                        <div>تۆماری چالاکیی کارمەندان</div>
+                        <div className={`text-[10px] font-normal ${activeTab === 'activity' ? 'text-slate-900' : 'text-slate-400'}`}>
+                          چاودێری و لۆگی تەواوی کردارەکان
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+
+                  {allowDelete && (
+                    <button
+                      type="button"
+                      onClick={() => { setActiveTab('trash'); setIsSidebarOpen(false); }}
+                      className={`w-full flex items-center justify-between p-3 rounded-2xl text-xs sm:text-sm font-black transition-all ${
+                        activeTab === 'trash'
+                          ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/30 ring-2 ring-rose-500/40'
+                          : 'text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-xl ${activeTab === 'trash' ? 'bg-slate-950 text-rose-400' : 'bg-rose-500/15 text-rose-600 dark:text-rose-400'}`}>
+                          <Trash2 className="w-4 h-4" />
+                        </div>
+                        <div className="text-right">
+                          <div>سەلەی خۆڵ (فایلە سڕاوەکان)</div>
+                          <div className={`text-[10px] font-normal ${activeTab === 'trash' ? 'text-rose-200' : 'text-slate-400'}`}>
+                            گەڕاندنەوە یان سڕینەوەی یەکجاری
+                          </div>
+                        </div>
+                      </div>
+                      {trashRecords && trashRecords.length > 0 && (
+                        <span className="px-2 py-0.5 rounded-full text-xs font-black bg-rose-500 text-white font-mono">
+                          {trashRecords.length}
+                        </span>
+                      )}
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => { setActiveTab('settings'); setIsSidebarOpen(false); }}
+                    className={`w-full flex items-center justify-between p-3 rounded-2xl text-xs sm:text-sm font-black transition-all ${
+                      activeTab === 'settings'
+                        ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 ring-2 ring-amber-400/50'
+                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-transparent hover:border-slate-200 dark:hover:border-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-xl ${activeTab === 'settings' ? 'bg-slate-950 text-amber-400' : 'bg-slate-500/15 text-slate-600 dark:text-slate-400'}`}>
+                        <Settings className="w-4 h-4" />
+                      </div>
+                      <div className="text-right">
+                        <div>ڕێکخستنی سیستەم و ڕۆڵەکان</div>
+                        <div className={`text-[10px] font-normal ${activeTab === 'settings' ? 'text-slate-900' : 'text-slate-400'}`}>
+                          کارمەندان، مۆڵەتەکان، و زانیاری فەرمانگە
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                </div>
+
+                {/* Section 2: Quick Tools */}
+                <div className="space-y-2 pt-4 border-t border-slate-200/60 dark:border-slate-800/80">
+                  <div className="text-[11px] font-black text-slate-400 dark:text-slate-500 px-2 uppercase tracking-wider flex items-center justify-between">
+                    <span>ئامراز و خێراکارییەکان</span>
+                    <span className="text-[10px] text-emerald-500 font-normal">Quick Actions</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-2">
+                    {allowDeliver && (
+                      <button
+                        type="button"
+                        onClick={() => { setIsSidebarOpen(false); setIsFastCheckoutOpen(true); }}
+                        className="w-full flex items-center justify-between p-3 rounded-2xl text-xs font-black bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-md shadow-amber-500/15 active:scale-98 transition-all"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <Zap className="w-4 h-4 fill-current shrink-0" />
+                          <span>تەسلیمکردنی خێرا (Fast Checkout)</span>
+                        </div>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-950/20">ژووری ١٩</span>
+                      </button>
+                    )}
+
+                    {allowBroadcast && (
+                      <button
+                        type="button"
+                        onClick={() => { setIsSidebarOpen(false); setIsBulkWhatsAppOpen(true); }}
+                        className="w-full flex items-center justify-between p-3 rounded-2xl text-xs font-black bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/15 active:scale-98 transition-all"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <Send className="w-4 h-4 shrink-0" />
+                          <span>نامەی بەکۆمەڵ (واتسئاپ بۆ تەواوبووەکان)</span>
+                        </div>
+                        <span className="text-xs">📢</span>
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => { setIsSidebarOpen(false); setIsArchiveBoxesOpen(true); }}
+                      className="w-full flex items-center justify-between p-3 rounded-2xl text-xs font-black bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/15 active:scale-98 transition-all"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Folder className="w-4 h-4 shrink-0" />
+                        <span>بۆکسەکانی ئەرشیف (١٥٠ دۆسیە بۆ چاپکردن)</span>
+                      </div>
+                      <span className="text-xs">📦</span>
+                    </button>
+
+                    {allowImport && (
+                      <button
+                        type="button"
+                        onClick={() => { setIsSidebarOpen(false); setActiveTab('records'); onOpenExcelImport(); }}
+                        className="w-full flex items-center justify-between p-3 rounded-2xl text-xs font-black bg-slate-800 hover:bg-slate-700 text-white shadow-md active:scale-98 transition-all"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <UploadCloud className="w-4 h-4 text-emerald-400 shrink-0" />
+                          <span>هاوردەکردنی فایلی ئێکسڵ (Excel)</span>
+                        </div>
+                        <span className="text-xs text-emerald-400 font-bold">Upload</span>
+                      </button>
+                    )}
+
+                    <a
+                      href="/poster.html"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setIsSidebarOpen(false)}
+                      className="w-full flex items-center justify-between p-3 rounded-2xl text-xs font-black bg-sky-600 hover:bg-sky-500 text-white shadow-md shadow-sky-600/15 active:scale-98 transition-all"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <FileText className="w-4 h-4 shrink-0" />
+                        <span>پۆستەری ڕێنمایی A4 (بۆ چاپکردن)</span>
+                      </div>
+                      <span className="text-xs">📄</span>
+                    </a>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Drawer Footer: Active Staff Card */}
+              <div className="p-4 sm:p-5 border-t border-slate-200/60 dark:border-slate-800/80 bg-slate-50/80 dark:bg-[#070b16]/80 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-700 dark:text-amber-400 flex items-center justify-center font-black text-sm shrink-0">
+                    {activeStaff?.name ? activeStaff.name.charAt(0) : '👤'}
+                  </div>
+                  <div className="min-w-0 flex-1 text-right">
+                    <div className="text-xs sm:text-sm font-black text-slate-900 dark:text-white truncate">
+                      {activeStaff?.name || 'فەرمانبەری ژووری ١٩'}
+                    </div>
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate flex items-center gap-1">
+                      <span>{activeStaff?.title || 'بەشی ئەرشیف'}</span>
+                      <span>•</span>
+                      <span className="text-amber-600 dark:text-amber-400 font-bold">
+                        {activeStaff?.role === 'ADMIN' ? 'ئادمین' : activeStaff?.role === 'VIEWER' ? 'بینەر' : 'ستاف'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+        </div>
+      )}
 
       {/* View 1: Daily Quick Intake */}
       {activeTab === 'daily' && (
@@ -1080,11 +1450,14 @@ export default function AdminDashboard({
                       const isPhoneMissing = !record.phoneNumber || record.phoneNumber === 'نیە' || record.phoneNumber.trim() === '';
                       const isIdMissing = !record.accountNumber || record.accountNumber === 'نیە' || record.accountNumber.trim() === '' || record.accountNumber === '-';
                       const isYellowFolder = record.fileType === 'YELLOW_FOLDER';
+                      const allowDeliver = true;
+                      const allowEdit = activeStaff?.permissions?.canEdit !== false;
+                      const allowDelete = activeStaff?.permissions?.canDelete !== false;
 
                       return (
                         <tr 
                           key={record.id} 
-                          className={`transition-colors ${
+                          className={`transition-colors ${openRowMenuId === record.id ? 'relative z-30' : ''} ${
                             isSelected 
                               ? 'bg-amber-50/80 dark:bg-amber-500/10' 
                               : (isYellowFolder ? 'bg-amber-50/30 dark:bg-amber-500/5 hover:bg-amber-50/60' : 'hover:bg-slate-50/80 dark:hover:bg-slate-800/40')
@@ -1266,67 +1639,21 @@ export default function AdminDashboard({
                             )}
                           </td>
 
-                          {/* Actions Column (Compact & 100% visible on PC) */}
-                          <td className="p-2 text-center">
-                            <div className="flex items-center justify-center gap-1">
-                              {/* Deliver Button */}
-                              {allowDeliver && (
-                                record.status !== 'DELIVERED' ? (
-                                  <button
-                                    onClick={() => onOpenDeliveryModal(record)}
-                                    title="تەسلیمکردنەوە بە هاووڵاتی"
-                                    className="group inline-flex items-center gap-1 px-2 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-black shadow-xs transition-all active:scale-95 shrink-0"
-                                  >
-                                    <PackageCheck className="w-3.5 h-3.5" />
-                                    <span>تەسلیم</span>
-                                  </button>
-                                ) : (
-                                  <span className="inline-flex items-center px-1.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 text-[10px] font-bold border border-blue-200 dark:border-blue-500/30 shrink-0" title="تەسلیم کرا">
-                                    <PackageCheck className="w-3.5 h-3.5" />
-                                  </span>
-                                )
-                              )}
-
-                              {/* Timeline / Full History Button */}
-                              <button
-                                onClick={() => setTimelineRecord(record)}
-                                title="مێژووی ژیانی فایل (Full Timeline Audit)"
-                                className="p-1.5 rounded-lg bg-purple-50 dark:bg-purple-500/10 hover:bg-purple-100 dark:hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-500/30 transition-all active:scale-95 shadow-xs shrink-0"
-                              >
-                                <Clock className="w-3.5 h-3.5" />
-                              </button>
-
-                              {/* Print Button */}
-                              <button
-                                onClick={() => onOpenPrintModal(record)}
-                                title="پرێنتکردنی کارتی هاووڵاتی"
-                                className="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/30 transition-all active:scale-95 shadow-xs shrink-0"
-                              >
-                                <Printer className="w-3.5 h-3.5" />
-                              </button>
-
-                              {/* Edit Button */}
-                              {allowEdit && (
-                                <button
-                                  onClick={() => onOpenEditModal(record)}
-                                  title="دەستکاریکردن"
-                                  className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30 transition-all active:scale-95 shadow-xs shrink-0"
-                                >
-                                  <Edit className="w-3.5 h-3.5" />
-                                </button>
-                              )}
-
-                              {/* Delete Button */}
-                              {allowDelete && (
-                                <button
-                                  onClick={() => setDeleteTarget({ id: record.id, fileNumber: record.fileNumber, citizenName: record.citizenName })}
-                                  title="سڕینەوەی دۆسیە"
-                                  className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-100 dark:hover:bg-rose-500/20 text-rose-500 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30 transition-all active:scale-95 shadow-xs shrink-0"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              )}
-                            </div>
+                          {/* Actions Column (3-Dots Popover Menu ⁝) */}
+                          <td className={`p-2 text-center relative ${openRowMenuId === record.id ? 'z-50' : ''}`}>
+                            <RowActionsDropdown
+                              record={record}
+                              isOpen={openRowMenuId === record.id}
+                              onToggle={(id) => setOpenRowMenuId(id)}
+                              allowDeliver={allowDeliver}
+                              allowEdit={allowEdit}
+                              allowDelete={allowDelete}
+                              onOpenDeliveryModal={onOpenDeliveryModal}
+                              onOpenEditModal={onOpenEditModal}
+                              onOpenPrintModal={onOpenPrintModal}
+                              onSetTimelineRecord={(rec) => setTimelineRecord(rec)}
+                              onSetDeleteTarget={(target) => setDeleteTarget(target)}
+                            />
                           </td>
                         </tr>
                       );
@@ -1350,6 +1677,9 @@ export default function AdminDashboard({
                   const isPhoneMissing = !record.phoneNumber || record.phoneNumber === 'نیە' || record.phoneNumber.trim() === '';
                   const isIdMissing = !record.accountNumber || record.accountNumber === 'نیە' || record.accountNumber.trim() === '' || record.accountNumber === '-';
                   const isYellowFolder = record.fileType === 'YELLOW_FOLDER';
+                  const allowDeliver = true;
+                  const allowEdit = activeStaff?.permissions?.canEdit !== false;
+                  const allowDelete = activeStaff?.permissions?.canDelete !== false;
                   const isKyc = Boolean(
                     record.isKycDone || 
                     record.kycStatus === 'DONE' || 
@@ -1360,7 +1690,7 @@ export default function AdminDashboard({
                   return (
                     <div 
                       key={record.id} 
-                      className={`p-3.5 sm:p-4 space-y-3 transition-colors ${
+                      className={`p-3.5 sm:p-4 space-y-3 transition-colors ${openRowMenuId === record.id ? 'relative z-30' : ''} ${
                         isSelected 
                           ? 'bg-amber-50/90 dark:bg-amber-500/15' 
                           : (isYellowFolder ? 'bg-amber-50/30 dark:bg-amber-500/5' : 'hover:bg-slate-50 dark:hover:bg-slate-800/40')
@@ -1528,66 +1858,22 @@ export default function AdminDashboard({
                         )}
                       </div>
 
-                      {/* Action Buttons Row on Mobile (Big, Touch-Friendly) */}
-                      <div className="flex items-center gap-2 pt-0.5">
-                        {/* Deliver Button */}
-                        {allowDeliver && (
-                          record.status !== 'DELIVERED' ? (
-                            <button
-                              onClick={() => onOpenDeliveryModal(record)}
-                              className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 active:from-blue-600 active:to-blue-700 text-white text-xs font-black shadow-md shadow-blue-500/25 flex items-center justify-center gap-1.5"
-                            >
-                              <PackageCheck className="w-4 h-4" />
-                              <span>تەسلیم</span>
-                            </button>
-                          ) : (
-                            <div className="flex-1 py-2 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 text-xs font-bold border border-blue-200 dark:border-blue-500/30 flex items-center justify-center gap-1">
-                              <PackageCheck className="w-4 h-4" />
-                              <span>تەسلیم کرا</span>
-                            </div>
-                          )
-                        )}
-
-                        {/* Edit Button */}
-                        {allowEdit && (
-                          <button
-                            onClick={() => onOpenEditModal(record)}
-                            className="flex-1 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 active:scale-98 text-white text-xs font-black shadow-md shadow-emerald-500/25 flex items-center justify-center gap-1.5"
-                          >
-                            <Edit className="w-4 h-4" />
-                            <span>دەستکاری</span>
-                          </button>
-                        )}
-
-                        {/* Timeline Button */}
-                        <button
-                          onClick={() => setTimelineRecord(record)}
-                          title="مێژووی ژیانی فایل"
-                          className="p-2.5 rounded-xl bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-500/30 active:scale-95 flex items-center justify-center gap-1 text-xs font-bold"
-                        >
-                          <Clock className="w-4 h-4" />
-                          <span className="hidden xs:inline">مێژوو</span>
-                        </button>
-
-                        {/* Print Button */}
-                        <button
-                          onClick={() => onOpenPrintModal(record)}
-                          title="پرێنتکردنی کارتی هاووڵاتی"
-                          className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/30 active:scale-95"
-                        >
-                          <Printer className="w-4 h-4" />
-                        </button>
-
-                        {/* Delete Button */}
-                        {allowDelete && (
-                          <button
-                            onClick={() => setDeleteTarget({ id: record.id, fileNumber: record.fileNumber, citizenName: record.citizenName })}
-                            title="سڕینەوەی دۆسیە"
-                            className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-500/10 text-rose-500 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30 active:scale-95"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
+                      {/* Action Dropdown on Mobile */}
+                      <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-slate-800">
+                        <span className="text-xs font-black text-slate-500 dark:text-slate-400">کردارەکانی دۆسیە:</span>
+                        <RowActionsDropdown
+                          record={record}
+                          isOpen={openRowMenuId === record.id}
+                          onToggle={(id) => setOpenRowMenuId(id)}
+                          allowDeliver={allowDeliver}
+                          allowEdit={allowEdit}
+                          allowDelete={allowDelete}
+                          onOpenDeliveryModal={onOpenDeliveryModal}
+                          onOpenEditModal={onOpenEditModal}
+                          onOpenPrintModal={onOpenPrintModal}
+                          onSetTimelineRecord={(rec) => setTimelineRecord(rec)}
+                          onSetDeleteTarget={(target) => setDeleteTarget(target)}
+                        />
                       </div>
                     </div>
                   );

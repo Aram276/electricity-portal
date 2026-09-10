@@ -9,6 +9,7 @@ import {
   Folder, 
   FileText, 
   CheckCircle2, 
+  Check,
   Clock, 
   PackageCheck, 
   ShieldCheck, 
@@ -28,7 +29,7 @@ export default function ArchiveBoxesModal({ isOpen, onClose, records = [] }) {
   const [batchSize, setBatchSize] = useState(150);
   const [startFileNumber, setStartFileNumber] = useState(2);
   const [selectedBoxIndex, setSelectedBoxIndex] = useState('ALL'); // 'ALL' or box index number (0, 1, 2...)
-  const [viewMode, setViewMode] = useState('LIST'); // 'LIST' (Full Table) or 'STICKER' (Box Label / Cover)
+  const [viewMode, setViewMode] = useState('STICKER'); // 'STICKER' (Single Page Sticker), 'COMPACT_2' (2 per Page), 'LIST' (Full Table)
   const [searchTerm, setSearchTerm] = useState('');
   const [filterFileType, setFilterFileType] = useState('ALL');
 
@@ -260,31 +261,42 @@ export default function ArchiveBoxesModal({ isOpen, onClose, records = [] }) {
               </select>
             </div>
 
-            {/* View Mode Toggle (Table vs Big Sticker) */}
-            <div>
-              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1">شێوازی پیشاندان:</label>
+            {/* View Mode Toggle */}
+            <div className="sm:col-span-2">
+              <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1">شێوازی چاپکردن:</label>
               <div className="flex items-center rounded-xl bg-slate-200 dark:bg-slate-800 p-0.5">
                 <button
                   type="button"
-                  onClick={() => setViewMode('LIST')}
-                  className={`flex-1 py-1 rounded-lg text-[11px] font-bold transition-all ${
-                    viewMode === 'LIST' 
-                      ? 'bg-amber-500 text-slate-950 shadow-xs' 
-                      : 'text-slate-600 dark:text-slate-400'
-                  }`}
-                >
-                  📋 لیستی ناو
-                </button>
-                <button
-                  type="button"
                   onClick={() => setViewMode('STICKER')}
-                  className={`flex-1 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                  className={`flex-1 py-1 px-2 rounded-lg text-[11px] font-bold transition-all ${
                     viewMode === 'STICKER' 
                       ? 'bg-amber-500 text-slate-950 shadow-xs' 
                       : 'text-slate-600 dark:text-slate-400'
                   }`}
                 >
-                  🏷️ ستیکەر
+                  🏷️ ستیکەری سەر بۆکس (١ پەڕە)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('COMPACT_2')}
+                  className={`flex-1 py-1 px-2 rounded-lg text-[11px] font-bold transition-all ${
+                    viewMode === 'COMPACT_2' 
+                      ? 'bg-amber-500 text-slate-950 shadow-xs' 
+                      : 'text-slate-600 dark:text-slate-400'
+                  }`}
+                >
+                  🗂️ دوو ستیکەر (٢ لە ١ پەڕە)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('LIST')}
+                  className={`flex-1 py-1 px-2 rounded-lg text-[11px] font-bold transition-all ${
+                    viewMode === 'LIST' 
+                      ? 'bg-amber-500 text-slate-950 shadow-xs' 
+                      : 'text-slate-600 dark:text-slate-400'
+                  }`}
+                >
+                  📋 خشتەی ناوی دۆسیەکان
                 </button>
               </div>
             </div>
@@ -329,7 +341,7 @@ export default function ArchiveBoxesModal({ isOpen, onClose, records = [] }) {
         </div>
 
         {/* ── Main Printable Content Container ── */}
-        <div id="printable-box-area" className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-10 bg-slate-100/50 dark:bg-slate-900/50">
+        <div id="printable-box-area" className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-8 bg-slate-100/50 dark:bg-slate-900/50">
           
           {displayedBoxes.length === 0 ? (
             <div className="p-12 text-center text-slate-400 space-y-2">
@@ -337,11 +349,56 @@ export default function ArchiveBoxesModal({ isOpen, onClose, records = [] }) {
               <div className="text-base font-bold">هیچ دۆسیەیەک نەدۆزرایەوە بەپێی ئەم فلتەرە!</div>
               <p className="text-xs">تکایە ژمارەی دەستپێکردن یان فلتەرەکان ڕێکبخەوە.</p>
             </div>
+          ) : viewMode === 'COMPACT_2' ? (
+            /* ── MODE 2: 2 Stickers Per A4 Page (5 Pages for 9 Boxes) ── */
+            <div className="space-y-8">
+              {Array.from({ length: Math.ceil(displayedBoxes.length / 2) }).map((_, pageIdx) => {
+                const pair = displayedBoxes.slice(pageIdx * 2, pageIdx * 2 + 2);
+                return (
+                  <div key={pageIdx} className="page-break-box space-y-6 bg-white p-6 rounded-3xl border-2 border-slate-900 shadow-xl max-w-5xl mx-auto">
+                    {pair.map((box) => (
+                      <div key={box.boxNumber} className="border-4 border-slate-900 rounded-2xl p-5 bg-white text-slate-900 space-y-4">
+                        {/* Header */}
+                        <div className="flex items-center justify-between border-b-2 border-slate-900 pb-3">
+                          <div className="flex items-center gap-3">
+                            <img src={runakiLogo} alt="ڕووناکی" className="h-10 w-auto object-contain" onError={(e) => { e.target.style.display = 'none'; }} />
+                            <div>
+                              <div className="text-[10px] font-black text-slate-700">وەزارەتی کارەبا | پڕۆژەی ڕووناکی - فرۆشیاری وزە ٢</div>
+                              <div className="text-xs font-black text-slate-950">ئەرشیفی دۆسیەی هاوبەشان (ژووری ١٩)</div>
+                            </div>
+                          </div>
+                          <div className="px-3 py-1 bg-amber-500 text-slate-950 font-black text-sm rounded-xl border border-amber-600">
+                            بۆکسی #{box.boxNumber}
+                          </div>
+                        </div>
+
+                        {/* Big Range Box */}
+                        <div className="bg-slate-50 border-2 border-slate-900 rounded-xl p-3 text-center">
+                          <div className="text-xs font-bold text-slate-600">مەودای ژمارەی دۆسیەکانی ناو ئەم کارتۆنە:</div>
+                          <div className="text-2xl font-black font-mono text-slate-950 my-0.5">
+                            {box.fileRange}
+                          </div>
+                          <div className="text-xs font-bold text-amber-900">
+                            کۆی گشتی: <span className="font-mono font-black">{box.count}</span> دۆسیە
+                          </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="flex items-center justify-between text-[11px] text-slate-600 pt-1">
+                          <span>شوێن: سندوق و بۆکسی ژمارە {box.boxNumber} (ژووری ١٩)</span>
+                          <span>بەروار: {new Date().toLocaleDateString('en-CA')}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
           ) : (
             displayedBoxes.map((box, bIndex) => (
               <div 
                 key={box.boxNumber} 
-                className={`page-break-box bg-white text-slate-900 p-6 sm:p-8 rounded-3xl border-2 border-slate-300 shadow-xl space-y-6 max-w-5xl mx-auto font-kurdish transition-all ${
+                className={`page-break-box bg-white text-slate-900 p-6 sm:p-8 rounded-3xl border-2 border-slate-300 shadow-xl space-y-6 max-w-5xl mx-auto font-kurdish transition-all print:border-none print:shadow-none print:p-0 print:m-0 print:space-y-4 ${
                   bIndex < displayedBoxes.length - 1 ? 'mb-8' : ''
                 }`}
               >
@@ -376,65 +433,42 @@ export default function ArchiveBoxesModal({ isOpen, onClose, records = [] }) {
                   </div>
                 </div>
 
-                {/* ── Box Highlighting Banner ── */}
-                <div className="bg-slate-50 border-2 border-slate-900 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row items-center justify-between gap-4">
-                  <div>
-                    <div className="text-xs font-bold text-slate-600">مەودای ژمارەی دۆسیەکانی ناو ئەم بۆکسە:</div>
-                    <div className="text-2xl sm:text-3xl font-black font-mono text-slate-950 tracking-wider">
-                      {box.fileRange}
-                    </div>
-                    <div className="text-xs text-slate-600 mt-1">
-                      شوێنی هەڵگرتن: <span className="font-bold text-slate-900">سندوق و بۆکسی ژمارە {box.boxNumber} (ژووری ١٩)</span>
-                    </div>
-                  </div>
-
-                  {/* Summary KPI Badges */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs shrink-0 w-full md:w-auto">
-                    <div className="p-2 rounded-xl bg-amber-100/80 border border-amber-300">
-                      <span className="text-[10px] text-amber-900 block font-bold">فایلی زەرد 📁</span>
-                      <span className="font-mono font-black text-sm text-amber-950">{box.yellowCount}</span>
-                    </div>
-                    <div className="p-2 rounded-xl bg-slate-200 border border-slate-300">
-                      <span className="text-[10px] text-slate-700 block font-bold">ئەوراق 📄</span>
-                      <span className="font-mono font-black text-sm text-slate-900">{box.paperCount}</span>
-                    </div>
-                    <div className="p-2 rounded-xl bg-emerald-100 border border-emerald-300">
-                      <span className="text-[10px] text-emerald-900 block font-bold">وەرگیراوەتەوە ✅</span>
-                      <span className="font-mono font-black text-sm text-emerald-950">{box.completedCount}</span>
-                    </div>
-                    <div className="p-2 rounded-xl bg-blue-100 border border-blue-300">
-                      <span className="text-[10px] text-blue-900 block font-bold">تەسلیم کرا 🔵</span>
-                      <span className="font-mono font-black text-sm text-blue-950">{box.deliveredCount}</span>
-                    </div>
-                  </div>
-                </div>
-
                 {/* ── MODE 1: Full A4 Name List Table ── */}
                 {viewMode === 'LIST' ? (
                   <div className="space-y-4">
+                    {/* Box Highlighting Banner */}
+                    <div className="bg-slate-50 border-2 border-slate-900 rounded-2xl p-4 text-center sm:text-right print:border-slate-800">
+                      <div className="text-xs font-bold text-slate-600">مەودای ژمارەی دۆسیەکانی ناو ئەم بۆکسە:</div>
+                      <div className="text-2xl font-black font-mono text-slate-950 tracking-wider my-1">
+                        {box.fileRange}
+                      </div>
+                      <div className="text-xs text-slate-600">
+                        شوێنی هەڵگرتن: <span className="font-bold text-slate-900">سندوق و بۆکسی ژمارە {box.boxNumber} (ژووری ١٩)</span>
+                      </div>
+                    </div>
+
                     <div className="text-xs font-bold text-slate-700 flex items-center justify-between">
                       <span>لیستی دۆسیەکان لەم بۆکسەدا ({box.records.length} دۆسیە):</span>
                       <span className="text-[11px] text-slate-500">پۆلێنکراو بەپێی ژمارەی فایل</span>
                     </div>
 
-                    <div className="overflow-x-auto border-2 border-slate-900 rounded-xl">
-                      <table className="w-full text-right text-xs border-collapse">
+                    <div className="overflow-x-auto border-2 border-slate-900 rounded-xl print:border-none print:rounded-none">
+                      <table className="w-full text-right text-xs border-collapse print:border print:border-slate-400">
                         <thead>
-                          <tr className="bg-slate-900 text-white font-black text-[11px] divide-x divide-slate-700">
+                          <tr className="bg-slate-900 text-white font-black text-[11px] divide-x divide-slate-700 print:divide-slate-700">
                             <th className="p-2 text-center w-10">#</th>
-                            <th className="p-2 text-center w-20">ژمارەی فایل</th>
+                            <th className="p-2 text-center w-24">ژمارەی فایل</th>
                             <th className="p-2 text-right">ناوی هاووڵاتی</th>
                             <th className="p-2 text-center w-28">ژمارەی ئەژمار (ID)</th>
                             <th className="p-2 text-center w-24">جۆری دۆسیە</th>
-                            <th className="p-2 text-center w-24">دۆخی فایل</th>
-                            <th className="p-2 text-center w-24">دۆخی KYC</th>
-                            <th className="p-2 text-center w-28">مۆبایل / وەرگر</th>
+                            <th className="p-2 text-center w-24">دۆخی فایل (چێک ✓)</th>
+                            <th className="p-2 text-center w-32">مۆبایل / وەرگر</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200">
                           {box.records.map((r, rIdx) => {
                             const isYellow = r.fileType === 'YELLOW_FOLDER';
-                            const kyc = getRecordKYC(r);
+                            const isDone = r.status === 'COMPLETED' || r.status === 'DELIVERED';
                             return (
                               <tr 
                                 key={r.id || rIdx} 
@@ -450,7 +484,7 @@ export default function ArchiveBoxesModal({ isOpen, onClose, records = [] }) {
                                     {r.fileNumber}
                                   </span>
                                 </td>
-                                <td className="p-1.5 text-right font-bold text-xs truncate max-w-[150px]">
+                                <td className="p-1.5 text-right font-bold text-xs truncate max-w-[170px]">
                                   {r.citizenName && r.citizenName !== 'هاوبەشی کارەبا' ? r.citizenName : <span className="text-slate-400 italic font-normal">هاوبەشی کارەبا</span>}
                                 </td>
                                 <td className="p-1.5 text-center font-mono text-xs font-semibold">
@@ -463,25 +497,20 @@ export default function ArchiveBoxesModal({ isOpen, onClose, records = [] }) {
                                     <span className="text-slate-700">📄 ئەوراق</span>
                                   )}
                                 </td>
-                                <td className="p-1.5 text-center text-[10px] font-bold">
-                                  {r.status === 'COMPLETED' ? (
-                                    <span className="text-emerald-800 font-bold">🟢 وەرگیراوەتەوە</span>
-                                  ) : r.status === 'DELIVERED' ? (
-                                    <span className="text-blue-800 font-bold">🔵 تەسلیم کرا</span>
-                                  ) : (
-                                    <span className="text-amber-800">🟡 پێنەدراوەتەوە</span>
-                                  )}
+                                <td className="p-1.5 text-center">
+                                  <div className="flex items-center justify-center">
+                                    <div className={`w-5 h-5 border-2 rounded flex items-center justify-center shadow-xs transition-colors ${
+                                      isDone
+                                        ? 'border-emerald-600 bg-emerald-50 text-emerald-900 print:border-slate-950 print:text-slate-950'
+                                        : 'border-slate-400 bg-white text-transparent'
+                                    }`}>
+                                      {isDone && (
+                                        <Check className="w-3.5 h-3.5 stroke-[3.5]" />
+                                      )}
+                                    </div>
+                                  </div>
                                 </td>
-                                <td className="p-1.5 text-center text-[10px] font-bold">
-                                  {kyc === 'DONE_BY_US' ? (
-                                    <span className="text-emerald-800 font-bold">🟢 ئێمە کردمان</span>
-                                  ) : kyc === 'PRE_VERIFIED' ? (
-                                    <span className="text-sky-800 font-bold">🔵 پێشتر کراوە</span>
-                                  ) : (
-                                    <span className="text-amber-800">🟡 نەکراوە</span>
-                                  )}
-                                </td>
-                                <td className="p-1.5 text-center font-mono text-[11px] text-slate-700 truncate max-w-[110px]">
+                                <td className="p-1.5 text-center font-mono text-[11px] text-slate-700 truncate max-w-[130px]">
                                   {r.receiverName || r.phoneNumber || '-'}
                                 </td>
                               </tr>
@@ -492,43 +521,29 @@ export default function ArchiveBoxesModal({ isOpen, onClose, records = [] }) {
                     </div>
                   </div>
                 ) : (
-                  /* ── MODE 2: Giant Box Cover Sticker Label ── */
-                  <div className="border-4 border-dashed border-slate-900 rounded-3xl p-8 bg-gradient-to-br from-amber-50/60 via-white to-slate-50 space-y-6 text-center">
-                    <div className="space-y-1">
-                      <div className="text-sm font-black text-amber-900 tracking-wider">سندوقی ئەرشیفی سەرەکی دۆسیەکانی هاوبەشان</div>
-                      <div className="text-4xl sm:text-6xl font-black font-mono text-slate-950">
+                  /* ── MODE 2: Giant Box Cover Sticker Label (Single Page per Box) ── */
+                  <div className="border-4 border-slate-900 rounded-3xl p-8 sm:p-12 bg-white space-y-8 text-center">
+                    
+                    <div className="space-y-2">
+                      <div className="text-sm font-black text-amber-900 tracking-wider">سندوقی ئەرشیفی سەرەکی دۆسیەکانی هاوبەشان (ژووری ١٩)</div>
+                      <div className="text-5xl sm:text-7xl font-black font-mono text-slate-950 leading-tight">
                         بۆکسی ژمارە {box.boxNumber}
                       </div>
                     </div>
 
-                    <div className="p-5 rounded-2xl bg-amber-500/20 border-2 border-amber-600 max-w-xl mx-auto space-y-1">
-                      <div className="text-xs font-bold text-amber-950">ژمارەی فایلەکانی ناو ئەم بۆکسە:</div>
-                      <div className="text-2xl sm:text-4xl font-black font-mono text-slate-950">
+                    <div className="p-6 sm:p-8 rounded-3xl bg-amber-50 border-4 border-slate-900 max-w-2xl mx-auto space-y-2">
+                      <div className="text-sm font-bold text-slate-700">مەودای ژمارەی فایلەکانی ناو ئەم بۆکسە:</div>
+                      <div className="text-3xl sm:text-5xl font-black font-mono text-slate-950 tracking-wider">
                         {box.fileRange}
                       </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-2xl mx-auto text-center font-bold">
-                      <div className="p-3 rounded-xl bg-white border-2 border-slate-300">
-                        <span className="text-xs text-slate-500 block">کۆی فایلەکان</span>
-                        <span className="text-xl font-mono text-slate-950">{box.count}</span>
-                      </div>
-                      <div className="p-3 rounded-xl bg-amber-100 border-2 border-amber-300 text-amber-950">
-                        <span className="text-xs block">فایلی زەرد 📁</span>
-                        <span className="text-xl font-mono">{box.yellowCount}</span>
-                      </div>
-                      <div className="p-3 rounded-xl bg-slate-100 border-2 border-slate-300 text-slate-800">
-                        <span className="text-xs block">ئەوراق 📄</span>
-                        <span className="text-xl font-mono">{box.paperCount}</span>
-                      </div>
-                      <div className="p-3 rounded-xl bg-emerald-100 border-2 border-emerald-300 text-emerald-950">
-                        <span className="text-xs block">وەرگیراوەتەوە ✅</span>
-                        <span className="text-xl font-mono">{box.completedCount}</span>
+                      <div className="text-sm font-black text-amber-900 pt-1">
+                        کۆی گشتی: <span className="font-mono text-lg">{box.count}</span> دۆسیە
                       </div>
                     </div>
 
-                    <div className="text-xs text-slate-600 pt-2">
-                      تکایە ئەم ستیکەرە لەسەر ڕووی پێشەوەی بۆکسەکە بلکێندرێت بۆ ئاسان دۆزینەوەی فایلەکان لە ژووری ١٩.
+                    <div className="border-2 border-dashed border-slate-300 rounded-2xl p-4 max-w-xl mx-auto text-xs text-slate-600 space-y-1">
+                      <div>شوێنی هەڵگرتن: <strong>سندوق و کارتۆنی ژمارە {box.boxNumber}</strong> لە ئەرشیفی ژووری ١٩</div>
+                      <div>تکایە ئەم ستیکەرە لەسەر ڕووی سەرەوە یان پێشەوەی کارتۆنەکە بلکێندرێت.</div>
                     </div>
                   </div>
                 )}

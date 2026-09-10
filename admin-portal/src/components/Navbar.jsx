@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, LogOut, Sun, Moon, Download, Smartphone, Monitor, X, Check } from 'lucide-react';
+import { Lock, LogOut, Sun, Moon, Download, Smartphone, Monitor, X, Check, Menu, FileText, Cloud } from 'lucide-react';
 import RoonakiLogo from './RoonakiLogo';
 
-export default function Navbar({ currentView, setCurrentView, isAdmin, isAdminPath, activeStaff, onOpenAdminLogin, onAdminLogout, isDarkMode, onToggleTheme }) {
+export default function Navbar({ currentView, setCurrentView, isAdmin, isAdminPath, activeStaff, onOpenAdminLogin, onAdminLogout, isDarkMode, onToggleTheme, onToggleSidebar, isSidebarOpen }) {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallGuide, setShowInstallGuide] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
@@ -57,114 +57,96 @@ export default function Navbar({ currentView, setCurrentView, isAdmin, isAdminPa
   return (
     <>
       <header className="relative z-40 w-full border-b border-amber-500/20 bg-white/95 dark:bg-[#070b16]/95 backdrop-blur-xl transition-colors duration-300 shadow-sm">
-        <div className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-14 sm:h-20 gap-1.5 sm:gap-4">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-14 sm:h-16 gap-2">
             
-            {/* Logo & Directorate Title (Unified single container, no duplication) */}
-            <div className="flex items-center gap-2 cursor-pointer shrink-0" onClick={handleLogoClick} title="پڕۆژەی ڕووناکی">
-              <RoonakiLogo 
-                className="h-9 sm:h-12 md:h-14 w-auto" 
-                showText={false}
-              />
-              <div className="flex flex-col text-right">
-                <span className="text-xs sm:text-base font-black text-amber-600 dark:text-amber-400 leading-tight">
-                  پڕۆژەی ڕووناکی
-                </span>
-                <span className="text-[9px] sm:text-xs text-slate-500 dark:text-slate-400 font-bold">
-                  فرۆشیاری وزە ٢
-                </span>
-              </div>
-            </div>
-
-            {/* Navigation Controls */}
-            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-              
-              {/* Install App Button */}
-              {!isInstalled && (
+            {/* Right Side (دەستەڕاست): Menu Hamburger Toggle Button + Logo */}
+            <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+              {/* Slide-over Sidebar Drawer Button on the Right */}
+              {currentView === 'admin' && onToggleSidebar && (
                 <button
-                  onClick={handleInstallClick}
-                  title="ئینستاڵکردنی ئەپ"
-                  className="flex items-center gap-1 px-2 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-black bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-sm border border-amber-400/50 shrink-0"
+                  onClick={onToggleSidebar}
+                  title="مێنیوی بەڕێوەبردن (سڵایدباڕ) ☰"
+                  className="p-2 sm:p-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-md shadow-amber-500/25 active:scale-90 transition-all border border-amber-400/60 shrink-0 cursor-pointer flex items-center justify-center"
                 >
-                  <Download className="w-3.5 h-3.5 shrink-0" />
-                  <span className="hidden sm:inline">ئینستاڵی ئەپ</span>
+                  <Menu className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
               )}
 
-              {/* Live Cloud Status Indicator (Desktop only) */}
-              <div 
-                title="پەیوەستە بە داتابەیسی گشتی (Cloud Sync Active)"
-                className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[11px] font-bold shrink-0"
-              >
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>کڵاود</span>
+              {/* Logo & Directorate Title */}
+              <div className="flex items-center gap-2 cursor-pointer shrink-0" onClick={handleLogoClick} title="پڕۆژەی ڕووناکی">
+                <RoonakiLogo 
+                  className="h-8 sm:h-10 md:h-11 w-auto" 
+                  showText={false}
+                />
+                <div className="flex flex-col text-right">
+                  <span className="text-xs sm:text-sm font-black text-amber-600 dark:text-amber-400 leading-tight">
+                    پڕۆژەی ڕووناکی
+                  </span>
+                  <span className="text-[9px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-bold">
+                    فرۆشیاری وزە ٢
+                  </span>
+                </div>
               </div>
+            </div>
 
+            {/* Left Side (دەستەچەپ): Essential Controls Only */}
+            <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+              
               {/* Theme Toggle Button (Light/Dark) */}
               <button
                 onClick={onToggleTheme}
                 title={isDarkMode ? 'گۆڕین بۆ لایت مۆد' : 'گۆڕین بۆ دارک مۆد'}
-                className="p-1.5 sm:p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900/90 dark:hover:bg-slate-800 border border-slate-200 dark:border-amber-500/30 text-amber-600 dark:text-amber-400 transition-all shadow-sm shrink-0"
+                className="p-2 sm:p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900/90 dark:hover:bg-slate-800 border border-slate-200 dark:border-amber-500/30 text-amber-600 dark:text-amber-400 transition-all shadow-sm shrink-0"
               >
                 {isDarkMode ? (
-                  <Sun className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
+                  <Sun className="w-4 h-4 text-amber-400" />
                 ) : (
-                  <Moon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-700" />
+                  <Moon className="w-4 h-4 text-slate-700" />
                 )}
               </button>
 
-              {/* When on Citizen View - Only visible if on Admin URL or already authenticated */}
+              {/* When on Citizen View */}
               {currentView === 'citizen' ? (
                 (isAdmin || isAdminPath) && (
                   <button
                     onClick={isAdmin ? () => setCurrentView('admin') : onOpenAdminLogin}
-                    className="flex items-center gap-1 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2.5 rounded-xl text-[11px] sm:text-sm font-black text-slate-800 dark:text-slate-200 bg-amber-500/15 hover:bg-amber-500/25 dark:bg-slate-900/90 dark:hover:bg-slate-800 border border-amber-400/50 dark:border-amber-500/30 transition-all shadow-sm shrink-0"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black text-slate-800 dark:text-slate-200 bg-amber-500/15 hover:bg-amber-500/25 dark:bg-slate-900/90 dark:hover:bg-slate-800 border border-amber-400/50 dark:border-amber-500/30 transition-all shadow-sm shrink-0"
                   >
-                    <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                    <span className="hidden xs:inline">{isAdmin ? 'پۆرتاڵی ئادمین' : 'چوونەژوورەوە'}</span>
-                    <span className="xs:hidden">ئادمین</span>
+                    <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                    <span>{isAdmin ? 'پەنێڵی ئادمین' : 'چوونەژوورەوە'}</span>
                   </button>
                 )
               ) : (
                 /* When inside Admin Portal */
-                <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-                  {/* Active Staff Badge with Role (Clean on mobile) */}
+                <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+                  {/* Active Staff Badge with Role */}
                   {activeStaff && (
-                    <div className="flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-900 dark:text-amber-200 text-xs font-black shadow-sm shrink-0">
-                      <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></div>
-                      <span className="hidden md:inline">{activeStaff.name} ({activeStaff.title || 'ژووری ١٩'})</span>
-                      <span className="md:hidden text-[10px] sm:text-xs max-w-[70px] sm:max-w-[110px] truncate">{activeStaff.name}</span>
-                      <span className={`px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] font-black border shrink-0 ${
+                    <div 
+                      title={`${activeStaff.name} (${activeStaff.title || 'ژووری ١٩'})`}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-900 dark:text-amber-200 text-xs font-bold shadow-sm shrink-0"
+                    >
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></div>
+                      <span className="hidden md:inline font-black max-w-[120px] truncate">{activeStaff.name}</span>
+                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-black border shrink-0 ${
                         activeStaff.role === 'ADMIN' 
                           ? 'bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30' 
                           : activeStaff.role === 'VIEWER'
                           ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30'
                           : 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30'
                       }`}>
-                        {activeStaff.role === 'ADMIN' ? '👑 ئادمین' : activeStaff.role === 'VIEWER' ? '👁️ بینەر' : '👤 ستاف'}
+                        {activeStaff.role === 'ADMIN' ? 'ئادمین' : activeStaff.role === 'VIEWER' ? 'بینەر' : 'ستاف'}
                       </span>
                     </div>
                   )}
 
-                  {/* Printable A4 Poster Button */}
-                  <a
-                    href="/poster.html"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="کردنەوە و چاپکردنی پۆستەری A4 بۆ ژوورەکە"
-                    className="flex items-center gap-1 p-1.5 sm:px-2.5 sm:py-2 rounded-xl text-[10px] sm:text-xs font-bold text-sky-600 dark:text-sky-400 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 transition-all shadow-sm shrink-0"
-                  >
-                    <span>📄</span>
-                    <span className="hidden sm:inline">پۆستەری A4</span>
-                  </a>
-
+                  {/* Logout Button (Icon) */}
                   <button
                     onClick={onAdminLogout}
-                    title="دەرچوون"
-                    className="p-1.5 sm:px-2.5 sm:py-2 rounded-xl text-[10px] sm:text-xs font-bold text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-rose-300 dark:border-rose-500/30 transition-colors shrink-0"
+                    title="دەرچوون لە ئەژمێر"
+                    className="p-2 sm:p-2.5 rounded-xl text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-rose-300 dark:border-rose-500/30 transition-all shrink-0 flex items-center justify-center"
                   >
-                    <LogOut className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline mr-1">دەرچوون</span>
+                    <LogOut className="w-4 h-4" />
                   </button>
                 </div>
               )}

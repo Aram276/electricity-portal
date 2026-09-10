@@ -114,14 +114,17 @@ export default function BulkWhatsAppModal({
 
     const msg = buildWhatsAppMessage(currentRecord, customTemplate);
     const url = generateWhatsAppUrl(phone, msg);
-    window.open(url, '_blank', 'noopener,noreferrer');
+    if (url) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+      
+      // Mark as notified in database
+      if (onMarkNotified) {
+        onMarkNotified(currentRecord.id);
+      }
 
-    if (onMarkNotified) {
-      onMarkNotified(currentRecord.id);
+      setSentCount(prev => prev + 1);
+      setCurrentIndex(prev => prev + 1);
     }
-
-    setSentCount(prev => prev + 1);
-    setCurrentIndex(prev => prev + 1);
   };
 
   const handleSkip = () => {
