@@ -149,34 +149,6 @@ export default function App() {
     }, 4000);
   };
 
-  // Auto Session Inactivity Timeout (30 mins of inactivity locks session)
-  useEffect(() => {
-    let timeoutId;
-    const resetTimer = () => {
-      clearTimeout(timeoutId);
-      if (isAdminAuthenticated()) {
-        timeoutId = setTimeout(() => {
-          setIsAdmin(false);
-          setAdminAuthenticated(false);
-          setActiveStaff(null);
-          localStorage.removeItem('electricity_active_staff');
-          sessionStorage.removeItem('electricity_portal_admin_session');
-          setCurrentView('citizen');
-          showToast('بەهۆی بێدەنگی و چالاک نەبوونی سیستەم بۆ ماوەیەکی درێژ، دەرچوونی پارێزراو ئەنجامدرا', 'info');
-        }, 30 * 60 * 1000); // 30 minutes
-      }
-    };
-
-    const events = ['mousedown', 'mousemove', 'keydown', 'touchstart', 'scroll'];
-    events.forEach(e => window.addEventListener(e, resetTimer, { passive: true }));
-    resetTimer();
-
-    return () => {
-      clearTimeout(timeoutId);
-      events.forEach(e => window.removeEventListener(e, resetTimer));
-    };
-  }, [isAdmin]);
-
   // Handle Staff login success
   const handleLoginSuccess = (staffUser) => {
     setIsAdmin(true);
