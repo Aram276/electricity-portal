@@ -39,7 +39,7 @@ export default function BulkWhatsAppModal({
   onMarkNotified 
 }) {
   const [targetGroup, setTargetGroup] = useState('COMPLETED_UNNOTIFIED'); 
-  // 'COMPLETED_UNNOTIFIED' | 'ALL_COMPLETED' | 'SELECTED' | 'ALL_WITH_PHONE'
+  // 'COMPLETED_UNNOTIFIED' | 'ALL_COMPLETED' | 'SELECTED' | 'ALL_UNDELIVERED'
 
   const [queue, setQueue] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -51,20 +51,23 @@ export default function BulkWhatsAppModal({
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [templateSavedMsg, setTemplateSavedMsg] = useState(false);
 
-  // Compute eligible target queue
+  // Compute eligible target queue (STRICTLY EXCLUDE DELIVERED RECORDS)
   useEffect(() => {
     if (!isOpen) return;
 
     let eligible = [];
     if (targetGroup === 'SELECTED' && selectedIds.length > 0) {
       const selectedSet = new Set(selectedIds);
-      eligible = records.filter(r => selectedSet.has(r.id) && cleanIraqiPhone(r.phoneNumber));
+      eligible = records.filter(r => selectedSet.has(r.id) && r.status !== 'DELIVERED' && cleanIraqiPhone(r.phoneNumber));
     } else if (targetGroup === 'COMPLETED_UNNOTIFIED') {
-      eligible = records.filter(r => r.status === 'COMPLETED' && cleanIraqiPhone(r.phoneNumber) && !r.notifiedAt);
+      // Completed, not delivered, has phone, not notified yet
+      eligible = records.filter(r => r.status === 'COMPLETED' && r.status !== 'DELIVERED' && cleanIraqiPhone(r.phoneNumber) && !r.notifiedAt);
     } else if (targetGroup === 'ALL_COMPLETED') {
-      eligible = records.filter(r => r.status === 'COMPLETED' && cleanIraqiPhone(r.phoneNumber));
-    } else if (targetGroup === 'ALL_WITH_PHONE') {
-      eligible = records.filter(r => cleanIraqiPhone(r.phoneNumber));
+      // Completed, not delivered, has phone
+      eligible = records.filter(r => r.status === 'COMPLETED' && r.status !== 'DELIVERED' && cleanIraqiPhone(r.phoneNumber));
+    } else if (targetGroup === 'ALL_UNDELIVERED') {
+      // Any record not delivered yet (in progress or completed) with valid phone
+      eligible = records.filter(r => r.status !== 'DELIVERED' && cleanIraqiPhone(r.phoneNumber));
     }
 
     setQueue(eligible);
@@ -98,26 +101,27 @@ export default function BulkWhatsAppModal({
     if (window.confirm('ئایا دڵنیایت لە گەڕاندنەوەی دەقی نامەی واتسئاپ بۆ دەقی بنەڕەت؟')) {
       setCustomTemplate(DEFAULT_WHATSAPP_TEMPLATE);
       saveCustomWhatsAppTemplate(DEFAULT_WHATSAPP_TEMPLATE);
-      setTemplateSavedMsg(true);
-      setTimeout(() => setTemplateSavedMsg(false), 2000);
     }
   };
 
   const handleSendCurrent = () => {
     if (!currentRecord) return;
-
-    const url = generateWhatsAppUrl(currentRecord, customTemplate);
-    if (url) {
-      window.open(url, '_blank', 'noopener,noreferrer');
-      
-      // Mark as notified in database
-      if (onMarkNotified) {
-        onMarkNotified(currentRecord.id);
-      }
-
-      setSentCount(prev => prev + 1);
-      setCurrentIndex(prev => prev + 1);
+    const phone = cleanIraqiPhone(currentRecord.phoneNumber);
+    if (!phone) {
+      handleSkip();
+      return;
     }
+
+    const msg = buildWhatsAppMessage(currentRecord, customTemplate);
+    const url = generateWhatsAppUrl(phone, msg);
+    window.open(url, '_blank', 'noopener,noreferrer');
+
+    if (onMarkNotified) {
+      onMarkNotified(currentRecord.id);
+    }
+
+    setSentCount(prev => prev + 1);
+    setCurrentIndex(prev => prev + 1);
   };
 
   const handleSkip = () => {
@@ -142,7 +146,7 @@ export default function BulkWhatsAppModal({
                   Bulk WhatsApp
                 </span>
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400">ئاگادارکردنەوەی ژیرانەی هاووڵاتییان بۆ سەردانی ژووری ١٩</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">ئاگادارکردنەوەی ژیرانەی هاووڵاتییان بۆ وەرگرتنەوەی دۆسیە لە ژووری ١٩</p>
             </div>
           </div>
 
@@ -152,6 +156,12 @@ export default function BulkWhatsAppModal({
           >
             <X className="w-5 h-5" />
           </button>
+        </div>
+
+        {/* Info Banner: Exclude Delivered */}
+        <div className="px-3.5 py-2.5 rounded-2xl bg-blue-500/10 border border-blue-500/30 text-blue-700 dark:text-blue-300 text-xs flex items-center gap-2 font-bold">
+          <CheckCircle2 className="w-4 h-4 text-blue-500 shrink-0" />
+          <span>تێبینی: سەرجەم ئەو فایلانەی کە تەسلیمکراونەتەوە (پێدراونەتەوە) بە خۆکاری لادەبرێن تا نامەی هەڵەیان بۆ نەچێت.</span>
         </div>
 
         {/* ── Custom Message Template Editor (Accordion) ── */}
@@ -232,7 +242,7 @@ export default function BulkWhatsAppModal({
         {/* Filter Target Selector */}
         <div className="space-y-2">
           <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
-            کۆمەڵەی ئامانج بۆ ناردنی نامە:
+            کۆمەڵەی ئامانج بۆ ناردنی نامە (تەنها پێنەدراوەکان):
           </label>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             
@@ -276,14 +286,14 @@ export default function BulkWhatsAppModal({
 
             <button
               type="button"
-              onClick={() => setTargetGroup('ALL_WITH_PHONE')}
+              onClick={() => setTargetGroup('ALL_UNDELIVERED')}
               className={`p-2.5 rounded-xl border text-xs font-bold transition-all text-center ${
-                targetGroup === 'ALL_WITH_PHONE'
+                targetGroup === 'ALL_UNDELIVERED'
                   ? 'bg-emerald-500 text-white border-emerald-500 shadow-md'
                   : 'bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800'
               }`}
             >
-              سەرجەم بە مۆبایلەکان
+              سەرجەم پێنەدراوەکان
             </button>
 
           </div>
