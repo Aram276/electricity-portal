@@ -1,41 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
+import CitizenSearch from './components/CitizenSearch';
 import AdminDashboard from './components/AdminDashboard';
-import AdminLoginModal from './components/AdminLoginModal';
-import RecordModal from './components/RecordModal';
 import ExcelModal from './components/ExcelModal';
+import RecordModal from './components/RecordModal';
 import DeliveryModal from './components/DeliveryModal';
 import PrintReceiptModal from './components/PrintReceiptModal';
+import AdminLoginModal from './components/AdminLoginModal';
 import Footer from './components/Footer';
-
 import { 
   getStoredRecords, 
+  saveRecords, 
   resetToDemoRecords, 
+  markAsDelivered, 
   isAdminAuthenticated, 
-  setAdminAuthenticated 
+  setAdminAuthenticated,
+  deduplicateRecords
 } from './utils/storage';
-import { 
-  subscribeToCloudRecords, 
-  saveRecordsToCloud, 
-  logActivity 
-} from './utils/cloudSync';
-import { CheckCircle2, Info } from 'lucide-react';
+import { subscribeToCloudRecords, saveRecordsToCloud, logActivity } from './utils/cloudSync';
+import { CheckCircle2, Info, Cloud } from 'lucide-react';
 
 export default function App() {
-  const [records, setRecords] = useState(() => getStoredRecords());
-  const [isAdmin, setIsAdmin] = useState(true);
+  const [records, setRecords] = useState(() => deduplicateRecords(getStoredRecords()));
+  const [currentView, setCurrentView] = useState('citizen'); // 'citizen' | 'admin'
+  const [isAdmin, setIsAdmin] = useState(() => isAdminAuthenticated());
   const [activeStaff, setActiveStaff] = useState(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem('electricity_active_staff') || 'null');
-      return saved || { id: 'staff-1', username: 'aram', name: 'ئارام', role: 'ADMIN', title: 'بەڕێوەبەری سەرەکی' };
+      return JSON.parse(localStorage.getItem('electricity_active_staff') || 'null');
     } catch (e) {
-      return { id: 'staff-1', username: 'aram', name: 'ئارام', role: 'ADMIN', title: 'بەڕێوەبەری سەرەکی' };
+      return null;
     }
   });
-
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('electricity_portal_theme');
-    return saved !== 'light';
+    return saved !== 'light'; // default dark
   });
 
   // Modals state
@@ -48,16 +46,62 @@ export default function App() {
 
   // Toast notification
   const [toast, setToast] = useState(null);
+  const [isAdminPath, setIsAdminPath] = useState(false);
 
+  // Check URL path on mount & hashchange
   useEffect(() => {
+    const checkAdminUrl = () => {
+      const path = window.location.pathname.toLowerCase();
+      const hash = window.location.hash.toLowerCase();
+      const search = window.location.search.toLowerCase();
+      
+      const isDirectAdmin = 
+        path.includes('/admin') || 
+        hash.includes('admin') || 
+        search.includes('admin') || 
+        path.endsWith('/manage') ||
+        window.location.port === '5174';
+
+      if (isDirectAdmin) {
+        setIsAdminPath(true);
+        if (!isAdminAuthenticated()) {
+          setIsLoginOpen(true);
+        } else {
+          setCurrentView('admin');
+        }
+      }
+    };
+
+    checkAdminUrl();
+    window.addEventListener('hashchange', checkAdminUrl);
+    window.addEventListener('popstate', checkAdminUrl);
+
+    // Secret Key Combination: Ctrl + Shift + A or Alt + A
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        if (isAdminAuthenticated()) {
+          setCurrentView(prev => prev === 'admin' ? 'citizen' : 'admin');
+        } else {
+          setIsLoginOpen(true);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    setIsAdmin(isAdminAuthenticated());
+
     // Live Cloud Subscription to Firebase Firestore
     const unsubscribe = subscribeToCloudRecords((cloudRecords) => {
       if (cloudRecords && cloudRecords.length > 0) {
-        setRecords(cloudRecords);
+        setRecords(deduplicateRecords(cloudRecords));
       }
     });
 
     return () => {
+      window.removeEventListener('hashchange', checkAdminUrl);
+      window.removeEventListener('popstate', checkAdminUrl);
+      window.removeEventListener('keydown', handleKeyDown);
       if (typeof unsubscribe === 'function') unsubscribe();
     };
   }, []);
@@ -87,18 +131,6 @@ export default function App() {
     }, 4000);
   };
 
-  const getActiveStaffName = () => {
-    if (activeStaff && activeStaff.name) return activeStaff.name;
-    try {
-      const saved = localStorage.getItem('electricity_active_staff');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed?.name) return parsed.name;
-      }
-    } catch (e) {}
-    return 'فەرمانبەری ژووری ١٩';
-  };
-
   // Handle Staff login success
   const handleLoginSuccess = (staffUser) => {
     setIsAdmin(true);
@@ -107,8 +139,8 @@ export default function App() {
       setActiveStaff(staffUser);
       localStorage.setItem('electricity_active_staff', JSON.stringify(staffUser));
     }
-    setIsLoginOpen(false);
-    showToast(`بەخێربێیت ${staffUser?.name || 'فەرمانبەر'}! چوونەژوورەوەت سەرکەوتوو بوو`, 'success');
+    setCurrentView('admin');
+    showToast(`بەخێربێیت ${staffUser?.name || 'فەرمانبەر'}! چوونەژوورەوەت سەرکەوتوویی بوو`, 'success');
   };
 
   // Handle Staff logout
@@ -117,7 +149,7 @@ export default function App() {
     setAdminAuthenticated(false);
     setActiveStaff(null);
     localStorage.removeItem('electricity_active_staff');
-    setIsLoginOpen(true);
+    setCurrentView('citizen');
     showToast('دەرچوون لە ئەژمێری ئادمین ئەنجامدرا', 'info');
   };
 
@@ -125,121 +157,208 @@ export default function App() {
   const handleImportSuccess = (newRecords, mode) => {
     let updated;
     if (mode === 'replace') {
-      updated = newRecords;
+      updated = deduplicateRecords(newRecords);
       showToast(`${newRecords.length} دۆسیە بە سەرکەوتوویی لە جێگەی هەموو داتاکان دانران`, 'success');
     } else {
+      // Smart Merge: Deduplicate strictly by fileNumber and ID, NEVER drop files just because phone number is identical!
       const existingFileMap = new Map();
       records.forEach(r => {
-        const key = String(r.fileNumber || r.id).trim().toLowerCase();
-        existingFileMap.set(key, { ...r });
+        if (r.fileNumber) existingFileMap.set(String(r.fileNumber).trim(), r);
       });
 
-      newRecords.forEach(r => {
-        const key = String(r.fileNumber || r.id).trim().toLowerCase();
-        if (existingFileMap.has(key)) {
-          const existing = existingFileMap.get(key);
-          existingFileMap.set(key, {
-            ...existing,
-            ...r,
-            citizenName: (r.citizenName && r.citizenName !== 'هاوبەشی کارەبا') ? r.citizenName : existing.citizenName,
-            accountNumber: r.accountNumber || existing.accountNumber || '',
-            phoneNumber: (r.phoneNumber && r.phoneNumber !== 'نیە') ? r.phoneNumber : (existing.phoneNumber || 'نیە'),
-            status: existing.status && existing.status !== 'IN_PROGRESS' ? existing.status : (r.status || existing.status),
-            kycStatus: existing.kycStatus && existing.kycStatus !== 'PENDING' ? existing.kycStatus : (r.kycStatus || existing.kycStatus),
-            deliveredDate: existing.deliveredDate || r.deliveredDate,
-            receiverName: existing.receiverName || r.receiverName
-          });
+      let addedCount = 0;
+      let updatedCount = 0;
+      const combined = [...records];
+
+      newRecords.forEach(newRec => {
+        const fileKey = String(newRec.fileNumber || '').trim();
+        const existing = fileKey ? existingFileMap.get(fileKey) : null;
+
+        if (existing) {
+          // Merge/update existing file without creating a duplicated row
+          const idx = combined.findIndex(r => r.id === existing.id);
+          if (idx !== -1) {
+            combined[idx] = {
+              ...combined[idx],
+              citizenName: (newRec.hasRealName && newRec.citizenName !== 'هاوبەشی کارەبا') ? newRec.citizenName : combined[idx].citizenName,
+              hasRealName: (newRec.hasRealName || combined[idx].hasRealName),
+              accountNumber: newRec.accountNumber || combined[idx].accountNumber || '',
+              phoneNumber: (newRec.phoneNumber && newRec.phoneNumber !== 'نیە') ? newRec.phoneNumber : (combined[idx].phoneNumber || 'نیە'),
+              status: (newRec.status !== 'IN_PROGRESS' || combined[idx].status === 'IN_PROGRESS') ? newRec.status : combined[idx].status,
+              kycStatus: (newRec.kycStatus && newRec.kycStatus !== 'PENDING') ? newRec.kycStatus : (combined[idx].kycStatus || 'PENDING'),
+              deliveredDate: newRec.deliveredDate || combined[idx].deliveredDate,
+              receiverName: newRec.receiverName || combined[idx].receiverName,
+              fileType: newRec.fileType || combined[idx].fileType
+            };
+            updatedCount++;
+          }
         } else {
-          existingFileMap.set(key, r);
+          // Brand new distinct file! Add it to the database
+          combined.push(newRec);
+          if (fileKey) existingFileMap.set(fileKey, newRec);
+          addedCount++;
         }
       });
 
-      // Sort numerically by fileNumber
-      updated = Array.from(existingFileMap.values()).sort((a, b) => {
-        const numA = parseInt(a.fileNumber, 10) || 0;
-        const numB = parseInt(b.fileNumber, 10) || 0;
-        return numA - numB;
-      });
-
-      showToast(`${newRecords.length} دۆسیە بە سەرکەوتوویی تێکەڵ کران و زانیارییەکان نوێکرانەوە`, 'success');
+      updated = deduplicateRecords(combined);
+      showToast(`${addedCount} فایلی نوێ زیادکران، ${updatedCount} فایل زانیارییەکانیان نوێکرانەوە بەبێ دووبارەبوونەوە`, 'success');
+      logActivity('EXCEL_IMPORT', `هاوردەکردنی ئێکسڵ: ${newRecords.length} دۆسیە هاوردە کران`, { count: newRecords.length });
     }
 
     setRecords(updated);
     saveRecordsToCloud(updated);
-    const staffName = getActiveStaffName();
-    logActivity('EXCEL_IMPORT', `هاوردەکردنی ئێکسڵ (${newRecords.length} دۆسیە بە شێوازی ${mode === 'replace' ? 'جێگرتنەوە' : 'تێکەڵکردن'}) (لەلایەن: ${staffName})`, { count: newRecords.length, mode });
   };
 
-  // Add / Edit record save handler
-  const handleSaveRecord = (recordData) => {
+  const getActiveStaffName = () => {
+    try {
+      const active = JSON.parse(localStorage.getItem('electricity_active_staff') || 'null');
+      return active?.name || 'ئارام';
+    } catch (e) {
+      return 'ئارام';
+    }
+  };
+
+  // Add / Edit record with Smart-Merge and Guaranteed Unique IDs
+  const handleSaveRecord = (formData, recordId) => {
     const staffName = getActiveStaffName();
     let updated;
-    if (editingRecord) {
-      updated = records.map(r => r.id === editingRecord.id ? { ...recordData, id: r.id, handledBy: staffName } : r);
-      showToast(`فایلی (${recordData.fileNumber}) بە سەرکەوتوویی دەستکاری کرا`, 'success');
-      logActivity('EDIT_RECORD', `دەستکاریکردنی فایلی (${recordData.fileNumber}) بۆ هاووڵاتی (${recordData.citizenName}) (لەلایەن: ${staffName})`, { 
-        fileNumber: recordData.fileNumber, 
-        citizenName: recordData.citizenName,
-        accountNumber: recordData.accountNumber || '',
-        phoneNumber: recordData.phoneNumber || '',
-        status: recordData.status,
-        kycStatus: recordData.kycStatus,
-        fileType: recordData.fileType,
-        archiveLocation: recordData.archiveLocation
-      });
+    const rawName = (formData.citizenName || '').trim();
+    const hasRealName = Boolean(rawName && rawName !== 'هاوبەشی کارەبا' && !rawName.startsWith('مانگی '));
+    const isDelivered = formData.status === 'DELIVERED';
+
+    const processedData = {
+      ...formData,
+      citizenName: hasRealName ? rawName : 'هاوبەشی کارەبا',
+      hasRealName: hasRealName,
+      handledBy: formData.handledBy || staffName,
+      ...(isDelivered ? { deliveredBy: formData.deliveredBy || formData.handledBy || staffName } : {})
+    };
+
+    if (recordId) {
+      updated = records.map(r => r.id === recordId ? { ...r, ...processedData } : r);
+      showToast('زانیارییەکانی مامەڵەکە بە سەرکەوتوویی لە کڵاود و سێرڤەر نوێکرایەوە', 'success');
+      logActivity(
+        isDelivered ? 'DELIVERY' : 'STATUS_CHANGE',
+        `دەستکاریکردنی فایلی (${processedData.fileNumber}) [${processedData.citizenName}] (لەلایەن: ${staffName})`,
+        processedData
+      );
     } else {
-      const newRecord = {
-        ...recordData,
-        id: recordData.id || `rec-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-        createdAt: recordData.createdAt || new Date().toISOString().split('T')[0],
-        handledBy: staffName
-      };
-      updated = [newRecord, ...records];
-      showToast(`فایلی نوێ بە ژمارەی (${recordData.fileNumber}) زیادکرا`, 'success');
-      logActivity('ADD_RECORD', `تۆمارکردنی فایلی نوێی (${recordData.fileNumber}) بۆ هاووڵاتی (${recordData.citizenName}) (لەلایەن: ${staffName})`, { 
-        fileNumber: recordData.fileNumber, 
-        citizenName: recordData.citizenName,
-        accountNumber: recordData.accountNumber || '',
-        phoneNumber: recordData.phoneNumber || '',
-        status: recordData.status,
-        kycStatus: recordData.kycStatus,
-        fileType: recordData.fileType,
-        archiveLocation: recordData.archiveLocation
-      });
+      // Check if fileNumber already exists!
+      const targetFileNum = String(processedData.fileNumber || '').trim();
+      const existingIdx = targetFileNum ? records.findIndex(r => String(r.fileNumber || '').trim() === targetFileNum) : -1;
+
+      if (existingIdx !== -1) {
+        // Smart Merge: update existing record rather than creating a duplicate row!
+        updated = [...records];
+        updated[existingIdx] = {
+          ...updated[existingIdx],
+          ...processedData,
+          id: updated[existingIdx].id
+        };
+        showToast(`فایلی (${targetFileNum}) پێشتر هەبوو، زانیارییەکانی بە سەرکەوتوویی نوێکرانەوە`, 'success');
+      } else {
+        const uniqueId = formData.id && !records.some(r => r.id === formData.id)
+          ? formData.id 
+          : ('rec-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7));
+
+        const newRec = {
+          id: uniqueId,
+          ...processedData
+        };
+        updated = [newRec, ...records];
+        showToast('مامەڵەی نوێ لە سێرڤەری گشتی بە سەرکەوتوویی تۆمار کرا', 'success');
+      }
+
+      logActivity('CREATE', `تۆمارکردنی فایلی نوێی (${processedData.fileNumber}) بە ناوی [${processedData.citizenName}] (لەلایەن: ${staffName})`, processedData);
     }
+
+    const cleaned = deduplicateRecords(updated);
+    setRecords(cleaned);
+    saveRecordsToCloud(cleaned);
+  };
+
+  // Bulk Edit custom fields on multiple records
+  const handleBatchEditRecords = (ids, updates) => {
+    const staffName = getActiveStaffName();
+    const idSet = new Set(ids);
+    const updated = records.map(r => {
+      if (idSet.has(r.id)) {
+        return {
+          ...r,
+          ...updates,
+          handledBy: updates.handledBy || r.handledBy || staffName
+        };
+      }
+      return r;
+    });
+
+    const cleaned = deduplicateRecords(updated);
+    setRecords(cleaned);
+    saveRecordsToCloud(cleaned);
+    showToast(`دەستکاریکردنی بەکۆمەڵ بۆ ${ids.length} فایل بە سەرکەوتوویی ئەنجامدرا`, 'success');
+    logActivity('STATUS_CHANGE', `دەستکاریکردنی بەکۆمەڵی (${ids.length}) فایل (لەلایەن: ${staffName})`, { count: ids.length, updates });
+  };
+
+  // Delete record (single)
+  const handleDeleteRecord = (id) => {
+    const staffName = getActiveStaffName();
+    const target = records.find(r => r.id === id);
+    const updated = records.filter(r => r.id !== id);
+    setRecords(updated);
+    saveRecordsToCloud(updated);
+    showToast('مامەڵەکە بە سەرکەوتوویی لە سێرڤەر سڕایەوە', 'info');
+    logActivity('DELETE', `سڕینەوەی فایلی (${target?.fileNumber || id}) [${target?.citizenName || ''}] (لەلایەن: ${staffName})`, { fileNumber: target?.fileNumber });
+  };
+
+  // Bulk / Batch Delete records
+  const handleBatchDelete = (ids) => {
+    const staffName = getActiveStaffName();
+    const idSet = new Set(ids);
+    const updated = records.filter(r => !idSet.has(r.id));
+    setRecords(updated);
+    saveRecordsToCloud(updated);
+    showToast(`${ids.length} فایل بە سەرکەوتوویی لە کڵاود سڕانەوە`, 'info');
+    logActivity('DELETE', `سڕینەوەی بەکۆمەڵ: (${ids.length}) فایل بە یەکەوە سڕانەوە (لەلایەن: ${staffName})`, { count: ids.length });
+  };
+
+  // Bulk Status update
+  const handleBatchUpdateStatus = (ids, newStatus) => {
+    const staffName = getActiveStaffName();
+    const idSet = new Set(ids);
+    const today = new Date().toISOString().slice(0, 10);
+    const nowTime = new Date().toISOString().replace('T', ' ').slice(0, 16);
+
+    const isDone = newStatus === 'COMPLETED' || newStatus === 'DELIVERED';
+
+    const updated = records.map(r => {
+      if (idSet.has(r.id)) {
+        const changes = { 
+          status: newStatus,
+          handledBy: staffName
+        };
+        if (isDone) {
+          changes.isKycDone = true;
+          changes.kycStatus = 'DONE';
+        }
+        if (newStatus === 'COMPLETED' && !r.completionDate) {
+          changes.completionDate = today;
+        }
+        if (newStatus === 'DELIVERED' && !r.deliveredDate) {
+          changes.deliveredDate = nowTime;
+          changes.deliveredBy = staffName;
+        }
+        return { ...r, ...changes };
+      }
+      return r;
+    });
 
     setRecords(updated);
     saveRecordsToCloud(updated);
-    setIsRecordModalOpen(false);
-    setEditingRecord(null);
+    showToast(`دۆخی ${ids.length} فایل بە سەرکەوتوویی لە کڵاود گۆڕدرا`, 'success');
+    logActivity('STATUS_CHANGE', `گۆڕینی بەکۆمەڵی دۆخی (${ids.length}) فایل بۆ (${newStatus}) (لەلایەن: ${staffName})`, { count: ids.length, status: newStatus });
   };
 
-  // Delete single record
-  const handleDeleteRecord = (id) => {
-    const target = records.find(r => r.id === id);
-    if (window.confirm(`ئایا دڵنیایت لە سڕینەوەی فایلی (${target?.fileNumber || id})؟`)) {
-      const staffName = getActiveStaffName();
-      const updated = records.filter(r => r.id !== id);
-      setRecords(updated);
-      saveRecordsToCloud(updated);
-      showToast('دۆسیەکە لە سێرڤەر سڕدرایەوە', 'info');
-      logActivity('DELETE_RECORD', `سڕینەوەی فایلی (${target?.fileNumber || id}) بۆ هاووڵاتی (${target?.citizenName || 'نەزانراو'}) (لەلایەن: ${staffName})`, { fileNumber: target?.fileNumber, citizenName: target?.citizenName });
-    }
-  };
-
-  // Bulk Delete
-  const handleBatchDelete = (ids) => {
-    if (window.confirm(`ئایا دڵنیایت لە سڕینەوەی ${ids.length} دۆسیەی هەڵبژێردراو لە کڵاود؟`)) {
-      const staffName = getActiveStaffName();
-      const updated = records.filter(r => !ids.includes(r.id));
-      setRecords(updated);
-      saveRecordsToCloud(updated);
-      showToast(`${ids.length} دۆسیە سڕدرانەوە`, 'info');
-      logActivity('BATCH_DELETE', `سڕینەوەی بەکۆمەڵی (${ids.length}) دۆسیە (لەلایەن: ${staffName})`, { count: ids.length });
-    }
-  };
-
-  // Status Update from table
+  // Inline Status update from table
   const handleUpdateStatus = (id, newStatus) => {
     const staffName = getActiveStaffName();
     const target = records.find(r => r.id === id);
@@ -247,7 +366,7 @@ export default function App() {
 
     const updated = records.map(r => {
       if (r.id === id) {
-        const changes = {
+        const changes = { 
           status: newStatus,
           handledBy: staffName
         };
@@ -266,7 +385,6 @@ export default function App() {
       }
       return r;
     });
-
     setRecords(updated);
     saveRecordsToCloud(updated);
     showToast('دۆخی مامەڵە لە سێرڤەر گۆڕدرا', 'success');
@@ -275,23 +393,6 @@ export default function App() {
       citizenName: target?.citizenName,
       status: newStatus
     });
-  };
-
-  // Toggle single record file type (Yellow Folder vs Paper)
-  const handleToggleFileType = (id) => {
-    const staffName = getActiveStaffName();
-    const target = records.find(r => r.id === id);
-    const updated = records.map(r => {
-      if (r.id === id) {
-        const nextType = r.fileType === 'YELLOW_FOLDER' ? 'PAPER' : 'YELLOW_FOLDER';
-        return { ...r, fileType: nextType, handledBy: staffName };
-      }
-      return r;
-    });
-    setRecords(updated);
-    saveRecordsToCloud(updated);
-    showToast('جۆری دۆسیەکە لە کڵاود گۆڕدرا', 'info');
-    logActivity('STATUS_CHANGE', `گۆڕینی جۆری فایلی (${target?.fileNumber || id}) (لەلایەن: ${staffName})`, { fileNumber: target?.fileNumber });
   };
 
   // Update KYC status for a single record with 3 choices
@@ -372,92 +473,48 @@ export default function App() {
     showToast(`دۆخی KYC بۆ ${ids.length} فایل گۆڕدرا بۆ: ${label}`, 'success');
   };
 
-  // Delivery Confirmation
-  const handleConfirmDelivery = (id, receiverName, customDate, note, isKycDone = true, nationalId = '') => {
+  // Toggle single record file type (Yellow Folder vs Paper)
+  const handleToggleFileType = (id) => {
     const staffName = getActiveStaffName();
     const target = records.find(r => r.id === id);
-    const finalReceiver = (typeof receiverName === 'object' && receiverName !== null) ? receiverName.receiverName : receiverName;
-    const finalDate = (typeof receiverName === 'object' && receiverName !== null) ? receiverName.deliveredDate : (customDate || new Date().toISOString().slice(0, 10));
-    const finalNote = (typeof receiverName === 'object' && receiverName !== null) ? receiverName.notes : note;
-
     const updated = records.map(r => {
       if (r.id === id) {
-        return {
-          ...r,
-          status: 'DELIVERED',
-          deliveredDate: finalDate,
-          receiverName: finalReceiver || (r.hasRealName ? r.citizenName : 'هاوبەشی کارەبا'),
-          deliveredBy: staffName,
-          handledBy: staffName,
-          isKycDone: isKycDone ?? true,
-          kycStatus: isKycDone ? 'DONE' : 'PENDING',
-          nationalId: nationalId || r.nationalId || '',
-          notes: finalNote ? `${r.notes ? r.notes + ' | ' : ''}${finalNote}` : r.notes
-        };
+        const nextType = r.fileType === 'YELLOW_FOLDER' ? 'PAPER' : 'YELLOW_FOLDER';
+        return { ...r, fileType: nextType, handledBy: staffName };
       }
       return r;
     });
-
     setRecords(updated);
     saveRecordsToCloud(updated);
-    setDeliveryModalRecord(null);
-    showToast(`فایل بە فەرمی تەسلیمی (${finalReceiver || 'هاووڵاتی'}) کرا و KYC تۆمار کرا ✅`, 'success');
-    logActivity('DELIVERY', `تەسلیمکردنەوەی فایلی (${target?.fileNumber || id}) بە (${finalReceiver}) (لەلایەن: ${staffName})`, {
-      fileNumber: target?.fileNumber,
-      receiverName: finalReceiver,
-      date: finalDate
-    });
-  };
-
-  // Bulk Status update
-  const handleBatchUpdateStatus = (ids, newStatus) => {
-    const staffName = getActiveStaffName();
-    const idSet = new Set(ids);
-    const isDone = newStatus === 'COMPLETED' || newStatus === 'DELIVERED';
-    const today = new Date().toISOString().slice(0, 10);
-    const nowTime = new Date().toISOString().replace('T', ' ').slice(0, 16);
-
-    const updated = records.map(r => {
-      if (idSet.has(r.id)) {
-        const changes = {
-          status: newStatus,
-          handledBy: staffName
-        };
-        if (isDone) {
-          changes.isKycDone = true;
-          changes.kycStatus = 'DONE';
-        }
-        if (newStatus === 'COMPLETED' && !r.completionDate) {
-          changes.completionDate = today;
-        }
-        if (newStatus === 'DELIVERED' && !r.deliveredDate) {
-          changes.deliveredDate = nowTime;
-          changes.deliveredBy = staffName;
-        }
-        return { ...r, ...changes };
-      }
-      return r;
-    });
-
-    setRecords(updated);
-    saveRecordsToCloud(updated);
-    showToast(`دۆخی ${ids.length} دۆسیە لە کڵاود نوێکرایەوە`, 'success');
-    logActivity('BATCH_STATUS', `گۆڕینی بەکۆمەڵی دۆخی (${ids.length}) دۆسیە بۆ (${newStatus}) (لەلایەن: ${staffName})`, { count: ids.length, status: newStatus });
+    showToast('جۆری دۆسیەکە لە کڵاود گۆڕدرا', 'info');
+    logActivity('STATUS_CHANGE', `گۆڕینی جۆری فایلی (${target?.fileNumber || id}) (لەلایەن: ${staffName})`, { fileNumber: target?.fileNumber });
   };
 
   // Bulk File Type update
   const handleBatchUpdateFileType = (ids, newFileType) => {
-    const staffName = getActiveStaffName();
+    const idSet = new Set(ids);
     const updated = records.map(r => {
-      if (ids.includes(r.id)) {
-        return { ...r, fileType: newFileType, handledBy: staffName };
+      if (idSet.has(r.id)) {
+        return { ...r, fileType: newFileType };
       }
       return r;
     });
     setRecords(updated);
     saveRecordsToCloud(updated);
-    showToast(`جۆری ${ids.length} دۆسیە گۆڕدرا بۆ (${newFileType === 'YELLOW_FOLDER' ? 'فایلی زەرد' : 'ئەوراق'})`, 'success');
-    logActivity('BATCH_STATUS', `گۆڕینی بەکۆمەڵی جۆری دۆسیەی (${ids.length}) فایل بۆ (${newFileType}) (لەلایەن: ${staffName})`, { count: ids.length, fileType: newFileType });
+    showToast(`جۆری ${ids.length} فایل گۆڕدرا بۆ ${newFileType === 'YELLOW_FOLDER' ? 'فایلی زەرد' : 'ئەوراق'}`, 'success');
+  };
+
+  // Delivery Modal confirm
+  const handleConfirmDelivery = (id, receiverName, customDate, note, isKycDone = true, nationalId = '') => {
+    const updated = markAsDelivered(id, receiverName, customDate, isKycDone, nationalId);
+    if (note) {
+      const rec = updated.find(r => r.id === id);
+      if (rec) rec.notes = (rec.notes ? rec.notes + ' | ' : '') + note;
+    }
+    setRecords(updated);
+    saveRecordsToCloud(updated);
+    setDeliveryModalRecord(null);
+    showToast(`فایل بە فەرمی تەسلیمی (${receiverName || 'هاووڵاتی'}) کرا لە [${customDate}] و KYC تۆمار کرا ✅`, 'success');
   };
 
   // Reset to demo
@@ -489,10 +546,10 @@ export default function App() {
 
       {/* Navigation */}
       <Navbar
-        currentView="admin"
-        setCurrentView={() => {}}
+        currentView={currentView}
+        setCurrentView={setCurrentView}
         isAdmin={isAdmin}
-        isAdminPath={true}
+        isAdminPath={isAdminPath}
         activeStaff={activeStaff}
         onOpenAdminLogin={() => setIsLoginOpen(true)}
         onAdminLogout={handleAdminLogout}
@@ -500,22 +557,22 @@ export default function App() {
         onToggleTheme={toggleTheme}
       />
 
-      {/* Main Admin Dashboard */}
+      {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
-        <AdminDashboard
+        {currentView === 'citizen' ? (
+          <CitizenSearch
+            records={records}
+            onOpenPrintModal={(rec) => setPrintModalRecord(rec)}
+          />
+        ) : (
+          <AdminDashboard
             records={records}
             activeStaff={activeStaff}
             onOpenExcelImport={() => setIsExcelOpen(true)}
-            onOpenAddModal={() => {
-              setEditingRecord(null);
-              setIsRecordModalOpen(true);
-            }}
-            onOpenEditModal={(record) => {
-              setEditingRecord(record);
-              setIsRecordModalOpen(true);
-            }}
-            onOpenDeliveryModal={(record) => setDeliveryModalRecord(record)}
-            onOpenPrintModal={(record) => setPrintModalRecord(record)}
+            onOpenAddModal={() => { setEditingRecord(null); setIsRecordModalOpen(true); }}
+            onOpenEditModal={(rec) => { setEditingRecord(rec); setIsRecordModalOpen(true); }}
+            onOpenDeliveryModal={(rec) => setDeliveryModalRecord(rec)}
+            onOpenPrintModal={(rec) => setPrintModalRecord(rec)}
             onDeleteRecord={handleDeleteRecord}
             onBatchDelete={handleBatchDelete}
             onBatchUpdateStatus={handleBatchUpdateStatus}
@@ -524,66 +581,55 @@ export default function App() {
             onToggleKYC={handleToggleKYC}
             onUpdateKYC={handleUpdateKYC}
             onBatchUpdateKYC={handleBatchUpdateKYC}
+            onBatchEditRecords={handleBatchEditRecords}
             onUpdateStatus={handleUpdateStatus}
             onSaveRecord={handleSaveRecord}
             onResetData={handleResetData}
-            onOpenStaffLoginModal={() => setIsLoginOpen(true)}
           />
+        )}
       </main>
-
-      {/* Modals */}
-      {isLoginOpen && (
-        <AdminLoginModal
-          isOpen={isLoginOpen}
-          onClose={() => {
-            if (isAdmin) setIsLoginOpen(false);
-          }}
-          onLoginSuccess={handleLoginSuccess}
-        />
-      )}
-
-      {isExcelOpen && (
-        <ExcelModal
-          isOpen={isExcelOpen}
-          onClose={() => setIsExcelOpen(false)}
-          onImportSuccess={handleImportSuccess}
-          existingRecordsCount={records.length}
-        />
-      )}
-
-      {isRecordModalOpen && (
-        <RecordModal
-          isOpen={isRecordModalOpen}
-          onClose={() => {
-            setIsRecordModalOpen(false);
-            setEditingRecord(null);
-          }}
-          onSave={handleSaveRecord}
-          initialData={editingRecord}
-          editingRecord={editingRecord}
-          records={records}
-        />
-      )}
-
-      {deliveryModalRecord && (
-        <DeliveryModal
-          isOpen={Boolean(deliveryModalRecord)}
-          record={deliveryModalRecord}
-          onClose={() => setDeliveryModalRecord(null)}
-          onConfirm={handleConfirmDelivery}
-        />
-      )}
-
-      {printModalRecord && (
-        <PrintReceiptModal
-          isOpen={Boolean(printModalRecord)}
-          record={printModalRecord}
-          onClose={() => setPrintModalRecord(null)}
-        />
-      )}
 
       {/* Footer */}
       <Footer />
+
+      {/* Admin Login Modal */}
+      <AdminLoginModal
+        isOpen={isLoginOpen}
+        onClose={() => setIsLoginOpen(false)}
+        onLoginSuccess={handleLoginSuccess}
+      />
+
+      {/* Add / Edit Record Modal */}
+      <RecordModal
+        isOpen={isRecordModalOpen}
+        onClose={() => { setIsRecordModalOpen(false); setEditingRecord(null); }}
+        onSave={handleSaveRecord}
+        editingRecord={editingRecord}
+        records={records}
+      />
+
+      {/* Excel Import Modal */}
+      <ExcelModal
+        isOpen={isExcelOpen}
+        onClose={() => setIsExcelOpen(false)}
+        onImportSuccess={handleImportSuccess}
+      />
+
+      {/* Delivery Confirmation Modal */}
+      <DeliveryModal
+        isOpen={Boolean(deliveryModalRecord)}
+        onClose={() => setDeliveryModalRecord(null)}
+        record={deliveryModalRecord}
+        onConfirm={handleConfirmDelivery}
+      />
+
+      {/* Print Slip / Receipt Modal */}
+      <PrintReceiptModal
+        isOpen={Boolean(printModalRecord)}
+        onClose={() => setPrintModalRecord(null)}
+        record={printModalRecord}
+      />
+
     </div>
   );
 }

@@ -6,7 +6,7 @@ import {
   onSnapshot 
 } from 'firebase/firestore';
 import { INITIAL_RECORDS } from '../data/initialData';
-import { getStoredRecords, saveRecords } from './storage';
+import { getStoredRecords, saveRecords, deduplicateRecords } from './storage';
 
 const DOC_REF = doc(db, 'portal_data', 'electricity_records');
 const FOOTER_DOC_REF = doc(db, 'portal_data', 'footer_settings');
@@ -32,8 +32,9 @@ export function subscribeToCloudRecords(onUpdateCallback) {
       if (snapshot.exists()) {
         const data = snapshot.data();
         if (data && Array.isArray(data.records) && data.records.length > 0) {
-          saveRecords(data.records); // also cache in local storage
-          onUpdateCallback(data.records);
+          const cleaned = deduplicateRecords(data.records);
+          saveRecords(cleaned); // also cache in local storage
+          onUpdateCallback(cleaned);
           return;
         }
       }
@@ -60,6 +61,7 @@ export function subscribeToCloudRecords(onUpdateCallback) {
  */
 export async function saveRecordsToCloud(records) {
   try {
+    const cleaned = deduplicateRecords(records);
     const existing = getStoredRecords();
     if (existing && existing.length > 0) {
       // Keep a local safety backup snapshot
@@ -67,13 +69,13 @@ export async function saveRecordsToCloud(records) {
       localStorage.setItem('electricity_portal_backup_time', new Date().toISOString());
 
       // If replacing with fewer records, save backup to Firestore backup collection
-      if (records.length < existing.length) {
+      if (cleaned.length < existing.length) {
         try {
           const BACKUP_DOC = doc(db, 'portal_data', 'electricity_records_backup');
           await setDoc(BACKUP_DOC, {
             records: existing,
             backupTimestamp: new Date().toISOString(),
-            reason: `Auto backup before count change (${existing.length} -> ${records.length})`
+            reason: `Auto backup before count change (${existing.length} -> ${cleaned.length})`
           });
         } catch (bErr) {
           console.warn('Backup write note:', bErr);
@@ -81,9 +83,9 @@ export async function saveRecordsToCloud(records) {
       }
     }
 
-    saveRecords(records); // save locally first
+    saveRecords(cleaned); // save locally first
     await setDoc(DOC_REF, {
-      records: records,
+      records: cleaned,
       lastUpdated: new Date().toISOString(),
       updatedBy: 'Admin'
     });

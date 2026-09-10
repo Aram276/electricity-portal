@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
   Zap, 
   Search, 
@@ -12,7 +12,9 @@ import {
   ArrowRight,
   ShieldCheck,
   AlertTriangle,
-  Sparkles
+  Sparkles,
+  FileText,
+  Check
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -26,6 +28,22 @@ function toLatinDigits(str) {
     res = res.replaceAll(eastern[i], String(i)).replaceAll(persian[i], String(i));
   }
   return res;
+}
+
+// Ultra-Smart Kurdish fuzzy text normalizer
+function normalizeKurdishFuzzy(str) {
+  if (!str) return '';
+  return toLatinDigits(str)
+    .toLowerCase()
+    .replace(/[ڕ]/g, 'ر')
+    .replace(/[ڵ]/g, 'ل')
+    .replace(/[يىئێی]/g, 'ی')
+    .replace(/[ك]/g, 'ک')
+    .replace(/[ةه]/g, 'ە')
+    .replace(/[ۆو]/g, 'و')
+    .replace(/[أإآا]/g, 'ا')
+    .replace(/[\u064B-\u065F\u0670\u0640]/g, '')
+    .trim();
 }
 
 export default function FastCheckoutModal({ isOpen, onClose, records = [], onDeliverRecord }) {
@@ -51,41 +69,63 @@ export default function FastCheckoutModal({ isOpen, onClose, records = [], onDel
     }
   }, [isOpen]);
 
+  // Compute matched candidates from records
+  const candidates = useMemo(() => {
+    const raw = (query || '').trim();
+    if (!raw) return [];
+    const latinQ = toLatinDigits(raw);
+    const fuzzyQ = normalizeKurdishFuzzy(raw);
+    const compactFuzzyQ = fuzzyQ.replace(/\s+/g, '');
+    const cleanDigitsQ = latinQ.replace(/[^0-9]/g, '');
+
+    return (records || []).filter(r => {
+      const fNum = String(r.fileNumber || '').trim();
+      const acc = String(r.accountNumber || '').trim();
+      const phone = String(r.phoneNumber || '').replace(/[^0-9]/g, '');
+      const fuzzyName = normalizeKurdishFuzzy(r.citizenName || '');
+      const compactName = fuzzyName.replace(/\s+/g, '');
+
+      // Exact file match
+      if (cleanDigitsQ && fNum === cleanDigitsQ) return true;
+      // Account match
+      if (cleanDigitsQ && acc.includes(cleanDigitsQ)) return true;
+      // Phone match
+      if (cleanDigitsQ && phone.includes(cleanDigitsQ)) return true;
+      // File number partial
+      if (cleanDigitsQ && fNum.includes(cleanDigitsQ)) return true;
+      // Name match
+      if (fuzzyQ && (fuzzyName.includes(fuzzyQ) || compactName.includes(compactFuzzyQ))) return true;
+
+      return false;
+    }).slice(0, 8);
+  }, [query, records]);
+
+  // Auto-select candidate if exact single match
+  useEffect(() => {
+    if (candidates.length === 1 && !selectedRecord) {
+      const single = candidates[0];
+      setSelectedRecord(single);
+      setReceiverName((single.citizenName && single.citizenName !== 'هاوبەشی کارەبا') ? single.citizenName : '');
+      setReceiverPhone((single.phoneNumber && single.phoneNumber !== 'نیە') ? single.phoneNumber : '');
+    } else if (candidates.length === 0) {
+      setSelectedRecord(null);
+    }
+  }, [candidates]);
+
   if (!isOpen) return null;
 
-  // Search logic for instant matching
-  const handleQueryChange = (val) => {
-    setQuery(val);
+  const handleSelectCandidate = (rec) => {
+    setSelectedRecord(rec);
+    setReceiverName((rec.citizenName && rec.citizenName !== 'هاوبەشی کارەبا') ? rec.citizenName : '');
+    setReceiverPhone((rec.phoneNumber && rec.phoneNumber !== 'نیە') ? rec.phoneNumber : '');
     setErrorMsg(null);
-    const cleanQ = toLatinDigits(val).trim().toLowerCase();
-
-    if (!cleanQ) {
-      setSelectedRecord(null);
-      return;
-    }
-
-    // Exact or close match by fileNumber, accountNumber, or phoneNumber
-    const match = records.find(r => {
-      const fNum = toLatinDigits(String(r.fileNumber || '')).trim().toLowerCase();
-      const acc = toLatinDigits(String(r.accountNumber || '')).trim();
-      const phone = toLatinDigits(String(r.phoneNumber || '')).replace(/[^0-9]/g, '');
-
-      return fNum === cleanQ || acc === cleanQ || (phone && phone === cleanQ.replace(/[^0-9]/g, ''));
-    });
-
-    if (match) {
-      setSelectedRecord(match);
-      setReceiverName(match.citizenName !== 'هاوبەشی کارەبا' ? match.citizenName : '');
-      setReceiverPhone(match.phoneNumber !== 'نیە' ? match.phoneNumber : '');
-    } else {
-      setSelectedRecord(null);
-    }
+    setTimeout(() => receiverInputRef.current?.focus(), 50);
   };
 
   const handleConfirmDelivery = (e) => {
     e?.preventDefault();
     if (!selectedRecord) {
-      setErrorMsg('تکایە سەرەتا ژمارەی فایل یان ئەژماری هاووڵاتی بنووسە');
+      setErrorMsg('تکایە سەرەتا ژمارەی فایل، ئەژمار، یان ناوی هاووڵاتی بنووسە');
       return;
     }
 
@@ -94,15 +134,17 @@ export default function FastCheckoutModal({ isOpen, onClose, records = [], onDel
     const activeStaff = JSON.parse(localStorage.getItem('electricity_active_staff') || 'null');
     const staffName = activeStaff?.name ? `${activeStaff.name}` : 'کارمەندی ژووری ١٩';
 
-    onDeliverRecord(selectedRecord.id, {
-      status: 'DELIVERED',
-      deliveredDate: nowTime,
-      receiverName: finalReceiver,
-      handledBy: staffName,
-      deliveredBy: staffName,
-      isKycDone: true,
-      kycStatus: 'DONE'
-    });
+    if (onDeliverRecord) {
+      onDeliverRecord(selectedRecord.id, {
+        status: 'DELIVERED',
+        deliveredDate: nowTime,
+        receiverName: finalReceiver,
+        handledBy: staffName,
+        deliveredBy: staffName,
+        isKycDone: true,
+        kycStatus: 'DONE'
+      });
+    }
 
     // Confetti celebration
     try {
@@ -111,7 +153,7 @@ export default function FastCheckoutModal({ isOpen, onClose, records = [], onDel
         spread: 60,
         origin: { y: 0.7 }
       });
-    } catch (e) {}
+    } catch (err) {}
 
     setSuccessMessage(`دۆسیەی ژمارە (${selectedRecord.fileNumber}) بە ناوی [${finalReceiver}] بە فەرمی تەسلیم کرایەوە! ✅`);
     
@@ -163,27 +205,31 @@ export default function FastCheckoutModal({ isOpen, onClose, records = [], onDel
           </div>
         )}
 
-        {/* Step 1: Search File / ID */}
+        {/* Step 1: Search File / ID / Name / Phone */}
         <div className="space-y-2">
           <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
-            <span>ژمارەی فایل یان ژمارەی ئەژمار (ID) بنووسە:</span>
-            <span className="text-slate-400 text-[11px]">بە نووسین دەستبەجێ دەیدۆزێتەوە</span>
+            <span>ژمارەی فایل، ئەژمار (ID)، ناو، یان مۆبایل بنووسە:</span>
+            <span className="text-amber-600 dark:text-amber-400 text-[11px] font-bold">گەڕانی دەستبەجێ ⚡</span>
           </label>
           <div className="relative">
             <input
               ref={queryInputRef}
               type="text"
               value={query}
-              onChange={(e) => handleQueryChange(e.target.value)}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setErrorMsg(null);
+                if (selectedRecord) setSelectedRecord(null);
+              }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && selectedRecord) {
                   receiverInputRef.current?.focus();
                 }
               }}
-              placeholder="نموونە: 841 یان 63450291130"
+              placeholder="نموونە: 654 یان 63172254653 یان ڕێبین..."
               className="w-full pr-11 pl-4 py-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border-2 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-mono text-base font-bold focus:border-amber-500 focus:outline-none transition-all shadow-inner"
             />
-            <Search className="w-5 h-5 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <Search className="w-5 h-5 text-amber-500 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
           {errorMsg && (
             <p className="text-xs text-rose-500 font-bold flex items-center gap-1">
@@ -192,20 +238,54 @@ export default function FastCheckoutModal({ isOpen, onClose, records = [], onDel
           )}
         </div>
 
+        {/* Candidate List (when multiple matches exist) */}
+        {query && candidates.length > 1 && !selectedRecord && (
+          <div className="space-y-2 animate-fadeIn">
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+              ئەنجامە دۆزراوەکان ({candidates.length}) - کلیک لە دانەیەکیان بکە:
+            </span>
+            <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
+              {candidates.map(c => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => handleSelectCandidate(c)}
+                  className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 hover:border-amber-500 hover:bg-amber-500/10 transition-all flex items-center justify-between text-right cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-black text-amber-600 dark:text-amber-400 text-sm px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-500/20">
+                      #{c.fileNumber}
+                    </span>
+                    <span className="font-bold text-xs text-slate-900 dark:text-white truncate max-w-[160px]">
+                      {c.citizenName}
+                    </span>
+                    <span className="font-mono text-[11px] text-slate-500">
+                      ID: {c.accountNumber || '-'}
+                    </span>
+                  </div>
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                    {c.fileType === 'YELLOW_FOLDER' ? '📁 زەرد' : '📄 ئەوراق'}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Step 2: Found Citizen Preview Card */}
         {selectedRecord ? (
           <div className="p-4 sm:p-5 rounded-3xl bg-amber-50/80 dark:bg-gradient-to-br dark:from-amber-500/10 dark:to-slate-950 border-2 border-amber-500/40 space-y-4 animate-fadeIn">
             <div className="flex items-center justify-between border-b border-amber-500/20 pb-3">
               <div className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-2xl bg-amber-500 text-slate-950 font-black flex items-center justify-center font-mono text-lg shadow-md">
-                  {selectedRecord.fileNumber}
+                <div className="w-11 h-11 rounded-2xl bg-amber-500 text-slate-950 font-black flex items-center justify-center font-mono text-lg shadow-md">
+                  #{selectedRecord.fileNumber}
                 </div>
                 <div>
                   <div className="font-black text-slate-900 dark:text-white text-base">
                     {selectedRecord.citizenName}
                   </div>
                   <div className="text-xs text-slate-500 dark:text-slate-400 font-mono">
-                    ID: {selectedRecord.accountNumber || 'نیە'}
+                    ID: {selectedRecord.accountNumber || 'نیە'} | مۆبایل: {selectedRecord.phoneNumber || 'نیە'}
                   </div>
                 </div>
               </div>
@@ -247,17 +327,17 @@ export default function FastCheckoutModal({ isOpen, onClose, records = [], onDel
 
               <button
                 type="submit"
-                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-black text-sm shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 transition-all active:scale-95"
+                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-black text-sm shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer"
               >
                 <ShieldCheck className="w-5 h-5" />
                 <span>تەسلیمی بکە (Confirm & Checkout ➔)</span>
               </button>
             </form>
           </div>
-        ) : query ? (
+        ) : query && candidates.length === 0 ? (
           <div className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-center space-y-1">
-            <p className="text-xs font-bold text-slate-700 dark:text-slate-300">هیچ دۆسیەیەک نەدۆزرایەوە بە ژمارەی: "{query}"</p>
-            <p className="text-[11px] text-slate-400">دڵنیابەرەوە لە دروستی ژمارەی فایل یان ژمارەی ئەژمار</p>
+            <p className="text-xs font-bold text-slate-700 dark:text-slate-300">هیچ دۆسیەیەک نەدۆزرایەوە بە: "{query}"</p>
+            <p className="text-[11px] text-slate-400">دڵنیابەرەوە لە دروستی ژمارەی فایل، ئەژمار، یان ناوی هاووڵاتی</p>
           </div>
         ) : null}
 

@@ -92,6 +92,7 @@ export default function AdminDashboard({
   onToggleKYC,
   onUpdateKYC,
   onBatchUpdateKYC,
+  onBatchEditRecords,
   onUpdateStatus,
   onSaveRecord,
   onResetData
@@ -115,6 +116,15 @@ export default function AdminDashboard({
   const [timelineRecord, setTimelineRecord] = useState(null); // File life history modal
   const [isFastCheckoutOpen, setIsFastCheckoutOpen] = useState(false);
   const [isBulkWhatsAppOpen, setIsBulkWhatsAppOpen] = useState(false);
+  const [isBulkEditOpen, setIsBulkEditOpen] = useState(false);
+  const [bulkEditForm, setBulkEditForm] = useState({
+    status: '',
+    fileType: '',
+    kycStatus: '',
+    handledBy: '',
+    archiveLocation: '',
+    notes: ''
+  });
 
   // Add audit note to file timeline
   const handleTimelineNote = (recordId, noteObj) => {
@@ -857,6 +867,34 @@ export default function AdminDashboard({
                   <span>پێنەدراوەتەوە (Not Done)</span>
                 </button>
 
+                {/* Change Status to Delivered */}
+                <button
+                  onClick={() => handleBulkStatusChange('DELIVERED')}
+                  className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all shadow-sm active:scale-95 flex items-center gap-1.5"
+                >
+                  <PackageCheck className="w-3.5 h-3.5" />
+                  <span>تەسلیم کرا (Delivered) 🔵</span>
+                </button>
+
+                {/* Bulk Custom Edit Button */}
+                <button
+                  onClick={() => {
+                    setBulkEditForm({
+                      status: '',
+                      fileType: '',
+                      kycStatus: '',
+                      handledBy: '',
+                      archiveLocation: '',
+                      notes: ''
+                    });
+                    setIsBulkEditOpen(true);
+                  }}
+                  className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-black shadow-lg shadow-purple-600/30 transition-all active:scale-95 flex items-center gap-1.5"
+                >
+                  <Edit className="w-4 h-4" />
+                  <span>دەستکاریکردنی بەکۆمەڵ ✏️</span>
+                </button>
+
                 {/* BULK DELETE BUTTON */}
                 <button
                   onClick={handleTriggerBulkDelete}
@@ -1597,6 +1635,172 @@ export default function AdminDashboard({
           onAddTimelineNote={handleTimelineNote}
           activeStaff={activeStaff}
         />
+      )}
+
+      {/* Bulk Edit Modal for Selected Records */}
+      {isBulkEditOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
+          <div className="relative w-full max-w-lg rounded-3xl bg-white dark:bg-slate-900 border-2 border-amber-500/50 shadow-2xl p-6 sm:p-8 space-y-5 max-h-[92vh] overflow-y-auto">
+            
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2.5 rounded-2xl bg-amber-500 text-slate-950 font-black shadow-md">
+                  <Edit className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900 dark:text-white">دەستکاریکردنی بەکۆمەڵ (Bulk Edit)</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    گۆڕینی هاوبەشی زانیاری بۆ <strong className="text-amber-500 font-mono">({selectedIds.length})</strong> فایلی هەڵبژێردراو
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsBulkEditOpen(false)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4 text-xs">
+              
+              {/* Status */}
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">دۆخی مامەڵە (Status):</label>
+                <select
+                  value={bulkEditForm.status}
+                  onChange={(e) => setBulkEditForm({ ...bulkEditForm, status: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-bold focus:border-amber-500"
+                >
+                  <option value="">-- دەستکاری نەکرێت (وەک خۆی بمێنێتەوە) --</option>
+                  <option value="COMPLETED">🟢 وەرگیراوەتەوە (Done)</option>
+                  <option value="IN_PROGRESS">🟡 پێنەدراوەتەوە (In Progress)</option>
+                  <option value="DELIVERED">🔵 تەسلیم کراوە (Delivered)</option>
+                </select>
+              </div>
+
+              {/* Folder Type */}
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">جۆری دۆسیە (Folder Type):</label>
+                <select
+                  value={bulkEditForm.fileType}
+                  onChange={(e) => setBulkEditForm({ ...bulkEditForm, fileType: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-bold focus:border-amber-500"
+                >
+                  <option value="">-- دەستکاری نەکرێت --</option>
+                  <option value="YELLOW_FOLDER">📁 فایلی زەرد (دۆسیەی زەرد)</option>
+                  <option value="PAPER">📄 ئەوراق (کاغەز/پەڕەی سپی)</option>
+                </select>
+              </div>
+
+              {/* KYC Status */}
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">دۆخی KYC (ناسینەوەی هاوبەش):</label>
+                <select
+                  value={bulkEditForm.kycStatus}
+                  onChange={(e) => setBulkEditForm({ ...bulkEditForm, kycStatus: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-bold focus:border-amber-500"
+                >
+                  <option value="">-- دەستکاری نەکرێت --</option>
+                  <option value="DONE_BY_US">🟢 ئێمە کردمان (Done by us)</option>
+                  <option value="PRE_VERIFIED">🔵 پێشتر کراوە (دەرەکی)</option>
+                  <option value="PENDING">🟡 نەکراوە (پێنەدراوەتەوە)</option>
+                </select>
+              </div>
+
+              {/* Handled By */}
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">فەرمانبەری ئەنجامدەر (Handled By):</label>
+                <input
+                  type="text"
+                  placeholder="بۆ نموونە: ئارام، یاخود بە بەتاڵی جێی بهێڵە"
+                  value={bulkEditForm.handledBy}
+                  onChange={(e) => setBulkEditForm({ ...bulkEditForm, handledBy: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-bold focus:border-amber-500"
+                />
+              </div>
+
+              {/* Archive Location */}
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">شوێنی ئەرشیف (Archive Box / Location):</label>
+                <input
+                  type="text"
+                  placeholder="بۆ نموونە: سندوقی ژووری ١٩"
+                  value={bulkEditForm.archiveLocation}
+                  onChange={(e) => setBulkEditForm({ ...bulkEditForm, archiveLocation: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-bold focus:border-amber-500"
+                />
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">تێبینی هاوبەش (Notes):</label>
+                <textarea
+                  rows="2"
+                  placeholder="تێبینی بۆ سەرجەم ئەم دۆسیانە زیاد دەبێت..."
+                  value={bulkEditForm.notes}
+                  onChange={(e) => setBulkEditForm({ ...bulkEditForm, notes: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:border-amber-500 resize-none"
+                />
+              </div>
+
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setIsBulkEditOpen(false)}
+                className="px-4 py-2.5 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 font-bold"
+              >
+                پاشگەزبوونەوە
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const updates = {};
+                  if (bulkEditForm.status) {
+                    updates.status = bulkEditForm.status;
+                    if (bulkEditForm.status === 'COMPLETED' || bulkEditForm.status === 'DELIVERED') {
+                      updates.isKycDone = true;
+                      updates.kycStatus = 'DONE';
+                    }
+                    if (bulkEditForm.status === 'COMPLETED') {
+                      updates.completionDate = new Date().toISOString().slice(0, 10);
+                    }
+                    if (bulkEditForm.status === 'DELIVERED') {
+                      updates.deliveredDate = new Date().toISOString().replace('T', ' ').slice(0, 16);
+                    }
+                  }
+                  if (bulkEditForm.fileType) updates.fileType = bulkEditForm.fileType;
+                  if (bulkEditForm.kycStatus) {
+                    updates.kycStatus = bulkEditForm.kycStatus;
+                    updates.kycType = bulkEditForm.kycStatus;
+                    updates.isKycDone = bulkEditForm.kycStatus === 'DONE_BY_US' || bulkEditForm.kycStatus === 'PRE_VERIFIED';
+                  }
+                  if (bulkEditForm.handledBy) updates.handledBy = bulkEditForm.handledBy;
+                  if (bulkEditForm.archiveLocation) updates.archiveLocation = bulkEditForm.archiveLocation;
+                  if (bulkEditForm.notes) updates.notes = bulkEditForm.notes;
+
+                  if (Object.keys(updates).length === 0) {
+                    alert('تکایە لانیکەم یەک خانە دیاریبکە بۆ نوێکردنەوە');
+                    return;
+                  }
+
+                  if (onBatchEditRecords) {
+                    onBatchEditRecords(selectedIds, updates);
+                  }
+                  setIsBulkEditOpen(false);
+                }}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black shadow-md shadow-amber-500/25 active:scale-95"
+              >
+                جێبەجێکردنی گۆڕانکارییەکان ({selectedIds.length})
+              </button>
+            </div>
+
+          </div>
+        </div>
       )}
 
     </div>

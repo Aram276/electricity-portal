@@ -27,6 +27,7 @@ export default function DailyIntake({ records = [], onSaveRecord, onDeleteRecord
   const todayStr = new Date().toISOString().slice(0, 10);
   const accountInputRef = useRef(null);
   const [editingItem, setEditingItem] = useState(null); // { id, fields... }
+  const [successAlert, setSuccessAlert] = useState(null);
 
   // Auto-calculate the next file number starting from 933 onwards (934, 935...)
   const nextFileNumber = useMemo(() => {
@@ -52,7 +53,7 @@ export default function DailyIntake({ records = [], onSaveRecord, onDeleteRecord
   // Sync initial fileNumber when records first load
   useEffect(() => {
     setFormData(prev => {
-      if (!prev.fileNumber || prev.fileNumber === '934') {
+      if (!prev.fileNumber || prev.fileNumber === '934' || prev.fileNumber === '976') {
         return { ...prev, fileNumber: nextFileNumber };
       }
       return prev;
@@ -96,7 +97,13 @@ export default function DailyIntake({ records = [], onSaveRecord, onDeleteRecord
 
   // List of records entered today
   const todayList = useMemo(() => {
-    return (records || []).filter(r => r.submissionDate === todayStr);
+    const localDateStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+    return (records || []).filter(r => {
+      return r.submissionDate === todayStr || 
+             r.submissionDate === localDateStr || 
+             r.createdAt === todayStr ||
+             (r.id && r.id.startsWith('rec-') && (r.submissionDate === todayStr || r.submissionDate === localDateStr));
+    });
   }, [records, todayStr]);
 
   const handleEditSave = () => {
@@ -131,14 +138,14 @@ export default function DailyIntake({ records = [], onSaveRecord, onDeleteRecord
     const isKyc = formData.kycStatus === 'DONE_BY_US' || formData.kycStatus === 'PRE_VERIFIED' || isDone;
 
     const newRecord = {
-      id: 'rec-' + Date.now(),
+      id: 'rec-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
       fileNumber: cleanFileNum,
       fileType: formData.fileType || 'YELLOW_FOLDER',
       accountNumber: cleanAccount,
       citizenName: hasRealName ? cleanName : 'هاوبەشی کارەبا',
       hasRealName: hasRealName,
       phoneNumber: cleanPhone || 'نیە',
-      department: 'بەڕێوەبەرایەتی دابەشکردنی کارەبا',
+      department: 'بەڕێوەبەرایەتی دابەشکردنی کارەبا (فرۆشیاری وزە ٢)',
       transactionType: 'پڕۆژەی ڕووناکی - پێوەری زیرەک',
       status: formData.status || 'IN_PROGRESS',
       archiveLocation: `سندوقی ${cleanFileNum}`,
@@ -156,6 +163,10 @@ export default function DailyIntake({ records = [], onSaveRecord, onDeleteRecord
     if (onSaveRecord) {
       onSaveRecord(newRecord, null);
     }
+
+    // Trigger instant success banner
+    setSuccessAlert(`فایلی ژمارە (${cleanFileNum}) بە ناوی [${hasRealName ? cleanName : 'هاوبەشی کارەبا'}] بە سەرکەوتوویی تۆمار کرا! ✅`);
+    setTimeout(() => setSuccessAlert(null), 3500);
 
     // Calculate next file number for next entry
     const currentNumInt = parseInt(cleanFileNum, 10);
@@ -226,6 +237,14 @@ export default function DailyIntake({ records = [], onSaveRecord, onDeleteRecord
               فایلی داهاتوو: #{formData.fileNumber}
             </span>
           </div>
+
+          {/* Success Banner */}
+          {successAlert && (
+            <div className="p-4 rounded-2xl bg-emerald-500/15 border-2 border-emerald-500 text-emerald-800 dark:text-emerald-300 font-bold text-sm flex items-center gap-3 animate-bounce">
+              <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+              <span>{successAlert}</span>
+            </div>
+          )}
 
           {/* Realtime Duplicate Notice & Previous KYC Awareness */}
           {duplicates.length > 0 && (

@@ -14,13 +14,14 @@ import {
   resetToDemoRecords, 
   markAsDelivered, 
   isAdminAuthenticated, 
-  setAdminAuthenticated 
+  setAdminAuthenticated,
+  deduplicateRecords
 } from './utils/storage';
 import { subscribeToCloudRecords, saveRecordsToCloud, logActivity } from './utils/cloudSync';
 import { CheckCircle2, Info, Cloud } from 'lucide-react';
 
 export default function App() {
-  const [records, setRecords] = useState(() => getStoredRecords());
+  const [records, setRecords] = useState(() => deduplicateRecords(getStoredRecords()));
   const [currentView, setCurrentView] = useState('citizen'); // 'citizen' | 'admin'
   const [isAdmin, setIsAdmin] = useState(() => isAdminAuthenticated());
   const [activeStaff, setActiveStaff] = useState(() => {
@@ -47,21 +48,26 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [isAdminPath, setIsAdminPath] = useState(false);
 
+  // Check URL path on mount & hashchange
   useEffect(() => {
     const checkAdminUrl = () => {
-      const hash = window.location.hash.toLowerCase();
       const path = window.location.pathname.toLowerCase();
+      const hash = window.location.hash.toLowerCase();
       const search = window.location.search.toLowerCase();
-      const isTarget = hash.includes('admin') || hash.includes('staff') || path.includes('/admin') || search.includes('admin');
       
-      setIsAdminPath(isTarget);
+      const isDirectAdmin = 
+        path.includes('/admin') || 
+        hash.includes('admin') || 
+        search.includes('admin') || 
+        path.endsWith('/manage') ||
+        window.location.port === '5174';
 
-      if (isTarget) {
-        if (isAdminAuthenticated()) {
-          setIsAdmin(true);
-          setCurrentView('admin');
-        } else {
+      if (isDirectAdmin) {
+        setIsAdminPath(true);
+        if (!isAdminAuthenticated()) {
           setIsLoginOpen(true);
+        } else {
+          setCurrentView('admin');
         }
       }
     };
@@ -72,7 +78,7 @@ export default function App() {
 
     // Secret Key Combination: Ctrl + Shift + A or Alt + A
     const handleKeyDown = (e) => {
-      if ((e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'a') || (e.altKey && e.key.toLowerCase() === 'a')) {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'a') {
         e.preventDefault();
         if (isAdminAuthenticated()) {
           setCurrentView(prev => prev === 'admin' ? 'citizen' : 'admin');
@@ -88,7 +94,7 @@ export default function App() {
     // Live Cloud Subscription to Firebase Firestore
     const unsubscribe = subscribeToCloudRecords((cloudRecords) => {
       if (cloudRecords && cloudRecords.length > 0) {
-        setRecords(cloudRecords);
+        setRecords(deduplicateRecords(cloudRecords));
       }
     });
 
@@ -134,7 +140,7 @@ export default function App() {
       localStorage.setItem('electricity_active_staff', JSON.stringify(staffUser));
     }
     setCurrentView('admin');
-    showToast(`بەخێربێیت ${staffUser?.name || 'فەرمانبەر'}! چوونەژوورەوەت سەرکەوتوو بوو`, 'success');
+    showToast(`بەخێربێیت ${staffUser?.name || 'فەرمانبەر'}! چوونەژوورەوەت سەرکەوتوویی بوو`, 'success');
   };
 
   // Handle Staff logout
@@ -151,11 +157,10 @@ export default function App() {
   const handleImportSuccess = (newRecords, mode) => {
     let updated;
     if (mode === 'replace') {
-      updated = newRecords;
+      updated = deduplicateRecords(newRecords);
       showToast(`${newRecords.length} دۆسیە بە سەرکەوتوویی لە جێگەی هەموو داتاکان دانران`, 'success');
     } else {
       // Smart Merge: Deduplicate strictly by fileNumber and ID, NEVER drop files just because phone number is identical!
-      // A person can have 12 files with the same phone number, and all 12 are properly accepted.
       const existingFileMap = new Map();
       records.forEach(r => {
         if (r.fileNumber) existingFileMap.set(String(r.fileNumber).trim(), r);
@@ -195,13 +200,7 @@ export default function App() {
         }
       });
 
-      // Sort numerically by fileNumber
-      updated = combined.sort((a, b) => {
-        const numA = parseInt(a.fileNumber, 10) || 0;
-        const numB = parseInt(b.fileNumber, 10) || 0;
-        return numA - numB;
-      });
-
+      updated = deduplicateRecords(combined);
       showToast(`${addedCount} فایلی نوێ زیادکران، ${updatedCount} فایل زانیارییەکانیان نوێکرانەوە بەبێ دووبارەبوونەوە`, 'success');
       logActivity('EXCEL_IMPORT', `هاوردەکردنی ئێکسڵ: ${newRecords.length} دۆسیە هاوردە کران`, { count: newRecords.length });
     }
@@ -219,7 +218,7 @@ export default function App() {
     }
   };
 
-  // Add / Edit record
+  // Add / Edit record with Smart-Merge and Guaranteed Unique IDs
   const handleSaveRecord = (formData, recordId) => {
     const staffName = getActiveStaffName();
     let updated;
@@ -237,41 +236,67 @@ export default function App() {
 
     if (recordId) {
       updated = records.map(r => r.id === recordId ? { ...r, ...processedData } : r);
-      showToast('زانیارییەکانی مامەڵەکە لە کڵاود و سێرڤەر بە سەرکەوتوویی نوێکرایەوە', 'success');
+      showToast('زانیارییەکانی مامەڵەکە بە سەرکەوتوویی لە کڵاود و سێرڤەر نوێکرایەوە', 'success');
       logActivity(
         isDelivered ? 'DELIVERY' : 'STATUS_CHANGE',
         `دەستکاریکردنی فایلی (${processedData.fileNumber}) [${processedData.citizenName}] (لەلایەن: ${staffName})`,
-        { 
-          fileNumber: processedData.fileNumber, 
-          citizenName: processedData.citizenName, 
-          accountNumber: processedData.accountNumber || '',
-          phoneNumber: processedData.phoneNumber || '',
-          status: processedData.status,
-          kycStatus: processedData.kycStatus,
-          fileType: processedData.fileType,
-          archiveLocation: processedData.archiveLocation
-        }
+        processedData
       );
     } else {
-      const newRec = {
-        id: formData.id || ('rec-' + Date.now()),
-        ...processedData
-      };
-      updated = [newRec, ...records];
-      showToast('مامەڵەی نوێ لە سێرڤەری گشتی بە سەرکەوتوویی تۆمار کرا', 'success');
-      logActivity('CREATE', `تۆمارکردنی فایلی نوێی (${processedData.fileNumber}) بە ناوی [${processedData.citizenName}] (لەلایەن: ${staffName})`, {
-        fileNumber: processedData.fileNumber,
-        citizenName: processedData.citizenName,
-        accountNumber: processedData.accountNumber || '',
-        phoneNumber: processedData.phoneNumber || '',
-        status: processedData.status,
-        kycStatus: processedData.kycStatus,
-        fileType: processedData.fileType,
-        archiveLocation: processedData.archiveLocation
-      });
+      // Check if fileNumber already exists!
+      const targetFileNum = String(processedData.fileNumber || '').trim();
+      const existingIdx = targetFileNum ? records.findIndex(r => String(r.fileNumber || '').trim() === targetFileNum) : -1;
+
+      if (existingIdx !== -1) {
+        // Smart Merge: update existing record rather than creating a duplicate row!
+        updated = [...records];
+        updated[existingIdx] = {
+          ...updated[existingIdx],
+          ...processedData,
+          id: updated[existingIdx].id
+        };
+        showToast(`فایلی (${targetFileNum}) پێشتر هەبوو، زانیارییەکانی بە سەرکەوتوویی نوێکرانەوە`, 'success');
+      } else {
+        const uniqueId = formData.id && !records.some(r => r.id === formData.id)
+          ? formData.id 
+          : ('rec-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7));
+
+        const newRec = {
+          id: uniqueId,
+          ...processedData
+        };
+        updated = [newRec, ...records];
+        showToast('مامەڵەی نوێ لە سێرڤەری گشتی بە سەرکەوتوویی تۆمار کرا', 'success');
+      }
+
+      logActivity('CREATE', `تۆمارکردنی فایلی نوێی (${processedData.fileNumber}) بە ناوی [${processedData.citizenName}] (لەلایەن: ${staffName})`, processedData);
     }
-    setRecords(updated);
-    saveRecordsToCloud(updated);
+
+    const cleaned = deduplicateRecords(updated);
+    setRecords(cleaned);
+    saveRecordsToCloud(cleaned);
+  };
+
+  // Bulk Edit custom fields on multiple records
+  const handleBatchEditRecords = (ids, updates) => {
+    const staffName = getActiveStaffName();
+    const idSet = new Set(ids);
+    const updated = records.map(r => {
+      if (idSet.has(r.id)) {
+        return {
+          ...r,
+          ...updates,
+          handledBy: updates.handledBy || r.handledBy || staffName
+        };
+      }
+      return r;
+    });
+
+    const cleaned = deduplicateRecords(updated);
+    setRecords(cleaned);
+    saveRecordsToCloud(cleaned);
+    showToast(`دەستکاریکردنی بەکۆمەڵ بۆ ${ids.length} فایل بە سەرکەوتوویی ئەنجامدرا`, 'success');
+    logActivity('STATUS_CHANGE', `دەستکاریکردنی بەکۆمەڵی (${ids.length}) فایل (لەلایەن: ${staffName})`, { count: ids.length, updates });
   };
 
   // Delete record (single)
@@ -556,6 +581,7 @@ export default function App() {
             onToggleKYC={handleToggleKYC}
             onUpdateKYC={handleUpdateKYC}
             onBatchUpdateKYC={handleBatchUpdateKYC}
+            onBatchEditRecords={handleBatchEditRecords}
             onUpdateStatus={handleUpdateStatus}
             onSaveRecord={handleSaveRecord}
             onResetData={handleResetData}
