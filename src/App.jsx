@@ -15,13 +15,22 @@ import {
   markAsDelivered, 
   isAdminAuthenticated, 
   setAdminAuthenticated,
-  deduplicateRecords
+  deduplicateRecords,
+  getStoredTrash,
+  saveTrash
 } from './utils/storage';
-import { subscribeToCloudRecords, saveRecordsToCloud, logActivity } from './utils/cloudSync';
+import { 
+  subscribeToCloudRecords, 
+  saveRecordsToCloud, 
+  subscribeToCloudTrash, 
+  saveTrashToCloud, 
+  logActivity 
+} from './utils/cloudSync';
 import { CheckCircle2, Info, Cloud } from 'lucide-react';
 
 export default function App() {
   const [records, setRecords] = useState(() => deduplicateRecords(getStoredRecords()));
+  const [trashRecords, setTrashRecords] = useState(() => getStoredTrash());
   const [currentView, setCurrentView] = useState('citizen'); // 'citizen' | 'admin'
   const [isAdmin, setIsAdmin] = useState(() => isAdminAuthenticated());
   const [activeStaff, setActiveStaff] = useState(() => {
@@ -99,11 +108,19 @@ export default function App() {
       }
     });
 
+    // Live Cloud Subscription to Trash
+    const unsubTrash = subscribeToCloudTrash((cloudTrash) => {
+      if (Array.isArray(cloudTrash)) {
+        setTrashRecords(cloudTrash);
+      }
+    });
+
     return () => {
       window.removeEventListener('hashchange', checkAdminUrl);
       window.removeEventListener('popstate', checkAdminUrl);
       window.removeEventListener('keydown', handleKeyDown);
       if (typeof unsubscribe === 'function') unsubscribe();
+      if (typeof unsubTrash === 'function') unsubTrash();
     };
   }, []);
 
@@ -300,26 +317,144 @@ export default function App() {
     logActivity('STATUS_CHANGE', `دەستکاریکردنی بەکۆمەڵی (${ids.length}) فایل (لەلایەن: ${staffName})`, { count: ids.length, updates });
   };
 
-  // Delete record (single)
+  // Move record to Trash (Soft Delete)
   const handleDeleteRecord = (id) => {
     const staffName = getActiveStaffName();
     const target = records.find(r => r.id === id);
-    const updated = records.filter(r => r.id !== id);
-    setRecords(updated);
-    saveRecordsToCloud(updated);
-    showToast('مامەڵەکە بە سەرکەوتوویی لە سێرڤەر سڕایەوە', 'info');
-    logActivity('DELETE', `سڕینەوەی فایلی (${target?.fileNumber || id}) [${target?.citizenName || ''}] (لەلایەن: ${staffName})`, { fileNumber: target?.fileNumber });
+    if (!target) return;
+
+    const nowTime = new Date().toISOString().replace('T', ' ').slice(0, 16);
+    const deletedItem = {
+      ...target,
+      isDeleted: true,
+      deletedAt: nowTime,
+      deletedBy: staffName
+    };
+
+    const updatedRecords = records.filter(r => r.id !== id);
+    const updatedTrash = [deletedItem, ...trashRecords.filter(t => t.id !== id)];
+
+    setRecords(updatedRecords);
+    setTrashRecords(updatedTrash);
+
+    saveRecordsToCloud(updatedRecords);
+    saveTrashToCloud(updatedTrash);
+
+    showToast(`فایلی (${target.fileNumber}) گوێزرایەوە بۆ سەلەی خۆڵ 🗑️`, 'info');
+    logActivity('TRASH_MOVE', `گواستنەوەی فایلی (${target?.fileNumber || id}) [${target?.citizenName || ''}] بۆ سەلەی خۆڵ (لەلایەن: ${staffName})`, { fileNumber: target?.fileNumber });
   };
 
-  // Bulk / Batch Delete records
+  // Bulk / Batch Move to Trash
   const handleBatchDelete = (ids) => {
     const staffName = getActiveStaffName();
     const idSet = new Set(ids);
-    const updated = records.filter(r => !idSet.has(r.id));
-    setRecords(updated);
-    saveRecordsToCloud(updated);
-    showToast(`${ids.length} فایل بە سەرکەوتوویی لە کڵاود سڕانەوە`, 'info');
-    logActivity('DELETE', `سڕینەوەی بەکۆمەڵ: (${ids.length}) فایل بە یەکەوە سڕانەوە (لەلایەن: ${staffName})`, { count: ids.length });
+    const nowTime = new Date().toISOString().replace('T', ' ').slice(0, 16);
+
+    const deletedItems = records.filter(r => idSet.has(r.id)).map(r => ({
+      ...r,
+      isDeleted: true,
+      deletedAt: nowTime,
+      deletedBy: staffName
+    }));
+
+    const updatedRecords = records.filter(r => !idSet.has(r.id));
+    const updatedTrash = [...deletedItems, ...trashRecords.filter(t => !idSet.has(t.id))];
+
+    setRecords(updatedRecords);
+    setTrashRecords(updatedTrash);
+
+    saveRecordsToCloud(updatedRecords);
+    saveTrashToCloud(updatedTrash);
+
+    showToast(`${ids.length} فایل گوێزرانەوە بۆ سەلەی خۆڵ 🗑️`, 'info');
+    logActivity('TRASH_MOVE', `گواستنەوەی بەکۆمەڵ: (${ids.length}) فایل بە یەکەوە گوێزرانەوە بۆ سەلەی خۆڵ (لەلایەن: ${staffName})`, { count: ids.length });
+  };
+
+  // Restore record from Trash
+  const handleRestoreRecord = (id) => {
+    const staffName = getActiveStaffName();
+    const target = trashRecords.find(t => t.id === id);
+    if (!target) return;
+
+    const restoredItem = { ...target };
+    delete restoredItem.isDeleted;
+    delete restoredItem.deletedAt;
+    delete restoredItem.deletedBy;
+
+    const updatedTrash = trashRecords.filter(t => t.id !== id);
+    const updatedRecords = deduplicateRecords([...records, restoredItem]);
+
+    setRecords(updatedRecords);
+    setTrashRecords(updatedTrash);
+
+    saveRecordsToCloud(updatedRecords);
+    saveTrashToCloud(updatedTrash);
+
+    showToast(`فایلی (#${restoredItem.fileNumber}) بە سەرکەوتوویی گەڕێندرایەوە 🔄`, 'success');
+    logActivity('RESTORE', `گەڕاندنەوەی فایلی (${restoredItem.fileNumber}) لە سەلەی خۆڵەوە (لەلایەن: ${staffName})`, { fileNumber: restoredItem.fileNumber });
+  };
+
+  // Bulk Restore from Trash
+  const handleBatchRestore = (ids) => {
+    const staffName = getActiveStaffName();
+    const idSet = new Set(ids);
+
+    const restoredItems = trashRecords.filter(t => idSet.has(t.id)).map(item => {
+      const copy = { ...item };
+      delete copy.isDeleted;
+      delete copy.deletedAt;
+      delete copy.deletedBy;
+      return copy;
+    });
+
+    const updatedTrash = trashRecords.filter(t => !idSet.has(t.id));
+    const updatedRecords = deduplicateRecords([...records, ...restoredItems]);
+
+    setRecords(updatedRecords);
+    setTrashRecords(updatedTrash);
+
+    saveRecordsToCloud(updatedRecords);
+    saveTrashToCloud(updatedTrash);
+
+    showToast(`${ids.length} فایل بە سەرکەوتوویی گەڕێندرانەوە 🔄`, 'success');
+    logActivity('RESTORE', `گەڕاندنەوەی بەکۆمەڵ: (${ids.length}) فایل لە سەلەی خۆڵەوە گەڕێندرانەوە (لەلایەن: ${staffName})`, { count: ids.length });
+  };
+
+  // Permanent Delete single item
+  const handlePermanentDelete = (id) => {
+    const staffName = getActiveStaffName();
+    const target = trashRecords.find(t => t.id === id);
+    const updatedTrash = trashRecords.filter(t => t.id !== id);
+
+    setTrashRecords(updatedTrash);
+    saveTrashToCloud(updatedTrash);
+
+    showToast(`فایلی (${target?.fileNumber || id}) بە تەواوی لە سەلەی خۆڵ سڕایەوە`, 'info');
+    logActivity('PERMANENT_DELETE', `سڕینەوەی یەکجارەکی: فایلی (${target?.fileNumber || id}) بە تەواوی لە سیستەم سڕایەوە (لەلایەن: ${staffName})`, { fileNumber: target?.fileNumber });
+  };
+
+  // Permanent Delete batch items
+  const handleBatchPermanentDelete = (ids) => {
+    const staffName = getActiveStaffName();
+    const idSet = new Set(ids);
+    const updatedTrash = trashRecords.filter(t => !idSet.has(t.id));
+
+    setTrashRecords(updatedTrash);
+    saveTrashToCloud(updatedTrash);
+
+    showToast(`${ids.length} فایل بە یەکجاری لە سەلەی خۆڵ سڕانەوە`, 'info');
+    logActivity('PERMANENT_DELETE', `سڕینەوەی یەکجارەکی بەکۆمەڵ: (${ids.length}) فایل بە تەواوی سڕانەوە (لەلایەن: ${staffName})`, { count: ids.length });
+  };
+
+  // Empty entire Trash
+  const handleEmptyTrash = () => {
+    const staffName = getActiveStaffName();
+    const count = trashRecords.length;
+    setTrashRecords([]);
+    saveTrashToCloud([]);
+
+    showToast('سەلەی خۆڵ بە تەواوی بەتاڵ کرایەوە 🧹', 'info');
+    logActivity('EMPTY_TRASH', `بەتاڵکردنی تەواوی سەلەی خۆڵ (${count} فایل) (لەلایەن: ${staffName})`, { count });
   };
 
   // Bulk Status update
@@ -568,6 +703,7 @@ export default function App() {
         ) : (
           <AdminDashboard
             records={records}
+            trashRecords={trashRecords}
             activeStaff={activeStaff}
             onOpenExcelImport={() => setIsExcelOpen(true)}
             onOpenAddModal={() => { setEditingRecord(null); setIsRecordModalOpen(true); }}
@@ -576,6 +712,11 @@ export default function App() {
             onOpenPrintModal={(rec) => setPrintModalRecord(rec)}
             onDeleteRecord={handleDeleteRecord}
             onBatchDelete={handleBatchDelete}
+            onRestoreRecord={handleRestoreRecord}
+            onBatchRestore={handleBatchRestore}
+            onPermanentDelete={handlePermanentDelete}
+            onBatchPermanentDelete={handleBatchPermanentDelete}
+            onEmptyTrash={handleEmptyTrash}
             onBatchUpdateStatus={handleBatchUpdateStatus}
             onBatchUpdateFileType={handleBatchUpdateFileType}
             onToggleFileType={handleToggleFileType}

@@ -44,6 +44,7 @@ import FastCheckoutModal from './FastCheckoutModal';
 import BulkWhatsAppModal from './BulkWhatsAppModal';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
 import FileTimelineModal from './FileTimelineModal';
+import TrashTab from './TrashTab';
 import { generateWhatsAppUrl } from '../utils/whatsappHelper';
 import { logActivity } from '../utils/cloudSync';
 import { MessageSquare, BarChart3, ExternalLink, Send, History } from 'lucide-react';
@@ -78,6 +79,7 @@ function normalizeKurdishFuzzy(str) {
 
 export default function AdminDashboard({
   records,
+  trashRecords = [],
   activeStaff,
   onOpenExcelImport,
   onOpenAddModal,
@@ -86,6 +88,11 @@ export default function AdminDashboard({
   onOpenPrintModal,
   onDeleteRecord,
   onBatchDelete,
+  onRestoreRecord,
+  onBatchRestore,
+  onPermanentDelete,
+  onBatchPermanentDelete,
+  onEmptyTrash,
   onBatchUpdateStatus,
   onBatchUpdateFileType,
   onToggleFileType,
@@ -481,6 +488,23 @@ export default function AdminDashboard({
           >
             <UploadCloud className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
             <span>ئەپڵۆدی ئێکسڵ</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('trash')}
+            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-black whitespace-nowrap transition-all ${
+              activeTab === 'trash'
+                ? 'bg-red-600 text-white shadow-md shadow-red-600/30'
+                : 'text-red-500 hover:bg-red-500/10'
+            }`}
+          >
+            <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span>سەلەی خۆڵ</span>
+            {trashRecords && trashRecords.length > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-red-500 text-white">
+                {trashRecords.length}
+              </span>
+            )}
           </button>
 
           <button
@@ -1571,6 +1595,18 @@ export default function AdminDashboard({
           records={records}
           activeStaff={activeStaff}
           onResetData={onResetData}
+        />
+      )}
+
+      {/* View 6: Recycle Bin / Trash */}
+      {activeTab === 'trash' && (
+        <TrashTab
+          trashRecords={trashRecords}
+          onRestoreRecord={onRestoreRecord}
+          onBatchRestore={onBatchRestore}
+          onPermanentDelete={onPermanentDelete}
+          onBatchPermanentDelete={onBatchPermanentDelete}
+          onEmptyTrash={onEmptyTrash}
         />
       )}
 

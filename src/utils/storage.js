@@ -109,6 +109,28 @@ export function markAsDelivered(recordId, receiverName = '', customDate = null, 
   return cleaned;
 }
 
+const TRASH_STORAGE_KEY = 'electricity_portal_trash_records_v1';
+
+export function getStoredTrash() {
+  try {
+    const data = localStorage.getItem(TRASH_STORAGE_KEY);
+    if (!data) return [];
+    const parsed = JSON.parse(data);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    console.error('Failed to load trash from storage:', error);
+    return [];
+  }
+}
+
+export function saveTrash(trashRecords) {
+  try {
+    localStorage.setItem(TRASH_STORAGE_KEY, JSON.stringify(trashRecords || []));
+  } catch (error) {
+    console.error('Failed to save trash to storage:', error);
+  }
+}
+
 export function isAdminAuthenticated() {
   return sessionStorage.getItem(ADMIN_KEY) === 'true';
 }

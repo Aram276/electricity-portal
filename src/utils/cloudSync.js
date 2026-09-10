@@ -6,9 +6,10 @@ import {
   onSnapshot 
 } from 'firebase/firestore';
 import { INITIAL_RECORDS } from '../data/initialData';
-import { getStoredRecords, saveRecords, deduplicateRecords } from './storage';
+import { getStoredRecords, saveRecords, deduplicateRecords, getStoredTrash, saveTrash } from './storage';
 
 const DOC_REF = doc(db, 'portal_data', 'electricity_records');
+const TRASH_DOC_REF = doc(db, 'portal_data', 'electricity_trash');
 const FOOTER_DOC_REF = doc(db, 'portal_data', 'footer_settings');
 
 const DEFAULT_FOOTER = {
@@ -91,6 +92,51 @@ export async function saveRecordsToCloud(records) {
     });
   } catch (error) {
     console.error('Failed to save records to Firestore Cloud:', error);
+  }
+}
+
+/**
+ * Listen to real-time changes for Trash (Recycle Bin) from Firestore Cloud.
+ */
+export function subscribeToCloudTrash(onUpdateCallback) {
+  try {
+    const unsubscribe = onSnapshot(TRASH_DOC_REF, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        if (data && Array.isArray(data.trashRecords)) {
+          saveTrash(data.trashRecords);
+          onUpdateCallback(data.trashRecords);
+          return;
+        }
+      }
+      const current = getStoredTrash();
+      onUpdateCallback(current);
+    }, (error) => {
+      console.warn('Firestore real-time trash subscription error, using local storage:', error);
+      onUpdateCallback(getStoredTrash());
+    });
+
+    return unsubscribe;
+  } catch (err) {
+    console.error('Failed to subscribe to cloud trash:', err);
+    onUpdateCallback(getStoredTrash());
+    return () => {};
+  }
+}
+
+/**
+ * Save updated Trash records to Firestore Cloud.
+ */
+export async function saveTrashToCloud(trashRecords) {
+  try {
+    saveTrash(trashRecords || []);
+    await setDoc(TRASH_DOC_REF, {
+      trashRecords: trashRecords || [],
+      lastUpdated: new Date().toISOString(),
+      count: (trashRecords || []).length
+    });
+  } catch (error) {
+    console.error('Failed to save trash records to Firestore Cloud:', error);
   }
 }
 
