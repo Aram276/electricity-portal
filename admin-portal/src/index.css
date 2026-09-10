@@ -119,15 +119,16 @@
   background: #f59e0b;
 }
 
-/* Print Styles for Receipts */
+/* Print Styles for Receipts and Archive Box Manifests */
 @media print {
   body * {
     visibility: hidden;
   }
-  #printable-receipt, #printable-receipt * {
+  #printable-receipt, #printable-receipt *,
+  #printable-box-area, #printable-box-area * {
     visibility: visible;
   }
-  #printable-receipt {
+  #printable-receipt, #printable-box-area {
     position: absolute;
     left: 0;
     top: 0;
@@ -135,7 +136,12 @@
     background: white !important;
     color: black !important;
   }
+  .page-break-box {
+    page-break-after: always;
+    break-after: page;
+  }
   .no-print {
     display: none !important;
   }
 }
+

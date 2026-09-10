@@ -44,6 +44,7 @@ import FastCheckoutModal from './FastCheckoutModal';
 import BulkWhatsAppModal from './BulkWhatsAppModal';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
 import FileTimelineModal from './FileTimelineModal';
+import ArchiveBoxesModal from './ArchiveBoxesModal';
 import TrashTab from './TrashTab';
 import { generateWhatsAppUrl } from '../utils/whatsappHelper';
 import { logActivity } from '../utils/cloudSync';
@@ -135,6 +136,7 @@ export default function AdminDashboard({
   const [timelineRecord, setTimelineRecord] = useState(null); // File life history modal
   const [isFastCheckoutOpen, setIsFastCheckoutOpen] = useState(false);
   const [isBulkWhatsAppOpen, setIsBulkWhatsAppOpen] = useState(false);
+  const [isArchiveBoxesOpen, setIsArchiveBoxesOpen] = useState(false);
   const [isBulkEditOpen, setIsBulkEditOpen] = useState(false);
   const [bulkEditForm, setBulkEditForm] = useState({
     status: '',
@@ -505,6 +507,15 @@ export default function AdminDashboard({
               <span>نامەی بەکۆمەڵ 📢</span>
             </button>
           )}
+
+          <button
+            onClick={() => setIsArchiveBoxesOpen(true)}
+            title="دروستکردن و چاپکردنی لیستی بۆکسەکانی ئەرشیف (١٥٠ دۆسیەیی بۆ هەر بۆکسێک) بۆ ژووری ١٩"
+            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-black bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/25 whitespace-nowrap transition-all active:scale-95 border border-indigo-500/40"
+          >
+            <Folder className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span>بۆکسەکانی ئەرشیف (١٥٠) 📦</span>
+          </button>
 
           <button
             onClick={() => setActiveTab('analytics')}
@@ -1937,6 +1948,14 @@ export default function AdminDashboard({
         </div>
       )}
 
+      {/* Archive Box Manifest & Sticker Printing Modal (150 per box) */}
+      <ArchiveBoxesModal
+        isOpen={isArchiveBoxesOpen}
+        onClose={() => setIsArchiveBoxesOpen(false)}
+        records={records}
+      />
+
     </div>
   );
 }
+
