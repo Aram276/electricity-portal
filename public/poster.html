@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>پۆستەری بەدواداچوونی مامەڵەی کارەبا - پڕۆژەی ڕووناکی</title>
+  <title>پۆستەری فەرمیی بەدواداچوونی مامەڵەی کارەبا - پڕۆژەی ڕووناکی</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -28,8 +28,8 @@
     }
 
     body {
-      font-family: 'Vazirmatn', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: #94a3b8;
+      font-family: 'Vazirmatn', 'Segoe UI', Tahoma, Arial, sans-serif;
+      background-color: #64748b;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -96,12 +96,13 @@
       color: white;
     }
 
-    /* A4 Poster Container */
+    /* A4 Poster Container (Exact 210mm x 297mm) */
     .page-a4 {
       width: 210mm;
       height: 297mm;
+      max-height: 297mm;
       background: #ffffff;
-      padding: 12mm 14mm 10mm 14mm;
+      padding: 11mm 13mm 9mm 13mm;
       position: relative;
       box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
       border-radius: 6px;
@@ -109,12 +110,14 @@
       display: flex;
       flex-direction: column;
       justify-content: space-between;
+      page-break-inside: avoid;
+      page-break-after: avoid;
     }
 
     /* Official Decorative Border */
     .poster-frame {
       position: absolute;
-      inset: 6mm;
+      inset: 5mm;
       border: 2.5px solid #0369a1;
       border-radius: 20px;
       pointer-events: none;
@@ -122,7 +125,7 @@
 
     .inner-frame {
       position: absolute;
-      inset: 7.5mm;
+      inset: 6.5mm;
       border: 1px solid #cbd5e1;
       border-radius: 16px;
       pointer-events: none;
@@ -136,10 +139,10 @@
       border-style: solid;
       pointer-events: none;
     }
-    .corner-tl { top: 6mm; left: 6mm; border-width: 5px 0 0 5px; border-top-left-radius: 20px; }
-    .corner-tr { top: 6mm; right: 6mm; border-width: 5px 5px 0 0; border-top-right-radius: 20px; }
-    .corner-bl { bottom: 6mm; left: 6mm; border-width: 0 0 5px 5px; border-bottom-left-radius: 20px; }
-    .corner-br { bottom: 6mm; right: 6mm; border-width: 0 5px 5px 0; border-bottom-right-radius: 20px; }
+    .corner-tl { top: 5mm; left: 5mm; border-width: 5px 0 0 5px; border-top-left-radius: 20px; }
+    .corner-tr { top: 5mm; right: 5mm; border-width: 5px 5px 0 0; border-top-right-radius: 20px; }
+    .corner-bl { bottom: 5mm; left: 5mm; border-width: 0 0 5px 5px; border-bottom-left-radius: 20px; }
+    .corner-br { bottom: 5mm; right: 5mm; border-width: 0 5px 5px 0; border-bottom-right-radius: 20px; }
 
     /* Header Section */
     .header {
@@ -147,32 +150,32 @@
       align-items: center;
       justify-content: space-between;
       border-bottom: 2px solid #e2e8f0;
-      padding-bottom: 12px;
-      margin-top: 2mm;
+      padding-bottom: 10px;
+      margin-top: 1mm;
     }
 
     .header-logo-side {
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 14px;
     }
 
     .header-logo {
-      width: 76px;
-      height: 76px;
+      width: 72px;
+      height: 72px;
       object-fit: contain;
       filter: drop-shadow(0 4px 6px rgba(0,0,0,0.12));
     }
 
     .header-titles h2 {
-      font-size: 16px;
+      font-size: 15.5px;
       font-weight: 900;
       color: #0f172a;
       line-height: 1.3;
     }
 
     .header-titles h3 {
-      font-size: 13.5px;
+      font-size: 13px;
       font-weight: 700;
       color: #0284c7;
       margin-top: 3px;
@@ -181,7 +184,7 @@
     .header-badge {
       background: linear-gradient(135deg, #0f172a, #1e293b);
       color: #f8fafc;
-      padding: 10px 18px;
+      padding: 9px 16px;
       border-radius: 14px;
       text-align: center;
       box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
@@ -189,14 +192,14 @@
     }
 
     .header-badge .tag {
-      font-size: 11px;
+      font-size: 10.5px;
       color: #38bdf8;
       font-weight: 800;
       margin-bottom: 2px;
     }
 
     .header-badge .value {
-      font-size: 14px;
+      font-size: 13.5px;
       font-weight: 900;
       color: #ffffff;
     }
@@ -204,14 +207,14 @@
     /* Main Hero Banner */
     .main-banner {
       background: linear-gradient(135deg, #0f172a 0%, #0369a1 55%, #0284c7 100%);
-      border-radius: 22px;
-      padding: 18px 24px;
+      border-radius: 20px;
+      padding: 16px 22px;
       color: white;
       text-align: center;
       position: relative;
       overflow: hidden;
       box-shadow: 0 10px 25px -5px rgba(2, 132, 199, 0.4);
-      margin: 8px 0;
+      margin: 6px 0;
       border: 2px solid rgba(255, 255, 255, 0.15);
     }
 
@@ -230,53 +233,53 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: rgba(245, 158, 11, 0.2);
+      background: rgba(245, 158, 11, 0.25);
       border: 1.5px solid #f59e0b;
       color: #fef3c7;
-      padding: 5px 16px;
+      padding: 4px 14px;
       border-radius: 999px;
-      font-size: 13px;
+      font-size: 12.5px;
       font-weight: 800;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
 
     .banner-title {
-      font-size: 28px;
+      font-size: 26px;
       font-weight: 900;
       line-height: 1.25;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
       text-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
       color: #ffffff;
     }
 
     .banner-desc {
-      font-size: 14.5px;
+      font-size: 13.5px;
       font-weight: 600;
       color: #e0f2fe;
-      max-width: 92%;
+      max-width: 94%;
       margin: 0 auto;
-      line-height: 1.5;
+      line-height: 1.45;
     }
 
     /* QR Center Card */
     .qr-section {
       display: flex;
-      gap: 22px;
+      gap: 20px;
       align-items: center;
       background: #f8fafc;
-      border: 2.5px solid #bae6fd;
-      border-radius: 24px;
-      padding: 18px 22px;
+      border: 2px solid #bae6fd;
+      border-radius: 22px;
+      padding: 16px 20px;
       position: relative;
       box-shadow: 0 8px 20px -5px rgba(0, 0, 0, 0.06);
-      margin: 6px 0;
+      margin: 4px 0;
     }
 
     .qr-box-wrapper {
       flex-shrink: 0;
       background: white;
-      padding: 14px;
-      border-radius: 20px;
+      padding: 12px;
+      border-radius: 18px;
       box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.18);
       border: 2px solid #0284c7;
       text-align: center;
@@ -284,23 +287,23 @@
     }
 
     .qr-image {
-      width: 175px;
-      height: 175px;
+      width: 165px;
+      height: 165px;
       display: block;
       margin: 0 auto;
-      border-radius: 10px;
+      border-radius: 8px;
     }
 
     .qr-scan-badge {
       position: absolute;
-      top: -12px;
+      top: -11px;
       right: 50%;
       transform: translateX(50%);
       background: #0f172a;
       color: #38bdf8;
-      font-size: 11px;
+      font-size: 10.5px;
       font-weight: 900;
-      padding: 4px 14px;
+      padding: 3px 12px;
       border-radius: 999px;
       white-space: nowrap;
       border: 2px solid #38bdf8;
@@ -311,13 +314,13 @@
     }
 
     .qr-url-badge {
-      margin-top: 8px;
+      margin-top: 6px;
       background: #f1f5f9;
       color: #0369a1;
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 800;
-      padding: 5px 10px;
-      border-radius: 8px;
+      padding: 4px 8px;
+      border-radius: 6px;
       direction: ltr;
       font-family: monospace;
       border: 1px solid #cbd5e1;
@@ -328,21 +331,21 @@
     }
 
     .qr-text-side h2 {
-      font-size: 22px;
+      font-size: 20px;
       font-weight: 900;
       color: #0f172a;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
       display: flex;
       align-items: center;
       gap: 8px;
     }
 
     .qr-text-side p {
-      font-size: 14px;
+      font-size: 13px;
       color: #334155;
-      line-height: 1.65;
+      line-height: 1.6;
       font-weight: 500;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
 
     .highlight-pill {
@@ -352,81 +355,81 @@
       background: #ecfdf5;
       color: #065f46;
       border: 1.5px solid #6ee7b7;
-      padding: 8px 14px;
-      border-radius: 12px;
-      font-size: 13px;
+      padding: 6px 12px;
+      border-radius: 10px;
+      font-size: 12px;
       font-weight: 800;
     }
 
     /* 3 Easy Steps Section */
     .steps-container {
-      margin: 6px 0;
+      margin: 4px 0;
     }
 
     .section-headline {
       display: flex;
       align-items: center;
       gap: 8px;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 900;
       color: #0f172a;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
 
     .section-headline span {
       background: #0284c7;
       color: white;
-      width: 26px;
-      height: 26px;
-      border-radius: 8px;
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      font-size: 14px;
+      font-size: 13px;
     }
 
     .steps-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
+      gap: 10px;
     }
 
     .step-card {
       background: #ffffff;
       border: 2px solid #e2e8f0;
-      border-radius: 16px;
-      padding: 14px 12px;
+      border-radius: 14px;
+      padding: 12px 10px;
       text-align: center;
       position: relative;
       box-shadow: 0 4px 10px rgba(0,0,0,0.03);
     }
 
     .step-num {
-      width: 36px;
-      height: 36px;
+      width: 32px;
+      height: 32px;
       background: linear-gradient(135deg, #0284c7, #0369a1);
       color: white;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 17px;
+      font-size: 16px;
       font-weight: 900;
-      margin: 0 auto 8px auto;
+      margin: 0 auto 6px auto;
       box-shadow: 0 4px 10px rgba(2, 132, 199, 0.35);
     }
 
     .step-title {
-      font-size: 14.5px;
+      font-size: 13.5px;
       font-weight: 900;
       color: #0f172a;
-      margin-bottom: 4px;
+      margin-bottom: 3px;
     }
 
     .step-desc {
-      font-size: 12px;
+      font-size: 11px;
       color: #475569;
-      line-height: 1.45;
+      line-height: 1.4;
       font-weight: 600;
     }
 
@@ -434,45 +437,45 @@
     .features-row {
       display: flex;
       justify-content: space-around;
-      gap: 8px;
+      gap: 6px;
       background: linear-gradient(135deg, #f8fafc, #f1f5f9);
       border: 1.5px dashed #94a3b8;
-      border-radius: 14px;
-      padding: 12px 16px;
-      margin: 6px 0;
+      border-radius: 12px;
+      padding: 10px 14px;
+      margin: 4px 0;
     }
 
     .feature-item {
       display: flex;
       align-items: center;
-      gap: 6px;
-      font-size: 12.5px;
+      gap: 5px;
+      font-size: 11.5px;
       font-weight: 800;
       color: #1e293b;
     }
 
     .feature-icon {
-      font-size: 15px;
+      font-size: 14px;
     }
 
     /* Footer */
     .footer {
       border-top: 2px solid #e2e8f0;
-      padding-top: 10px;
-      margin-bottom: 2mm;
+      padding-top: 8px;
+      margin-bottom: 1mm;
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
 
     .footer-brand {
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 900;
       color: #0f172a;
     }
 
     .footer-text {
-      font-size: 11.5px;
+      font-size: 10.5px;
       color: #64748b;
       font-weight: 600;
     }
@@ -480,22 +483,22 @@
     .footer-support {
       background: #0f172a;
       color: #ffffff;
-      padding: 6px 16px;
+      padding: 5px 14px;
       border-radius: 999px;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 800;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
       border: 1px solid #38bdf8;
     }
 
-    /* Print settings */
+    /* Perfect Print Settings (Strict 1-Page Output) */
     @media print {
       body {
-        background: transparent;
-        padding: 0;
-        margin: 0;
+        background: transparent !important;
+        padding: 0 !important;
+        margin: 0 !important;
       }
 
       .toolbar {
@@ -503,13 +506,15 @@
       }
 
       .page-a4 {
-        width: 100%;
-        height: 100vh;
-        box-shadow: none;
-        border-radius: 0;
-        padding: 10mm 12mm 8mm 12mm;
-        page-break-after: avoid;
-        page-break-inside: avoid;
+        width: 100% !important;
+        height: 297mm !important;
+        max-height: 297mm !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        padding: 10mm 12mm 8mm 12mm !important;
+        page-break-after: avoid !important;
+        page-break-inside: avoid !important;
+        overflow: hidden !important;
       }
 
       @page {
@@ -557,14 +562,14 @@
       </div>
       <div class="header-badge">
         <div class="tag">خزمەتگوزاری زیرەک</div>
-        <div class="value">بەشی فرۆشیاری وزە</div>
+        <div class="value">بەشی فرۆشیاری وزە ٢</div>
       </div>
     </div>
 
     <!-- Main Title Banner -->
     <div class="main-banner">
       <div class="banner-sub">⚡ سیستەمی ئەلیکترۆنی بەدواداچوونی مامەڵەکان</div>
-      <h1 class="banner-title">ئاگاداری بۆ هاوڵاتیانی بەڕێز</h1>
+      <h1 class="banner-title">ئاگاداری بۆ هاووڵاتیانی بەڕێز</h1>
       <p class="banner-desc">بێ ئەوەی لە سەرەی چاوەڕوانیدا بوەستیت، لە ڕێگەی مۆبایلەکەتەوە ڕاستەوخۆ بزانە فۆڵدەر و مامەڵەکەت تەواوبووە یان نا!</p>
     </div>
 
@@ -582,11 +587,11 @@
           سکان بکە و بەدواداچوون بکە
         </h2>
         <p>
-          کامێرای مۆبایلەکەت ئاڕاستەی ئەم کۆدەی بەرامبەرت بکە بۆ کردنەوەی پۆرتاڵی فەرمی، پاشان بە نووسینی <b>ژمارەی بەشداربوو</b> دەتوانیت لە هەر شوێنێک بیت دۆخی وردی مامەڵەکەت ببینی.
+          کامێرای مۆبایلەکەت ئاڕاستەی ئەم کۆدەی بەرامبەرت بکە بۆ کردنەوەی پۆرتاڵی فەرمی، پاشان تەنها بە نووسینی <b>ناوی هاووڵاتی (وەک ڕێبین)، ژمارەی مۆبایل، فایل، یان ئەژمار (ID)</b> دەستبەجێ دۆخی مامەڵەکەت ببینی.
         </p>
         <div class="highlight-pill">
           <span>✨</span>
-          ئەنجامی ڕاستەوخۆ و خێرا بەبێ پێویستی بە هەژمار
+          ئەنجامی ڕاستەوخۆ و خێرا بەبێ پێویستی بە دروستکردنی هەژمار
         </div>
       </div>
     </div>
@@ -607,14 +612,14 @@
 
         <div class="step-card">
           <div class="step-num">٢</div>
-          <div class="step-title">نووسینی ژمارە</div>
-          <div class="step-desc">ژمارەی بەشداربووی کارەبا یان ژمارەی مۆبایل لە خانەی گەڕان بنووسە.</div>
+          <div class="step-title">گەڕان بە ناو یان ژمارە</div>
+          <div class="step-desc">ناوی هاووڵاتی (وەک ڕێبین)، بەشێک لە مۆبایل، فایل، یان ژمارەی ئەژمار بنووسە.</div>
         </div>
 
         <div class="step-card">
           <div class="step-num">٣</div>
-          <div class="step-title">بینینی دۆخی فۆڵدەر</div>
-          <div class="step-desc">بزانە ئایا فۆڵدەرەکەت تەواوبووە و گەڕاوەتەوە یان لە قۆناغی کارکردندایە.</div>
+          <div class="step-title">بینینی دۆخی مامەڵە</div>
+          <div class="step-desc">بزانە ئایا فۆڵدەرەکەت تەواوبووە و ئامادەی تەسلیمکردنەوەیە یان لە قۆناغی کارکردندایە.</div>
         </div>
       </div>
     </div>
@@ -642,12 +647,12 @@
     <!-- Footer -->
     <div class="footer">
       <div>
-        <div class="footer-brand">پڕۆژەی ڕووناکی • هۆبەی وردبینی و فرۆشیاری وزە</div>
+        <div class="footer-brand">پڕۆژەی ڕووناکی • هۆبەی وردبینی و فرۆشیاری وزە ٢</div>
         <div class="footer-text">خزمەتگوزاری هاوبەشانی کارەبا لە سەرتاسەری کوردستان</div>
       </div>
       <div class="footer-support">
         <span>📍</span>
-        هۆبەی پەیوەندیدار لە فەرمانگە
+        ژووری ١٩ لە فەرمانگە
       </div>
     </div>
 
