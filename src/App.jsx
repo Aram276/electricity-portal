@@ -60,7 +60,8 @@ export default function App() {
         hash.includes('admin') || 
         search.includes('admin') || 
         path.endsWith('/manage') ||
-        window.location.port === '5174';
+        window.location.port === '5174' ||
+        window.location.port === '5175';
 
       if (isDirectAdmin) {
         setIsAdminPath(true);

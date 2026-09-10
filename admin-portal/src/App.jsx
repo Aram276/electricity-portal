@@ -22,13 +22,17 @@ import { CheckCircle2, Info, Cloud } from 'lucide-react';
 
 export default function App() {
   const [records, setRecords] = useState(() => deduplicateRecords(getStoredRecords()));
-  const [currentView, setCurrentView] = useState('citizen'); // 'citizen' | 'admin'
-  const [isAdmin, setIsAdmin] = useState(() => isAdminAuthenticated());
+  const [currentView, setCurrentView] = useState('admin'); // 'citizen' | 'admin' - Default to admin in admin-portal
+  const [isAdmin, setIsAdmin] = useState(true);
   const [activeStaff, setActiveStaff] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem('electricity_active_staff') || 'null');
+      const saved = JSON.parse(localStorage.getItem('electricity_active_staff') || 'null');
+      if (saved) return saved;
+      const defaultStaff = { name: 'ئارام', role: 'admin', title: 'بەڕێوەبەری ژووری ١٩' };
+      localStorage.setItem('electricity_active_staff', JSON.stringify(defaultStaff));
+      return defaultStaff;
     } catch (e) {
-      return null;
+      return { name: 'ئارام', role: 'admin', title: 'بەڕێوەبەری ژووری ١٩' };
     }
   });
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -46,30 +50,18 @@ export default function App() {
 
   // Toast notification
   const [toast, setToast] = useState(null);
-  const [isAdminPath, setIsAdminPath] = useState(false);
+  const [isAdminPath, setIsAdminPath] = useState(true);
 
-  // Check URL path on mount & hashchange
+  // Auto-authenticate admin on mount in admin-portal
   useEffect(() => {
-    const checkAdminUrl = () => {
-      const path = window.location.pathname.toLowerCase();
-      const hash = window.location.hash.toLowerCase();
-      const search = window.location.search.toLowerCase();
-      
-      const isDirectAdmin = 
-        path.includes('/admin') || 
-        hash.includes('admin') || 
-        search.includes('admin') || 
-        path.endsWith('/manage') ||
-        window.location.port === '5174';
+    setAdminAuthenticated(true);
+    setIsAdmin(true);
+    setIsAdminPath(true);
+    setCurrentView('admin');
 
-      if (isDirectAdmin) {
-        setIsAdminPath(true);
-        if (!isAdminAuthenticated()) {
-          setIsLoginOpen(true);
-        } else {
-          setCurrentView('admin');
-        }
-      }
+    const checkAdminUrl = () => {
+      setIsAdminPath(true);
+      setIsAdmin(true);
     };
 
     checkAdminUrl();
@@ -80,11 +72,7 @@ export default function App() {
     const handleKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'a') {
         e.preventDefault();
-        if (isAdminAuthenticated()) {
-          setCurrentView(prev => prev === 'admin' ? 'citizen' : 'admin');
-        } else {
-          setIsLoginOpen(true);
-        }
+        setCurrentView(prev => prev === 'admin' ? 'citizen' : 'admin');
       }
     };
     window.addEventListener('keydown', handleKeyDown);
