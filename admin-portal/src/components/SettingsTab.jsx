@@ -47,6 +47,7 @@ import {
   saveCustomWhatsAppTemplate,
   DEFAULT_WHATSAPP_TEMPLATE
 } from '../utils/whatsappHelper';
+import { ROLES, ROLE_CONFIG, getStaffRole, canManageSettings } from '../utils/permissions';
 
 export default function SettingsTab({ onResetData, records = [], activeStaff = null }) {
   // ── Password / PIN State ──
@@ -600,10 +601,12 @@ export default function SettingsTab({ onResetData, records = [], activeStaff = n
 
                 <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black border shrink-0 ${
                   staff.role === 'ADMIN' 
-                    ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-900 dark:text-amber-200 border-amber-300 dark:border-amber-500/40' 
-                    : 'bg-blue-100 dark:bg-blue-500/20 text-blue-900 dark:text-blue-200 border-blue-300 dark:border-blue-500/40'
+                    ? 'bg-red-500/20 text-red-700 dark:text-red-400 border-red-500/30' 
+                    : staff.role === 'VIEWER'
+                    ? 'bg-blue-500/20 text-blue-700 dark:text-blue-400 border-blue-500/30'
+                    : 'bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-500/30'
                 }`}>
-                  {staff.role === 'ADMIN' ? '👑 بەڕێوەبەر' : '👤 فەرمانبەر'}
+                  {staff.role === 'ADMIN' ? '👑 بەڕێوەبەر' : staff.role === 'VIEWER' ? '👁️ بینەر' : '👤 فەرمانبەر'}
                 </span>
               </div>
 
@@ -617,25 +620,29 @@ export default function SettingsTab({ onResetData, records = [], activeStaff = n
                 </div>
 
                 <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => handleStartEditStaff(staff)}
-                    title={`دەستکاریکردنی زانیارییەکانی ${staff.name}`}
-                    className="px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-700 dark:text-slate-300 transition-colors flex items-center gap-1 text-xs font-bold shadow-sm"
-                  >
-                    <Edit3 className="w-3.5 h-3.5" />
-                    <span>دەستکاری</span>
-                  </button>
+                  {canManageSettings(activeStaff) && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handleStartEditStaff(staff)}
+                        title={`دەستکاریکردنی زانیارییەکانی ${staff.name}`}
+                        className="px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-700 dark:text-slate-300 transition-colors flex items-center gap-1 text-xs font-bold shadow-sm"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                        <span>دەستکاری</span>
+                      </button>
 
-                  {currentStaffArray.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteStaff(staff.id, staff.name)}
-                      title={`سڕینەوەی ئەکاونتی ${staff.name}`}
-                      className="p-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white transition-colors border border-rose-200 dark:border-rose-500/30"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                      {currentStaffArray.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteStaff(staff.id, staff.name)}
+                          title={`سڕینەوەی ئەکاونتی ${staff.name}`}
+                          className="p-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white transition-colors border border-rose-200 dark:border-rose-500/30"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
@@ -643,120 +650,128 @@ export default function SettingsTab({ onResetData, records = [], activeStaff = n
           ))}
         </div>
 
-        {/* Add / Edit Staff Form */}
-        <form onSubmit={handleSaveStaff} className={`p-5 sm:p-6 rounded-2xl sm:rounded-3xl border-2 transition-all space-y-4 ${
-          editingStaffId 
-            ? 'bg-amber-500/10 dark:bg-amber-950/30 border-amber-500 shadow-lg' 
-            : 'bg-slate-50 dark:bg-slate-900/60 border-dashed border-amber-500/40'
-        }`}>
-          <div className="flex items-center justify-between border-b border-amber-500/20 pb-3">
-            <div className="text-xs sm:text-sm font-black text-amber-900 dark:text-amber-300 flex items-center gap-2">
-              {editingStaffId ? <Edit3 className="w-4 h-4 text-amber-500" /> : <UserPlus className="w-4 h-4 text-amber-500" />}
-              <span>{editingStaffId ? `دەستکاریکردنی یوزەری (${newStaffName || 'فەرمانبەر'}):` : 'فۆرمی زیادکردنی فەرمانبەری نوێ:'}</span>
-            </div>
-
-            {editingStaffId && (
-              <button
-                type="button"
-                onClick={handleCancelEditStaff}
-                className="text-xs text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1 font-bold"
-              >
-                <X className="w-3.5 h-3.5" />
-                <span>پاشگەزبوونەوە</span>
-              </button>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">ناوی بەکارهێنەر (Username):</label>
-              <input
-                type="text"
-                required
-                placeholder="ناوی یوزەر (بۆ نموونە: raad)"
-                value={newStaffUsername}
-                onChange={(e) => setNewStaffUsername(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-amber-500 font-mono shadow-sm"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">ناوی فەرمانبەر (کوردی):</label>
-              <input
-                type="text"
-                required
-                placeholder="ناوی فەرمانبەر (بۆ نموونە: ڕەعد)"
-                value={newStaffName}
-                onChange={(e) => setNewStaffName(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-amber-500 shadow-sm"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">ناونیشانی کار (بەش/ژوور):</label>
-              <input
-                type="text"
-                required
-                placeholder="وەک: فەرمانبەری ژووری ١٩"
-                value={newStaffTitle}
-                onChange={(e) => setNewStaffTitle(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-amber-500 shadow-sm"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">پاسۆرد (Password):</label>
-              <input
-                type="text"
-                required
-                placeholder="پاسۆرد بۆ چوونەژوورەوە"
-                value={newStaffPin}
-                onChange={(e) => setNewStaffPin(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-mono font-bold focus:outline-none focus:border-amber-500 shadow-sm"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">دەسەڵاتی سیستەم:</label>
-              <select
-                value={newStaffRole}
-                onChange={(e) => setNewStaffRole(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-amber-500 shadow-sm"
-              >
-                <option value="STAFF">👤 فەرمانبەر (Staff)</option>
-                <option value="ADMIN">👑 بەڕێوەبەر (Admin)</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
-            <div className="flex items-center gap-2">
-              <button
-                type="submit"
-                className="px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs sm:text-sm shadow-md shadow-amber-500/25 transition-all flex items-center justify-center gap-2 active:scale-95"
-              >
-                {editingStaffId ? <Save className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
-                <span>{editingStaffId ? 'پاشەکەوتکردنی گۆڕانکارییەکان' : 'تۆمارکردنی فەرمانبەری نوێ'}</span>
-              </button>
+        {/* Add / Edit Staff Form (Admin Only) */}
+        {canManageSettings(activeStaff) ? (
+          <form onSubmit={handleSaveStaff} className={`p-5 sm:p-6 rounded-2xl sm:rounded-3xl border-2 transition-all space-y-4 ${
+            editingStaffId 
+              ? 'bg-amber-500/10 dark:bg-amber-950/30 border-amber-500 shadow-lg' 
+              : 'bg-slate-50 dark:bg-slate-900/60 border-dashed border-amber-500/40'
+          }`}>
+            <div className="flex items-center justify-between border-b border-amber-500/20 pb-3">
+              <div className="text-xs sm:text-sm font-black text-amber-900 dark:text-amber-300 flex items-center gap-2">
+                {editingStaffId ? <Edit3 className="w-4 h-4 text-amber-500" /> : <UserPlus className="w-4 h-4 text-amber-500" />}
+                <span>{editingStaffId ? `دەستکاریکردنی یوزەری (${newStaffName || 'فەرمانبەر'}):` : 'فۆرمی زیادکردنی فەرمانبەری نوێ:'}</span>
+              </div>
 
               {editingStaffId && (
                 <button
                   type="button"
                   onClick={handleCancelEditStaff}
-                  className="px-4 py-3 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs hover:bg-slate-300 dark:hover:bg-slate-700 transition-all"
+                  className="text-xs text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1 font-bold"
                 >
-                  پاشگەزبوونەوە
+                  <X className="w-3.5 h-3.5" />
+                  <span>پاشگەزبوونەوە</span>
                 </button>
               )}
             </div>
 
-            {staffMsg && (
-              <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1.5 rounded-xl border border-emerald-300 dark:border-emerald-500/30">
-                {staffMsg}
-              </span>
-            )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">ناوی بەکارهێنەر (Username):</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="ناوی یوزەر (بۆ نموونە: raad)"
+                  value={newStaffUsername}
+                  onChange={(e) => setNewStaffUsername(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-amber-500 font-mono shadow-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">ناوی فەرمانبەر (کوردی):</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="ناوی فەرمانبەر (بۆ نموونە: ڕەعد)"
+                  value={newStaffName}
+                  onChange={(e) => setNewStaffName(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-amber-500 shadow-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">ناونیشانی کار (بەش/ژوور):</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="وەک: فەرمانبەری ژووری ١٩"
+                  value={newStaffTitle}
+                  onChange={(e) => setNewStaffTitle(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-amber-500 shadow-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">پاسۆرد (Password):</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="پاسۆرد بۆ چوونەژوورەوە"
+                  value={newStaffPin}
+                  onChange={(e) => setNewStaffPin(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-mono font-bold focus:outline-none focus:border-amber-500 shadow-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">دەسەڵاتی سیستەم:</label>
+                <select
+                  value={newStaffRole}
+                  onChange={(e) => setNewStaffRole(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-amber-500 shadow-sm"
+                >
+                  <option value="STAFF">👤 فەرمانبەری ژووری ١٩ (Staff)</option>
+                  <option value="ADMIN">👑 بەڕێوەبەری سەرەکی (Admin)</option>
+                  <option value="VIEWER">👁️ تەنها بینەر (Viewer - Read-only)</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
+              <div className="flex items-center gap-2">
+                <button
+                  type="submit"
+                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs sm:text-sm shadow-md shadow-amber-500/25 transition-all flex items-center justify-center gap-2 active:scale-95"
+                >
+                  {editingStaffId ? <Save className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
+                  <span>{editingStaffId ? 'پاشەکەوتکردنی گۆڕانکارییەکان' : 'تۆمارکردنی فەرمانبەری نوێ'}</span>
+                </button>
+
+                {editingStaffId && (
+                  <button
+                    type="button"
+                    onClick={handleCancelEditStaff}
+                    className="px-4 py-3 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs hover:bg-slate-300 dark:hover:bg-slate-700 transition-all"
+                  >
+                    پاشگەزبوونەوە
+                  </button>
+                )}
+              </div>
+
+              {staffMsg && (
+                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1.5 rounded-xl border border-emerald-300 dark:border-emerald-500/30">
+                  {staffMsg}
+                </span>
+              )}
+            </div>
+          </form>
+        ) : (
+          <div className="p-4 rounded-2xl bg-amber-50/60 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs font-bold flex items-center gap-2">
+            <Shield className="w-4 h-4 text-amber-500 shrink-0" />
+            <span>تەنها بەڕێوەبەری سەرەکی (Admin) دەتوانێت ئەکاونتی فەرمانبەرانی تر زیاد بکات، بسڕێتەوە یان دەسەڵاتیان بگۆڕێت.</span>
           </div>
-        </form>
+        )}
       </div>
 
       {/* ── NEW: Comprehensive Footer Texts Customization Card ───────────────── */}

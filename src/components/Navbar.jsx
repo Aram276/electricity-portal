@@ -128,12 +128,21 @@ export default function Navbar({ currentView, setCurrentView, isAdmin, isAdminPa
               ) : (
                 /* When inside Admin Portal */
                 <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-                  {/* Active Staff Badge (Clean on mobile) */}
+                  {/* Active Staff Badge with Role (Clean on mobile) */}
                   {activeStaff && (
-                    <div className="flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-900 dark:text-amber-200 text-xs font-black shadow-sm shrink-0">
+                    <div className="flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-900 dark:text-amber-200 text-xs font-black shadow-sm shrink-0">
                       <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></div>
                       <span className="hidden md:inline">{activeStaff.name} ({activeStaff.title || 'ژووری ١٩'})</span>
-                      <span className="md:hidden text-[10px] sm:text-xs max-w-[70px] sm:max-w-[120px] truncate">{activeStaff.name}</span>
+                      <span className="md:hidden text-[10px] sm:text-xs max-w-[70px] sm:max-w-[110px] truncate">{activeStaff.name}</span>
+                      <span className={`px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] font-black border shrink-0 ${
+                        activeStaff.role === 'ADMIN' 
+                          ? 'bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30' 
+                          : activeStaff.role === 'VIEWER'
+                          ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30'
+                          : 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30'
+                      }`}>
+                        {activeStaff.role === 'ADMIN' ? '👑 ئادمین' : activeStaff.role === 'VIEWER' ? '👁️ بینەر' : '👤 ستاف'}
+                      </span>
                     </div>
                   )}
 

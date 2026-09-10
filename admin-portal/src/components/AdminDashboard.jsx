@@ -48,6 +48,18 @@ import TrashTab from './TrashTab';
 import { generateWhatsAppUrl } from '../utils/whatsappHelper';
 import { logActivity } from '../utils/cloudSync';
 import { MessageSquare, BarChart3, ExternalLink, Send, History } from 'lucide-react';
+import { 
+  getStaffRole, 
+  canCreate, 
+  canEdit, 
+  canDeliver, 
+  canDelete, 
+  canImportExcel, 
+  canManageSettings, 
+  canSendBroadcast, 
+  isViewer,
+  ROLE_CONFIG 
+} from '../utils/permissions';
 
 // Convert Arabic & Persian / Kurdish numerals (٠-٩, ۰-۹) to standard Latin digits (0-9)
 function toLatinDigits(str) {
@@ -396,9 +408,39 @@ export default function AdminDashboard({
     return pages;
   };
 
+  // Role-Based Access Control (RBAC) Permissions
+  const allowCreate = canCreate(activeStaff);
+  const allowEdit = canEdit(activeStaff);
+  const allowDeliver = canDeliver(activeStaff);
+  const allowDelete = canDelete(activeStaff);
+  const allowImport = canImportExcel(activeStaff);
+  const allowSettings = canManageSettings(activeStaff);
+  const allowBroadcast = canSendBroadcast(activeStaff);
+  const viewerMode = isViewer(activeStaff);
+
   return (
     <div className="space-y-6 sm:space-y-8 py-4 sm:py-6 px-1 sm:px-0">
       
+      {/* Viewer Mode Alert Banner */}
+      {viewerMode && (
+        <div className="p-4 rounded-2xl sm:rounded-3xl bg-blue-50/90 dark:bg-blue-950/40 border border-blue-300 dark:border-blue-500/40 text-blue-900 dark:text-blue-200 text-xs sm:text-sm font-bold flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg shadow-blue-500/5 animate-fadeIn">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-2xl bg-blue-500/20 text-blue-600 dark:text-blue-400 text-lg sm:text-xl">
+              👁️
+            </div>
+            <div>
+              <span className="font-black text-blue-950 dark:text-blue-100 text-sm">هەژماری تەنها بینەر (Viewer Mode):</span>
+              <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
+                تۆ مۆڵەتی بینینی داتاکان، گەڕان، چاپی پسوولە و هەناردەی ئێکسڵت هەیە. دەسەڵاتی دەستکاری، زیادکردن، تەسلیمکردنەوە یان سڕینەوە ناچالاکە.
+              </p>
+            </div>
+          </div>
+          <span className="px-3 py-1.5 rounded-xl bg-blue-500/20 text-blue-700 dark:text-blue-300 text-xs font-black border border-blue-500/30 shrink-0">
+            تەنها خوێندنەوە (Read-Only)
+          </span>
+        </div>
+      )}
+
       {/* Top Admin Header & Sub-Navigation */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white dark:bg-slate-900/95 border border-slate-200 dark:border-amber-500/30 p-4 sm:p-6 rounded-2xl sm:rounded-3xl backdrop-blur-xl shadow-lg transition-colors">
         <div>
@@ -428,35 +470,41 @@ export default function AdminDashboard({
             <span>گشت فایلەکان ({records.length})</span>
           </button>
 
-          <button
-            onClick={() => setActiveTab('daily')}
-            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-black whitespace-nowrap transition-all ${
-              activeTab === 'daily'
-                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white'
-            }`}
-          >
-            <PlusCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            <span>داخڵکردنی خێرا</span>
-          </button>
+          {allowCreate && (
+            <button
+              onClick={() => setActiveTab('daily')}
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-black whitespace-nowrap transition-all ${
+                activeTab === 'daily'
+                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white'
+              }`}
+            >
+              <PlusCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span>داخڵکردنی خێرا</span>
+            </button>
+          )}
 
-          <button
-            onClick={() => setIsFastCheckoutOpen(true)}
-            title="تەسلیمکردنەوەی خێرای دۆسیەی هاووڵاتی لە کاتی قەرەباڵغی (ژووری ١٩)"
-            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-black bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-md shadow-amber-500/25 whitespace-nowrap transition-all active:scale-95 border border-amber-400/50"
-          >
-            <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" />
-            <span>تەسلیمکردنی خێرا ⚡</span>
-          </button>
+          {allowDeliver && (
+            <button
+              onClick={() => setIsFastCheckoutOpen(true)}
+              title="تەسلیمکردنەوەی خێرای دۆسیەی هاووڵاتی لە کاتی قەرەباڵغی (ژووری ١٩)"
+              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-black bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-md shadow-amber-500/25 whitespace-nowrap transition-all active:scale-95 border border-amber-400/50"
+            >
+              <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" />
+              <span>تەسلیمکردنی خێرا ⚡</span>
+            </button>
+          )}
 
-          <button
-            onClick={() => setIsBulkWhatsAppOpen(true)}
-            title="ناردنی نامەی فەرمی بەکۆمەڵ لە ڕێگەی واتسئاپ بۆ هاووڵاتییان"
-            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-black bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/25 whitespace-nowrap transition-all active:scale-95"
-          >
-            <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            <span>نامەی بەکۆمەڵ 📢</span>
-          </button>
+          {allowBroadcast && (
+            <button
+              onClick={() => setIsBulkWhatsAppOpen(true)}
+              title="ناردنی نامەی فەرمی بەکۆمەڵ لە ڕێگەی واتسئاپ بۆ هاووڵاتییان"
+              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-black bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/25 whitespace-nowrap transition-all active:scale-95"
+            >
+              <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span>نامەی بەکۆمەڵ 📢</span>
+            </button>
+          )}
 
           <button
             onClick={() => setActiveTab('analytics')}
@@ -482,30 +530,34 @@ export default function AdminDashboard({
             <span>تۆماری چالاکی 🛡️</span>
           </button>
 
-          <button
-            onClick={() => { setActiveTab('records'); onOpenExcelImport(); }}
-            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-black bg-slate-800 hover:bg-slate-700 text-white shadow-md whitespace-nowrap transition-all active:scale-95"
-          >
-            <UploadCloud className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
-            <span>ئەپڵۆدی ئێکسڵ</span>
-          </button>
+          {allowImport && (
+            <button
+              onClick={() => { setActiveTab('records'); onOpenExcelImport(); }}
+              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-black bg-slate-800 hover:bg-slate-700 text-white shadow-md whitespace-nowrap transition-all active:scale-95"
+            >
+              <UploadCloud className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />
+              <span>ئەپڵۆدی ئێکسڵ</span>
+            </button>
+          )}
 
-          <button
-            onClick={() => setActiveTab('trash')}
-            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-black whitespace-nowrap transition-all ${
-              activeTab === 'trash'
-                ? 'bg-red-600 text-white shadow-md shadow-red-600/30'
-                : 'text-red-500 hover:bg-red-500/10'
-            }`}
-          >
-            <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            <span>سەلەی خۆڵ</span>
-            {trashRecords && trashRecords.length > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-red-500 text-white">
-                {trashRecords.length}
-              </span>
-            )}
-          </button>
+          {allowDelete && (
+            <button
+              onClick={() => setActiveTab('trash')}
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-black whitespace-nowrap transition-all ${
+                activeTab === 'trash'
+                  ? 'bg-red-600 text-white shadow-md shadow-red-600/30'
+                  : 'text-red-500 hover:bg-red-500/10'
+              }`}
+            >
+              <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span>سەلەی خۆڵ</span>
+              {trashRecords && trashRecords.length > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-red-500 text-white">
+                  {trashRecords.length}
+                </span>
+              )}
+            </button>
+          )}
 
           <button
             onClick={() => setActiveTab('settings')}
@@ -548,13 +600,15 @@ export default function AdminDashboard({
             </div>
 
             <div className="flex flex-wrap items-center justify-center md:justify-end gap-2 sm:gap-3">
-              <button
-                onClick={onOpenExcelImport}
-                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm shadow-lg shadow-emerald-500/25 transition-all active:scale-95"
-              >
-                <UploadCloud className="w-4 h-4 shrink-0" />
-                <span>ئەپڵۆدی ئێکسڵ</span>
-              </button>
+              {allowImport && (
+                <button
+                  onClick={onOpenExcelImport}
+                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm shadow-lg shadow-emerald-500/25 transition-all active:scale-95"
+                >
+                  <UploadCloud className="w-4 h-4 shrink-0" />
+                  <span>ئەپڵۆدی ئێکسڵ</span>
+                </button>
+              )}
 
               {/* Export All or Filtered Excel Button */}
               {selectedIds.length > 0 ? (
@@ -589,13 +643,15 @@ export default function AdminDashboard({
                 </div>
               )}
 
-              <button
-                onClick={onOpenAddModal}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs sm:text-sm shadow-md shadow-amber-500/20 transition-all active:scale-95"
-              >
-                <Plus className="w-4 h-4 shrink-0" />
-                <span>فایلی نوێ</span>
-              </button>
+              {allowCreate && (
+                <button
+                  onClick={onOpenAddModal}
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs sm:text-sm shadow-md shadow-amber-500/20 transition-all active:scale-95"
+                >
+                  <Plus className="w-4 h-4 shrink-0" />
+                  <span>فایلی نوێ</span>
+                </button>
+              )}
             </div>
 
           </div>
@@ -815,118 +871,130 @@ export default function AdminDashboard({
                 )}
 
                 {/* Bulk Set to Yellow Folder */}
-                <button
-                  onClick={() => onBatchUpdateFileType && onBatchUpdateFileType(selectedIds, 'YELLOW_FOLDER')}
-                  className="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black transition-all shadow-sm active:scale-95 flex items-center gap-1.5"
-                >
-                  <Folder className="w-3.5 h-3.5" />
-                  <span>فایلی زەرد 📁</span>
-                </button>
+                {allowEdit && (
+                  <button
+                    onClick={() => onBatchUpdateFileType && onBatchUpdateFileType(selectedIds, 'YELLOW_FOLDER')}
+                    className="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black transition-all shadow-sm active:scale-95 flex items-center gap-1.5"
+                  >
+                    <Folder className="w-3.5 h-3.5" />
+                    <span>فایلی زەرد 📁</span>
+                  </button>
+                )}
 
                 {/* Bulk Set to Paper */}
-                <button
-                  onClick={() => onBatchUpdateFileType && onBatchUpdateFileType(selectedIds, 'PAPER')}
-                  className="px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold transition-all shadow-sm active:scale-95 flex items-center gap-1.5"
-                >
-                  <FileText className="w-3.5 h-3.5" />
-                  <span>ئەوراق 📄</span>
-                </button>
+                {allowEdit && (
+                  <button
+                    onClick={() => onBatchUpdateFileType && onBatchUpdateFileType(selectedIds, 'PAPER')}
+                    className="px-3 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold transition-all shadow-sm active:scale-95 flex items-center gap-1.5"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    <span>ئەوراق 📄</span>
+                  </button>
+                )}
 
                 {/* Bulk Send WhatsApp */}
-                <button
-                  onClick={() => setIsBulkWhatsAppOpen(true)}
-                  className="px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black transition-all shadow-md shadow-emerald-500/25 active:scale-95 flex items-center gap-1.5"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>ناردنی واتسئاپ ({selectedIds.length}) 📢</span>
-                </button>
+                {allowBroadcast && (
+                  <button
+                    onClick={() => setIsBulkWhatsAppOpen(true)}
+                    className="px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black transition-all shadow-md shadow-emerald-500/25 active:scale-95 flex items-center gap-1.5"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>ناردنی واتسئاپ ({selectedIds.length}) 📢</span>
+                  </button>
+                )}
 
                 {/* Bulk KYC 3-choice group */}
-                <div className="flex items-center gap-1 bg-slate-900/60 dark:bg-slate-950/80 p-1.5 rounded-xl border-2 border-amber-500/60 shadow-md">
-                  <span className="text-[11px] font-black text-amber-300 px-1.5 flex items-center gap-1">
-                    <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
-                    <span>بەتنی KYC ({selectedIds.length}):</span>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => onBatchUpdateKYC && onBatchUpdateKYC(selectedIds, 'DONE_BY_US')}
-                    className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black transition-all active:scale-95 shadow-sm"
-                    title="دیاریکردن وەک ئێمە کردمان بۆ هەڵبژێردراوەکان"
-                  >
-                    🟢 ئێمە کردمان
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onBatchUpdateKYC && onBatchUpdateKYC(selectedIds, 'PRE_VERIFIED')}
-                    className="px-2.5 py-1 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-black transition-all active:scale-95 shadow-sm"
-                    title="دیاریکردن وەک پێشتر کراوە (دەرەکی)"
-                  >
-                    🔵 پێشتر کراوە
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onBatchUpdateKYC && onBatchUpdateKYC(selectedIds, 'PENDING')}
-                    className="px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-black transition-all active:scale-95 shadow-sm"
-                    title="دیاریکردن وەک نەکراوە (پێنەدراوەتەوە)"
-                  >
-                    🟡 نەکراوە
-                  </button>
-                </div>
+                {allowEdit && (
+                  <div className="flex items-center gap-1 bg-slate-900/60 dark:bg-slate-950/80 p-1.5 rounded-xl border-2 border-amber-500/60 shadow-md">
+                    <span className="text-[11px] font-black text-amber-300 px-1.5 flex items-center gap-1">
+                      <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                      <span>بەتنی KYC ({selectedIds.length}):</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => onBatchUpdateKYC && onBatchUpdateKYC(selectedIds, 'DONE_BY_US')}
+                      className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black transition-all active:scale-95 shadow-sm"
+                      title="دیاریکردن وەک ئێمە کردمان بۆ هەڵبژێردراوەکان"
+                    >
+                      🟢 ئێمە کردمان
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onBatchUpdateKYC && onBatchUpdateKYC(selectedIds, 'PRE_VERIFIED')}
+                      className="px-2.5 py-1 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-black transition-all active:scale-95 shadow-sm"
+                      title="دیاریکردن وەک پێشتر کراوە (دەرەکی)"
+                    >
+                      🔵 پێشتر کراوە
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onBatchUpdateKYC && onBatchUpdateKYC(selectedIds, 'PENDING')}
+                      className="px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-black transition-all active:scale-95 shadow-sm"
+                      title="دیاریکردن وەک نەکراوە (پێنەدراوەتەوە)"
+                    >
+                      🟡 نەکراوە
+                    </button>
+                  </div>
+                )}
 
-                {/* Change Status to Done */}
-                <button
-                  onClick={() => handleBulkStatusChange('COMPLETED')}
-                  className="px-3 py-2 rounded-xl bg-emerald-600/90 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-sm active:scale-95 flex items-center gap-1.5"
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>وەرگیراوەتەوە (Done)</span>
-                </button>
+                {/* Change Status Buttons */}
+                {allowEdit && (
+                  <>
+                    <button
+                      onClick={() => handleBulkStatusChange('COMPLETED')}
+                      className="px-3 py-2 rounded-xl bg-emerald-600/90 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-sm active:scale-95 flex items-center gap-1.5"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>وەرگیراوەتەوە (Done)</span>
+                    </button>
 
-                {/* Change Status to Not Done */}
-                <button
-                  onClick={() => handleBulkStatusChange('IN_PROGRESS')}
-                  className="px-3 py-2 rounded-xl bg-amber-600/90 hover:bg-amber-500 text-white text-xs font-bold transition-all shadow-sm active:scale-95 flex items-center gap-1.5"
-                >
-                  <Clock className="w-3.5 h-3.5" />
-                  <span>پێنەدراوەتەوە (Not Done)</span>
-                </button>
+                    <button
+                      onClick={() => handleBulkStatusChange('IN_PROGRESS')}
+                      className="px-3 py-2 rounded-xl bg-amber-600/90 hover:bg-amber-500 text-white text-xs font-bold transition-all shadow-sm active:scale-95 flex items-center gap-1.5"
+                    >
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>پێنەدراوەتەوە (Not Done)</span>
+                    </button>
 
-                {/* Change Status to Delivered */}
-                <button
-                  onClick={() => handleBulkStatusChange('DELIVERED')}
-                  className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all shadow-sm active:scale-95 flex items-center gap-1.5"
-                >
-                  <PackageCheck className="w-3.5 h-3.5" />
-                  <span>تەسلیم کرا (Delivered) 🔵</span>
-                </button>
+                    <button
+                      onClick={() => handleBulkStatusChange('DELIVERED')}
+                      className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all shadow-sm active:scale-95 flex items-center gap-1.5"
+                    >
+                      <PackageCheck className="w-3.5 h-3.5" />
+                      <span>تەسلیم کرا (Delivered) 🔵</span>
+                    </button>
 
-                {/* Bulk Custom Edit Button */}
-                <button
-                  onClick={() => {
-                    setBulkEditForm({
-                      status: '',
-                      fileType: '',
-                      kycStatus: '',
-                      handledBy: '',
-                      archiveLocation: '',
-                      notes: ''
-                    });
-                    setIsBulkEditOpen(true);
-                  }}
-                  className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-black shadow-lg shadow-purple-600/30 transition-all active:scale-95 flex items-center gap-1.5"
-                >
-                  <Edit className="w-4 h-4" />
-                  <span>دەستکاریکردنی بەکۆمەڵ ✏️</span>
-                </button>
+                    {/* Bulk Custom Edit Button */}
+                    <button
+                      onClick={() => {
+                        setBulkEditForm({
+                          status: '',
+                          fileType: '',
+                          kycStatus: '',
+                          handledBy: '',
+                          archiveLocation: '',
+                          notes: ''
+                        });
+                        setIsBulkEditOpen(true);
+                      }}
+                      className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-black shadow-lg shadow-purple-600/30 transition-all active:scale-95 flex items-center gap-1.5"
+                    >
+                      <Edit className="w-4 h-4" />
+                      <span>دەستکاریکردنی بەکۆمەڵ ✏️</span>
+                    </button>
+                  </>
+                )}
 
                 {/* BULK DELETE BUTTON */}
-                <button
-                  onClick={handleTriggerBulkDelete}
-                  className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white text-xs font-black shadow-lg shadow-rose-600/30 transition-all active:scale-95 flex items-center gap-1.5"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  <span>سڕینەوەی ({selectedIds.length}) فایل</span>
-                </button>
+                {allowDelete && (
+                  <button
+                    onClick={handleTriggerBulkDelete}
+                    className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white text-xs font-black shadow-lg shadow-rose-600/30 transition-all active:scale-95 flex items-center gap-1.5"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>سڕینەوەی ({selectedIds.length}) فایل</span>
+                  </button>
+                )}
 
                 {/* Deselect */}
                 <button
@@ -1038,9 +1106,12 @@ export default function AdminDashboard({
                           <td className="p-2 text-center">
                             <button
                               type="button"
+                              disabled={!allowEdit}
                               onClick={() => onToggleFileType && onToggleFileType(record.id)}
-                              title="کلیک بکە بۆ گۆڕینی جۆری فایل (فایلی زەرد / ئەوراق)"
+                              title={allowEdit ? "کلیک بکە بۆ گۆڕینی جۆری فایل (فایلی زەرد / ئەوراق)" : "تەنها خوێندنەوە"}
                               className={`px-2 py-0.5 rounded-lg text-[11px] font-black border transition-all active:scale-95 shadow-xs inline-flex items-center gap-1 ${
+                                !allowEdit ? 'opacity-85 cursor-default' : 'cursor-pointer'
+                              } ${
                                 isYellowFolder
                                   ? 'bg-amber-200/80 dark:bg-amber-500/25 text-amber-950 dark:text-amber-300 border-amber-400 dark:border-amber-500/50'
                                   : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-700'
@@ -1103,6 +1174,7 @@ export default function AdminDashboard({
                               return (
                                 <select
                                   value={kycState}
+                                  disabled={!allowEdit}
                                   onChange={(e) => {
                                     if (onUpdateKYC) {
                                       onUpdateKYC(record.id, e.target.value);
@@ -1110,8 +1182,10 @@ export default function AdminDashboard({
                                       onToggleKYC(record.id);
                                     }
                                   }}
-                                  title="بەتنی دیاریکردنی دۆخی کەیوایسی (KYC)"
-                                  className={`w-full px-1.5 py-1 rounded-lg text-xs font-black border-2 transition-all cursor-pointer focus:outline-none shadow-xs text-center ${
+                                  title={allowEdit ? "بەتنی دیاریکردنی دۆخی کەیوایسی (KYC)" : "تەنها خوێندنەوە"}
+                                  className={`w-full px-1.5 py-1 rounded-lg text-xs font-black border-2 transition-all focus:outline-none shadow-xs text-center ${
+                                    !allowEdit ? 'cursor-default opacity-85' : 'cursor-pointer'
+                                  } ${
                                     kycState === 'DONE_BY_US'
                                       ? 'bg-emerald-100 dark:bg-emerald-500/25 text-emerald-950 dark:text-emerald-200 border-emerald-500'
                                       : kycState === 'PRE_VERIFIED'
@@ -1137,8 +1211,11 @@ export default function AdminDashboard({
                           <td className="p-2 text-center">
                             <select
                               value={record.status}
+                              disabled={!allowEdit}
                               onChange={(e) => onUpdateStatus(record.id, e.target.value)}
-                              className={`w-full px-1.5 py-1 rounded-lg text-xs font-bold border ${status.badgeClass} bg-white dark:bg-slate-900 cursor-pointer focus:outline-none shadow-xs text-center`}
+                              className={`w-full px-1.5 py-1 rounded-lg text-xs font-bold border ${status.badgeClass} bg-white dark:bg-slate-900 focus:outline-none shadow-xs text-center ${
+                                !allowEdit ? 'cursor-default opacity-85' : 'cursor-pointer'
+                              }`}
                             >
                               <option value="COMPLETED" className="bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-300 font-bold">
                                 🟢 وەرگیراوەتەوە
@@ -1182,19 +1259,21 @@ export default function AdminDashboard({
                           <td className="p-2 text-center">
                             <div className="flex items-center justify-center gap-1">
                               {/* Deliver Button */}
-                              {record.status !== 'DELIVERED' ? (
-                                <button
-                                  onClick={() => onOpenDeliveryModal(record)}
-                                  title="تەسلیمکردنەوە بە هاووڵاتی"
-                                  className="group inline-flex items-center gap-1 px-2 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-black shadow-xs transition-all active:scale-95 shrink-0"
-                                >
-                                  <PackageCheck className="w-3.5 h-3.5" />
-                                  <span>تەسلیم</span>
-                                </button>
-                              ) : (
-                                <span className="inline-flex items-center px-1.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 text-[10px] font-bold border border-blue-200 dark:border-blue-500/30 shrink-0" title="تەسلیم کرا">
-                                  <PackageCheck className="w-3.5 h-3.5" />
-                                </span>
+                              {allowDeliver && (
+                                record.status !== 'DELIVERED' ? (
+                                  <button
+                                    onClick={() => onOpenDeliveryModal(record)}
+                                    title="تەسلیمکردنەوە بە هاووڵاتی"
+                                    className="group inline-flex items-center gap-1 px-2 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-black shadow-xs transition-all active:scale-95 shrink-0"
+                                  >
+                                    <PackageCheck className="w-3.5 h-3.5" />
+                                    <span>تەسلیم</span>
+                                  </button>
+                                ) : (
+                                  <span className="inline-flex items-center px-1.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 text-[10px] font-bold border border-blue-200 dark:border-blue-500/30 shrink-0" title="تەسلیم کرا">
+                                    <PackageCheck className="w-3.5 h-3.5" />
+                                  </span>
+                                )
                               )}
 
                               {/* Timeline / Full History Button */}
@@ -1216,22 +1295,26 @@ export default function AdminDashboard({
                               </button>
 
                               {/* Edit Button */}
-                              <button
-                                onClick={() => onOpenEditModal(record)}
-                                title="دەستکاریکردن"
-                                className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30 transition-all active:scale-95 shadow-xs shrink-0"
-                              >
-                                <Edit className="w-3.5 h-3.5" />
-                              </button>
+                              {allowEdit && (
+                                <button
+                                  onClick={() => onOpenEditModal(record)}
+                                  title="دەستکاریکردن"
+                                  className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30 transition-all active:scale-95 shadow-xs shrink-0"
+                                >
+                                  <Edit className="w-3.5 h-3.5" />
+                                </button>
+                              )}
 
                               {/* Delete Button */}
-                              <button
-                                onClick={() => setDeleteTarget({ id: record.id, fileNumber: record.fileNumber, citizenName: record.citizenName })}
-                                title="سڕینەوەی دۆسیە"
-                                className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-100 dark:hover:bg-rose-500/20 text-rose-500 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30 transition-all active:scale-95 shadow-xs shrink-0"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                              {allowDelete && (
+                                <button
+                                  onClick={() => setDeleteTarget({ id: record.id, fileNumber: record.fileNumber, citizenName: record.citizenName })}
+                                  title="سڕینەوەی دۆسیە"
+                                  className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-100 dark:hover:bg-rose-500/20 text-rose-500 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30 transition-all active:scale-95 shadow-xs shrink-0"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -1297,8 +1380,11 @@ export default function AdminDashboard({
                           {/* File Type Button on Mobile */}
                           <button
                             type="button"
+                            disabled={!allowEdit}
                             onClick={() => onToggleFileType && onToggleFileType(record.id)}
                             className={`px-2 py-0.5 rounded-lg text-xs font-black border transition-all active:scale-95 flex items-center gap-1 ${
+                              !allowEdit ? 'opacity-85 cursor-default' : 'cursor-pointer'
+                            } ${
                               isYellowFolder
                                 ? 'bg-amber-200/80 dark:bg-amber-500/25 text-amber-950 dark:text-amber-300 border-amber-400'
                                 : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-700'
@@ -1317,6 +1403,7 @@ export default function AdminDashboard({
                               return (
                                 <select
                                   value={kycState}
+                                  disabled={!allowEdit}
                                   onChange={(e) => {
                                     if (onUpdateKYC) {
                                       onUpdateKYC(record.id, e.target.value);
@@ -1324,8 +1411,10 @@ export default function AdminDashboard({
                                       onToggleKYC(record.id);
                                     }
                                   }}
-                                  title="بەتنی گۆڕینی دۆخی KYC"
-                                  className={`px-2 py-0.5 rounded-lg text-[11px] font-black border-2 transition-all cursor-pointer focus:outline-none ${
+                                  title={allowEdit ? "بەتنی گۆڕینی دۆخی KYC" : "تەنها خوێندنەوە"}
+                                  className={`px-2 py-0.5 rounded-lg text-[11px] font-black border-2 transition-all focus:outline-none ${
+                                    !allowEdit ? 'opacity-85 cursor-default' : 'cursor-pointer'
+                                  } ${
                                     kycState === 'DONE_BY_US'
                                       ? 'bg-emerald-100 dark:bg-emerald-500/25 text-emerald-950 dark:text-emerald-200 border-emerald-500'
                                       : kycState === 'PRE_VERIFIED'
@@ -1351,8 +1440,11 @@ export default function AdminDashboard({
                         {/* Inline Status Dropdown */}
                         <select
                           value={record.status}
+                          disabled={!allowEdit}
                           onChange={(e) => onUpdateStatus(record.id, e.target.value)}
-                          className={`px-2.5 py-1.5 rounded-xl text-xs font-black border ${status.badgeClass} bg-white dark:bg-slate-900 cursor-pointer focus:outline-none shadow-sm`}
+                          className={`px-2.5 py-1.5 rounded-xl text-xs font-black border ${status.badgeClass} bg-white dark:bg-slate-900 focus:outline-none shadow-sm ${
+                            !allowEdit ? 'opacity-85 cursor-default' : 'cursor-pointer'
+                          }`}
                         >
                           <option value="COMPLETED" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-normal">
                             وەرگیراوەتەوە (Done)
@@ -1428,29 +1520,33 @@ export default function AdminDashboard({
                       {/* Action Buttons Row on Mobile (Big, Touch-Friendly) */}
                       <div className="flex items-center gap-2 pt-0.5">
                         {/* Deliver Button */}
-                        {record.status !== 'DELIVERED' ? (
-                          <button
-                            onClick={() => onOpenDeliveryModal(record)}
-                            className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 active:from-blue-600 active:to-blue-700 text-white text-xs font-black shadow-md shadow-blue-500/25 flex items-center justify-center gap-1.5"
-                          >
-                            <PackageCheck className="w-4 h-4" />
-                            <span>تەسلیم</span>
-                          </button>
-                        ) : (
-                          <div className="flex-1 py-2 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 text-xs font-bold border border-blue-200 dark:border-blue-500/30 flex items-center justify-center gap-1">
-                            <PackageCheck className="w-4 h-4" />
-                            <span>تەسلیم کرا</span>
-                          </div>
+                        {allowDeliver && (
+                          record.status !== 'DELIVERED' ? (
+                            <button
+                              onClick={() => onOpenDeliveryModal(record)}
+                              className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 active:from-blue-600 active:to-blue-700 text-white text-xs font-black shadow-md shadow-blue-500/25 flex items-center justify-center gap-1.5"
+                            >
+                              <PackageCheck className="w-4 h-4" />
+                              <span>تەسلیم</span>
+                            </button>
+                          ) : (
+                            <div className="flex-1 py-2 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 text-xs font-bold border border-blue-200 dark:border-blue-500/30 flex items-center justify-center gap-1">
+                              <PackageCheck className="w-4 h-4" />
+                              <span>تەسلیم کرا</span>
+                            </div>
+                          )
                         )}
 
                         {/* Edit Button */}
-                        <button
-                          onClick={() => onOpenEditModal(record)}
-                          className="flex-1 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 active:scale-98 text-white text-xs font-black shadow-md shadow-emerald-500/25 flex items-center justify-center gap-1.5"
-                        >
-                          <Edit className="w-4 h-4" />
-                          <span>دەستکاری</span>
-                        </button>
+                        {allowEdit && (
+                          <button
+                            onClick={() => onOpenEditModal(record)}
+                            className="flex-1 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 active:scale-98 text-white text-xs font-black shadow-md shadow-emerald-500/25 flex items-center justify-center gap-1.5"
+                          >
+                            <Edit className="w-4 h-4" />
+                            <span>دەستکاری</span>
+                          </button>
+                        )}
 
                         {/* Timeline Button */}
                         <button
@@ -1472,13 +1568,15 @@ export default function AdminDashboard({
                         </button>
 
                         {/* Delete Button */}
-                        <button
-                          onClick={() => setDeleteTarget({ id: record.id, fileNumber: record.fileNumber, citizenName: record.citizenName })}
-                          title="سڕینەوەی دۆسیە"
-                          className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-500/10 text-rose-500 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30 active:scale-95"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {allowDelete && (
+                          <button
+                            onClick={() => setDeleteTarget({ id: record.id, fileNumber: record.fileNumber, citizenName: record.citizenName })}
+                            title="سڕینەوەی دۆسیە"
+                            className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-500/10 text-rose-500 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30 active:scale-95"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
