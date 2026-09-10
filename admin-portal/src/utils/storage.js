@@ -132,10 +132,27 @@ export function saveTrash(trashRecords) {
 }
 
 export function isAdminAuthenticated() {
-  return sessionStorage.getItem(ADMIN_KEY) === 'true';
+  try {
+    return (
+      sessionStorage.getItem(ADMIN_KEY) === 'true' || 
+      localStorage.getItem(ADMIN_KEY) === 'true' || 
+      Boolean(localStorage.getItem('electricity_active_staff'))
+    );
+  } catch (e) {
+    return false;
+  }
 }
 
 export function setAdminAuthenticated(val) {
-  sessionStorage.setItem(ADMIN_KEY, val ? 'true' : 'false');
+  try {
+    if (val) {
+      sessionStorage.setItem(ADMIN_KEY, 'true');
+      localStorage.setItem(ADMIN_KEY, 'true');
+    } else {
+      sessionStorage.removeItem(ADMIN_KEY);
+      localStorage.removeItem(ADMIN_KEY);
+      localStorage.removeItem('electricity_active_staff');
+    }
+  } catch (e) {}
 }
 

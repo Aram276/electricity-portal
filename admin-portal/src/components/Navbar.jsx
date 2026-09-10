@@ -108,15 +108,14 @@ export default function Navbar({ currentView, setCurrentView, isAdmin, isAdminPa
 
               {/* When on Citizen View */}
               {currentView === 'citizen' ? (
-                (isAdmin || isAdminPath) && (
-                  <button
-                    onClick={isAdmin ? () => setCurrentView('admin') : onOpenAdminLogin}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black text-slate-800 dark:text-slate-200 bg-amber-500/15 hover:bg-amber-500/25 dark:bg-slate-900/90 dark:hover:bg-slate-800 border border-amber-400/50 dark:border-amber-500/30 transition-all shadow-sm shrink-0"
-                  >
-                    <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                    <span>{isAdmin ? 'پەنێڵی ئادمین' : 'چوونەژوورەوە'}</span>
-                  </button>
-                )
+                <button
+                  onClick={isAdmin ? () => setCurrentView('admin') : onOpenAdminLogin}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black text-slate-800 dark:text-slate-200 bg-amber-500/15 hover:bg-amber-500/25 dark:bg-slate-900/90 dark:hover:bg-slate-800 border border-amber-400/50 dark:border-amber-500/30 transition-all shadow-sm shrink-0 cursor-pointer"
+                  title={isAdmin ? "چوونە پەنێڵی ئادمین" : "چوونەژوورەوەی ستاف و بەڕێوەبەر"}
+                >
+                  <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <span>{isAdmin ? 'پەنێڵی ئادمین' : 'چوونەژوورەوە'}</span>
+                </button>
               ) : (
                 /* When inside Admin Portal */
                 <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">

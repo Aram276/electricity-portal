@@ -69,7 +69,7 @@ export default function FastCheckoutModal({ isOpen, onClose, records = [], onDel
     }
   }, [isOpen]);
 
-  // Compute matched candidates from records
+  // Compute matched candidates from records (prioritizing exact matches)
   const candidates = useMemo(() => {
     const raw = (query || '').trim();
     if (!raw) return [];
@@ -78,7 +78,7 @@ export default function FastCheckoutModal({ isOpen, onClose, records = [], onDel
     const compactFuzzyQ = fuzzyQ.replace(/\s+/g, '');
     const cleanDigitsQ = latinQ.replace(/[^0-9]/g, '');
 
-    return (records || []).filter(r => {
+    const matches = (records || []).filter(r => {
       const fNum = String(r.fileNumber || '').trim();
       const acc = String(r.accountNumber || '').trim();
       const phone = String(r.phoneNumber || '').replace(/[^0-9]/g, '');
@@ -97,20 +97,40 @@ export default function FastCheckoutModal({ isOpen, onClose, records = [], onDel
       if (fuzzyQ && (fuzzyName.includes(fuzzyQ) || compactName.includes(compactFuzzyQ))) return true;
 
       return false;
+    });
+
+    // Sort so exact file number match is always first
+    return matches.sort((a, b) => {
+      const fA = String(a.fileNumber || '').trim();
+      const fB = String(b.fileNumber || '').trim();
+      if (fA === cleanDigitsQ) return -1;
+      if (fB === cleanDigitsQ) return 1;
+      return 0;
     }).slice(0, 8);
   }, [query, records]);
 
-  // Auto-select candidate if exact single match
+  // Auto-select candidate if exact match or single match exists
   useEffect(() => {
-    if (candidates.length === 1 && !selectedRecord) {
-      const single = candidates[0];
-      setSelectedRecord(single);
-      setReceiverName((single.citizenName && single.citizenName !== 'هاوبەشی کارەبا') ? single.citizenName : '');
-      setReceiverPhone((single.phoneNumber && single.phoneNumber !== 'نیە') ? single.phoneNumber : '');
-    } else if (candidates.length === 0) {
+    const raw = (query || '').trim();
+    const cleanDigitsQ = toLatinDigits(raw).replace(/[^0-9]/g, '');
+
+    if (candidates.length > 0) {
+      // 1. Check for exact file number match
+      const exactFile = cleanDigitsQ ? candidates.find(c => String(c.fileNumber).trim() === cleanDigitsQ) : null;
+      // 2. Check for exact account ID match
+      const exactAcc = cleanDigitsQ ? candidates.find(c => String(c.accountNumber).trim() === cleanDigitsQ) : null;
+      
+      const bestMatch = exactFile || exactAcc || (candidates.length === 1 ? candidates[0] : null);
+
+      if (bestMatch && (!selectedRecord || selectedRecord.id !== bestMatch.id)) {
+        setSelectedRecord(bestMatch);
+        setReceiverName((bestMatch.citizenName && bestMatch.citizenName !== 'هاوبەشی کارەبا') ? bestMatch.citizenName : '');
+        setReceiverPhone((bestMatch.phoneNumber && bestMatch.phoneNumber !== 'نیە') ? bestMatch.phoneNumber : '');
+      }
+    } else {
       setSelectedRecord(null);
     }
-  }, [candidates]);
+  }, [candidates, query]);
 
   if (!isOpen) return null;
 
@@ -124,18 +144,29 @@ export default function FastCheckoutModal({ isOpen, onClose, records = [], onDel
 
   const handleConfirmDelivery = (e) => {
     e?.preventDefault();
-    if (!selectedRecord) {
+
+    const raw = (query || '').trim();
+    const cleanDigitsQ = toLatinDigits(raw).replace(/[^0-9]/g, '');
+
+    // Resolve target: selectedRecord or best candidate
+    let target = selectedRecord;
+    if (!target && candidates.length > 0) {
+      const exactFile = cleanDigitsQ ? candidates.find(c => String(c.fileNumber).trim() === cleanDigitsQ) : null;
+      target = exactFile || candidates[0];
+    }
+
+    if (!target) {
       setErrorMsg('تکایە سەرەتا ژمارەی فایل، ئەژمار، یان ناوی هاووڵاتی بنووسە');
       return;
     }
 
-    const finalReceiver = receiverName.trim() || selectedRecord.citizenName || 'هاوبەشی کارەبا';
+    const finalReceiver = receiverName.trim() || target.citizenName || 'هاوبەشی کارەبا';
     const nowTime = new Date().toISOString().replace('T', ' ').slice(0, 16);
     const activeStaff = JSON.parse(localStorage.getItem('electricity_active_staff') || 'null');
     const staffName = activeStaff?.name ? `${activeStaff.name}` : 'کارمەندی ژووری ١٩';
 
     if (onDeliverRecord) {
-      onDeliverRecord(selectedRecord.id, {
+      onDeliverRecord(target.id, {
         status: 'DELIVERED',
         deliveredDate: nowTime,
         receiverName: finalReceiver,
@@ -155,7 +186,7 @@ export default function FastCheckoutModal({ isOpen, onClose, records = [], onDel
       });
     } catch (err) {}
 
-    setSuccessMessage(`دۆسیەی ژمارە (${selectedRecord.fileNumber}) بە ناوی [${finalReceiver}] بە فەرمی تەسلیم کرایەوە! ✅`);
+    setSuccessMessage(`دۆسیەی ژمارە (${target.fileNumber}) بە ناوی [${finalReceiver}] بە فەرمی تەسلیم کرایەوە! ✅`);
     
     // Reset for next citizen in line
     setTimeout(() => {
@@ -165,7 +196,7 @@ export default function FastCheckoutModal({ isOpen, onClose, records = [], onDel
       setReceiverPhone('');
       setSuccessMessage(null);
       queryInputRef.current?.focus();
-    }, 1800);
+    }, 1500);
   };
 
   return (
@@ -222,8 +253,9 @@ export default function FastCheckoutModal({ isOpen, onClose, records = [], onDel
                 if (selectedRecord) setSelectedRecord(null);
               }}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && selectedRecord) {
-                  receiverInputRef.current?.focus();
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleConfirmDelivery(e);
                 }
               }}
               placeholder="نموونە: 654 یان 63172254653 یان ڕێبین..."

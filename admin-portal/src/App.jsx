@@ -31,7 +31,25 @@ import { CheckCircle2, Info, Cloud } from 'lucide-react';
 export default function App() {
   const [records, setRecords] = useState(() => deduplicateRecords(getStoredRecords()));
   const [trashRecords, setTrashRecords] = useState(() => getStoredTrash());
-  const [currentView, setCurrentView] = useState('citizen'); // 'citizen' | 'admin'
+  const [currentView, setCurrentView] = useState(() => {
+    try {
+      const path = window.location.pathname.toLowerCase();
+      const hash = window.location.hash.toLowerCase();
+      const search = window.location.search.toLowerCase();
+      const isDirectAdmin = 
+        path.includes('admin') || 
+        hash.includes('admin') || 
+        search.includes('admin') || 
+        path.endsWith('/manage') ||
+        window.location.port === '5174' ||
+        window.location.port === '5175';
+
+      if (isDirectAdmin && isAdminAuthenticated()) {
+        return 'admin';
+      }
+    } catch (e) {}
+    return 'citizen';
+  });
   const [isAdmin, setIsAdmin] = useState(() => isAdminAuthenticated());
   const [activeStaff, setActiveStaff] = useState(() => {
     try {
@@ -66,7 +84,7 @@ export default function App() {
       const search = window.location.search.toLowerCase();
       
       const isDirectAdmin = 
-        path.includes('/admin') || 
+        path.includes('admin') || 
         hash.includes('admin') || 
         search.includes('admin') || 
         path.endsWith('/manage') ||
