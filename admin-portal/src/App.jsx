@@ -32,16 +32,13 @@ export default function App() {
   const [records, setRecords] = useState(() => deduplicateRecords(getStoredRecords()));
   const [trashRecords, setTrashRecords] = useState(() => getStoredTrash());
   const [currentView, setCurrentView] = useState('admin'); // 'citizen' | 'admin' - Default to admin in admin-portal
-  const [isAdmin, setIsAdmin] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(() => isAdminAuthenticated());
   const [activeStaff, setActiveStaff] = useState(() => {
+    if (!isAdminAuthenticated()) return null;
     try {
-      const saved = JSON.parse(localStorage.getItem('electricity_active_staff') || 'null');
-      if (saved) return saved;
-      const defaultStaff = { name: 'ئارام', role: 'admin', title: 'بەڕێوەبەری ژووری ١٩' };
-      localStorage.setItem('electricity_active_staff', JSON.stringify(defaultStaff));
-      return defaultStaff;
+      return JSON.parse(localStorage.getItem('electricity_active_staff') || 'null');
     } catch (e) {
-      return { name: 'ئارام', role: 'admin', title: 'بەڕێوەبەری ژووری ١٩' };
+      return null;
     }
   });
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -50,7 +47,7 @@ export default function App() {
   });
 
   // Modals state
-  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [isLoginOpen, setIsLoginOpen] = useState(() => !isAdminAuthenticated());
   const [isExcelOpen, setIsExcelOpen] = useState(false);
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
@@ -61,16 +58,23 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [isAdminPath, setIsAdminPath] = useState(true);
 
-  // Auto-authenticate admin on mount in admin-portal
+  // Check authentication status on mount & hashchange
   useEffect(() => {
-    setAdminAuthenticated(true);
-    setIsAdmin(true);
+    const isAuth = isAdminAuthenticated();
+    setIsAdmin(isAuth);
     setIsAdminPath(true);
-    setCurrentView('admin');
+
+    if (!isAuth) {
+      setIsLoginOpen(true);
+    } else {
+      setCurrentView('admin');
+    }
 
     const checkAdminUrl = () => {
       setIsAdminPath(true);
-      setIsAdmin(true);
+      if (!isAdminAuthenticated()) {
+        setIsLoginOpen(true);
+      }
     };
 
     checkAdminUrl();
@@ -81,12 +85,14 @@ export default function App() {
     const handleKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'a') {
         e.preventDefault();
-        setCurrentView(prev => prev === 'admin' ? 'citizen' : 'admin');
+        if (isAdminAuthenticated()) {
+          setCurrentView(prev => prev === 'admin' ? 'citizen' : 'admin');
+        } else {
+          setIsLoginOpen(true);
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
-
-    setIsAdmin(isAdminAuthenticated());
 
     // Live Cloud Subscription to Firebase Firestore
     const unsubscribe = subscribeToCloudRecords((cloudRecords) => {
@@ -110,6 +116,34 @@ export default function App() {
       if (typeof unsubTrash === 'function') unsubTrash();
     };
   }, []);
+
+  // Auto Session Inactivity Timeout (30 mins of inactivity locks session)
+  useEffect(() => {
+    let timeoutId;
+    const resetTimer = () => {
+      clearTimeout(timeoutId);
+      if (isAdminAuthenticated()) {
+        timeoutId = setTimeout(() => {
+          setIsAdmin(false);
+          setAdminAuthenticated(false);
+          setActiveStaff(null);
+          localStorage.removeItem('electricity_active_staff');
+          sessionStorage.removeItem('electricity_portal_admin_session');
+          setIsLoginOpen(true);
+          showToast('بەهۆی بێدەنگی و چالاک نەبوونی سیستەم بۆ ماوەیەکی درێژ، دەرچوونی پارێزراو ئەنجامدرا', 'info');
+        }, 30 * 60 * 1000); // 30 minutes
+      }
+    };
+
+    const events = ['mousedown', 'mousemove', 'keydown', 'touchstart', 'scroll'];
+    events.forEach(e => window.addEventListener(e, resetTimer, { passive: true }));
+    resetTimer();
+
+    return () => {
+      clearTimeout(timeoutId);
+      events.forEach(e => window.removeEventListener(e, resetTimer));
+    };
+  }, [isAdmin]);
 
   // Sync theme with DOM
   useEffect(() => {
@@ -154,7 +188,8 @@ export default function App() {
     setAdminAuthenticated(false);
     setActiveStaff(null);
     localStorage.removeItem('electricity_active_staff');
-    setCurrentView('citizen');
+    sessionStorage.removeItem('electricity_portal_admin_session');
+    setIsLoginOpen(true);
     showToast('دەرچوون لە ئەژمێری ئادمین ئەنجامدرا', 'info');
   };
 
