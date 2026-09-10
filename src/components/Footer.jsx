@@ -111,12 +111,22 @@ export default function Footer({ footerSettings }) {
 
         </div>
 
-        <div className="border-t border-slate-200 dark:border-slate-800/80 mt-8 sm:mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2">
-          <div>
-            {settings.copyright}
+        <div className="border-t border-slate-200 dark:border-slate-800/80 mt-8 sm:mt-10 pt-6 flex flex-col md:flex-row items-center justify-between text-xs text-slate-500 gap-3">
+          <div className="text-center md:text-right space-y-1">
+            <div className="font-bold text-slate-700 dark:text-slate-300">
+              {settings.copyright}
+            </div>
+            <div className="text-[11px] text-slate-500 dark:text-slate-400">
+              {settings.bottomNote}
+            </div>
           </div>
-          <div className="text-[11px] text-slate-500 dark:text-slate-400">
-            {settings.bottomNote}
+
+          {/* Creators & Developers Distinguished Badge */}
+          <div className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 text-amber-900 dark:text-amber-200 text-xs font-bold shadow-sm">
+            <span className="text-amber-600 dark:text-amber-400 font-black">💻 بیرۆکە و گەشەپێدانی سیستم:</span>
+            <span className="font-black text-slate-900 dark:text-white">ئارام عەباس (Aram Abbas)</span>
+            <span className="text-amber-500 font-black">&</span>
+            <span className="font-black text-slate-900 dark:text-white">ڕەعد ئیبراهیم (Raad Ebrahim)</span>
           </div>
         </div>
       </div>

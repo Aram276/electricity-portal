@@ -225,6 +225,16 @@ export default function AdminLoginView({ onLoginSuccess, onGoToCitizen }) {
           </div>
         </form>
 
+        {/* Creator Ownership Badge */}
+        <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 text-center space-y-1">
+          <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+            مافی خاوەندارێتی و دیزاینی سیستم پارێزراوە
+          </p>
+          <p className="text-xs font-black text-amber-600 dark:text-amber-400">
+            Aram Abbas & Raad Ebrahim
+          </p>
+        </div>
+
       </div>
     </div>
   );

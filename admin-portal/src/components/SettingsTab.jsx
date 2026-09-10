@@ -1211,6 +1211,69 @@ export default function SettingsTab({ onResetData, records = [], activeStaff = n
         </div>
       </div>
 
+      {/* ── SYSTEM INFORMATION & DEVELOPER CREDITS CARD ── */}
+      <div className="p-5 sm:p-7 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-amber-500/10 via-white to-amber-500/5 dark:from-amber-500/10 dark:via-slate-900 dark:to-slate-950 border-2 border-amber-500/30 shadow-xl space-y-5 transition-colors text-right">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400">
+              <RoonakiLogo className="h-10 w-auto" showText={false} />
+            </div>
+            <div>
+              <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+                دەربارەی سیستەم و مافی خاوەندارێتی
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                سیستەمی کارگێڕی، ئەرشیف و کۆنتڕۆڵی دۆسیەکانی هاوبەشانی کارەبا
+              </p>
+            </div>
+          </div>
+          <span className="px-3 py-1.5 rounded-xl bg-amber-500/20 text-amber-800 dark:text-amber-300 font-mono font-black text-xs border border-amber-500/30 shrink-0">
+            Version 2.6.0 (Enterprise)
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          
+          {/* Creator 1: Aram Abbas */}
+          <div className="p-4 rounded-2xl bg-white dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-amber-600 dark:text-amber-400">گەشەپێدەر و بەڕێوەبەری سەرەکی:</span>
+              <span className="px-2 py-0.5 rounded text-[10px] font-black bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/20">Admin</span>
+            </div>
+            <div className="text-base font-black text-slate-900 dark:text-white">
+              ئارام عەباس (Aram Abbas)
+            </div>
+            <div className="text-xs text-slate-500 dark:text-slate-400">
+              پڕۆژەی نیشتمانیی ڕووناکی — بەشی ئەرشیف و ژووری ١٩
+            </div>
+          </div>
+
+          {/* Creator 2: Raad Ebrahim */}
+          <div className="p-4 rounded-2xl bg-white dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-amber-600 dark:text-amber-400">گەشەپێدەر و بەڕێوەبەری سەرەکی:</span>
+              <span className="px-2 py-0.5 rounded text-[10px] font-black bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/20">Admin</span>
+            </div>
+            <div className="text-base font-black text-slate-900 dark:text-white">
+              ڕەعد ئیبراهیم (Raad Ebrahim)
+            </div>
+            <div className="text-xs text-slate-500 dark:text-slate-400">
+              پڕۆژەی نیشتمانیی ڕووناکی — بەشی ئەرشیف و ژووری ١٩
+            </div>
+          </div>
+
+        </div>
+
+        <div className="p-3.5 rounded-2xl bg-slate-100/80 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-600 dark:text-slate-400 gap-2">
+          <span>
+            مافی پەرەپێدان، دیزاین و بەرنامەسازیی تەواوی ئەم پۆڕتاڵە پارێزراوە بۆ گەشەپێدەران © {new Date().getFullYear()}
+          </span>
+          <span className="font-mono text-amber-600 dark:text-amber-400 font-bold">
+            Aram Abbas & Raad Ebrahim
+          </span>
+        </div>
+      </div>
+
     </div>
   );
 }

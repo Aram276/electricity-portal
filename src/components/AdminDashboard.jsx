@@ -952,6 +952,19 @@ export default function AdminDashboard({
                     </div>
                   </div>
                 </div>
+
+                {/* Developers & System Ownership Card */}
+                <div className="mt-3 p-3 rounded-2xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/25 space-y-1.5 text-right">
+                  <div className="flex items-center justify-between text-[11px] font-black text-amber-900 dark:text-amber-200">
+                    <span>💻 بیرۆکە و گەشەپێدانی سیستم:</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300 font-mono">Room 19</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs font-black text-slate-900 dark:text-white">
+                    <span>ئارام عەباس (Aram Abbas)</span>
+                    <span className="text-amber-500 font-black">&</span>
+                    <span>ڕەعد ئیبراهیم (Raad Ebrahim)</span>
+                  </div>
+                </div>
               </div>
 
             </div>
