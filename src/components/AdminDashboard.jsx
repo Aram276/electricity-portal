@@ -240,7 +240,7 @@ function RowActionsDropdown({
 }
 
 export default function AdminDashboard({
-  records,
+  records = [],
   trashRecords = [],
   activeStaff,
   onOpenExcelImport,
@@ -348,7 +348,8 @@ export default function AdminDashboard({
 
   // Compute Metrics & Data Quality Stats (Memoized)
   const stats = useMemo(() => {
-    const total = records.length;
+    const safeRecords = Array.isArray(records) ? records : [];
+    const total = safeRecords.length;
     let completed = 0;
     let inProgress = 0;
     let delivered = 0;
@@ -364,7 +365,8 @@ export default function AdminDashboard({
     let kycPending = 0;
 
     for (let i = 0; i < total; i++) {
-      const r = records[i];
+      const r = safeRecords[i];
+      if (!r) continue;
       if (r.status === 'COMPLETED') completed++;
       else if (r.status === 'IN_PROGRESS') inProgress++;
       else if (r.status === 'DELIVERED') delivered++;
@@ -430,7 +432,9 @@ export default function AdminDashboard({
     const compactFuzzyQ = fuzzyQ.replace(/\s+/g, '');
     const cleanDigitsQ = latinQ.replace(/[^0-9]/g, '');
 
-    const filtered = records.filter(record => {
+    const safeRecords = Array.isArray(records) ? records : [];
+    const filtered = safeRecords.filter(record => {
+      if (!record) return false;
       // Search matching
       if (rawSearch) {
         const fuzzyName = normalizeKurdishFuzzy(record.citizenName || '');

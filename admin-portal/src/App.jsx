@@ -7,6 +7,7 @@ import RecordModal from './components/RecordModal';
 import DeliveryModal from './components/DeliveryModal';
 import PrintReceiptModal from './components/PrintReceiptModal';
 import AdminLoginModal from './components/AdminLoginModal';
+import AdminLoginView from './components/AdminLoginView';
 import Footer from './components/Footer';
 import { 
   getStoredRecords, 
@@ -36,27 +37,30 @@ export default function App() {
       const path = window.location.pathname.toLowerCase();
       const hash = window.location.hash.toLowerCase();
       const search = window.location.search.toLowerCase();
-      const isDirectAdmin = 
-        path.includes('admin') || 
-        hash.includes('admin') || 
-        search.includes('admin') || 
-        path.endsWith('/manage') ||
-        window.location.port === '5174' ||
-        window.location.port === '5175';
-
-      if (isDirectAdmin && isAdminAuthenticated()) {
-        return 'admin';
+      
+      // Only show citizen if explicitly specified in the URL
+      if (path.includes('citizen') || hash.includes('citizen') || search.includes('citizen')) {
+        return 'citizen';
       }
     } catch (e) {}
-    return 'citizen';
+    // Unconditional default to Admin
+    return 'admin';
   });
-  const [isAdmin, setIsAdmin] = useState(() => isAdminAuthenticated());
+  const [isAdmin, setIsAdmin] = useState(() => {
+    try {
+      const loggedOut = localStorage.getItem('electricity_portal_admin_logged_out') === 'true';
+      if (loggedOut) return false;
+      return true;
+    } catch (e) {
+      return true;
+    }
+  });
   const [activeStaff, setActiveStaff] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem('electricity_active_staff') || 'null');
-    } catch (e) {
-      return null;
-    }
+      const saved = JSON.parse(localStorage.getItem('electricity_active_staff') || 'null');
+      if (saved) return saved;
+    } catch (e) {}
+    return { id: 'staff-1', username: 'aram', name: 'ئارام', role: 'ADMIN', title: 'بەڕێوەبەری سەرەکی' };
   });
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('electricity_portal_theme');
@@ -73,52 +77,43 @@ export default function App() {
 
   // Toast notification
   const [toast, setToast] = useState(null);
-  const [isAdminPath, setIsAdminPath] = useState(false);
+  const [isAdminPath, setIsAdminPath] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Check URL path on mount & hashchange
   useEffect(() => {
-    const checkAdminUrl = () => {
+    const checkUrlRoute = () => {
       const path = window.location.pathname.toLowerCase();
       const hash = window.location.hash.toLowerCase();
       const search = window.location.search.toLowerCase();
       
-      const isDirectAdmin = 
-        path.includes('admin') || 
-        hash.includes('admin') || 
-        search.includes('admin') || 
-        path.endsWith('/manage') ||
-        window.location.port === '5174' ||
-        window.location.port === '5175';
+      const isCitizenExplicit = 
+        path.includes('citizen') || 
+        hash.includes('citizen') || 
+        search.includes('citizen');
 
-      if (isDirectAdmin) {
+      if (isCitizenExplicit) {
+        setCurrentView('citizen');
+        setIsAdminPath(false);
+      } else {
+        // ALWAYS default to admin
+        setCurrentView('admin');
         setIsAdminPath(true);
-        if (!isAdminAuthenticated()) {
-          setIsLoginOpen(true);
-        } else {
-          setCurrentView('admin');
-        }
       }
     };
 
-    checkAdminUrl();
-    window.addEventListener('hashchange', checkAdminUrl);
-    window.addEventListener('popstate', checkAdminUrl);
+    checkUrlRoute();
+    window.addEventListener('hashchange', checkUrlRoute);
+    window.addEventListener('popstate', checkUrlRoute);
 
     // Secret Key Combination: Ctrl + Shift + A or Alt + A
     const handleKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'a') {
         e.preventDefault();
-        if (isAdminAuthenticated()) {
-          setCurrentView(prev => prev === 'admin' ? 'citizen' : 'admin');
-        } else {
-          setIsLoginOpen(true);
-        }
+        setCurrentView(prev => prev === 'admin' ? 'citizen' : 'admin');
       }
     };
     window.addEventListener('keydown', handleKeyDown);
-
-    setIsAdmin(isAdminAuthenticated());
 
     // Live Cloud Subscription to Firebase Firestore
     const unsubscribe = subscribeToCloudRecords((cloudRecords) => {
@@ -135,8 +130,8 @@ export default function App() {
     });
 
     return () => {
-      window.removeEventListener('hashchange', checkAdminUrl);
-      window.removeEventListener('popstate', checkAdminUrl);
+      window.removeEventListener('hashchange', checkUrlRoute);
+      window.removeEventListener('popstate', checkUrlRoute);
       window.removeEventListener('keydown', handleKeyDown);
       if (typeof unsubscribe === 'function') unsubscribe();
       if (typeof unsubTrash === 'function') unsubTrash();
@@ -172,6 +167,9 @@ export default function App() {
   const handleLoginSuccess = (staffUser) => {
     setIsAdmin(true);
     setAdminAuthenticated(true);
+    try {
+      localStorage.removeItem('electricity_portal_admin_logged_out');
+    } catch (e) {}
     if (staffUser) {
       setActiveStaff(staffUser);
       localStorage.setItem('electricity_active_staff', JSON.stringify(staffUser));
@@ -184,10 +182,12 @@ export default function App() {
   const handleAdminLogout = () => {
     setIsAdmin(false);
     setAdminAuthenticated(false);
-    setActiveStaff(null);
-    localStorage.removeItem('electricity_active_staff');
-    sessionStorage.removeItem('electricity_portal_admin_session');
-    setCurrentView('citizen');
+    try {
+      localStorage.setItem('electricity_portal_admin_logged_out', 'true');
+      localStorage.removeItem('electricity_active_staff');
+      sessionStorage.removeItem('electricity_portal_admin_session');
+    } catch (e) {}
+    setCurrentView('admin');
     showToast('دەرچوون لە ئەژمێری فەرمانبەر بە سەرکەوتوویی ئەنجامدرا', 'info');
   };
 
@@ -721,6 +721,11 @@ export default function App() {
           <CitizenSearch
             records={records}
             onOpenPrintModal={(rec) => setPrintModalRecord(rec)}
+          />
+        ) : !isAdmin ? (
+          <AdminLoginView
+            onLoginSuccess={handleLoginSuccess}
+            onGoToCitizen={() => setCurrentView('citizen')}
           />
         ) : (
           <AdminDashboard

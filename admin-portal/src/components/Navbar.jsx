@@ -9,11 +9,12 @@ export default function Navbar({ currentView, setCurrentView, isAdmin, isAdminPa
   const [logoClicks, setLogoClicks] = useState(0);
 
   const handleLogoClick = () => {
-    setCurrentView('citizen');
     setLogoClicks(prev => {
       const next = prev + 1;
       if (next >= 3) {
-        onOpenAdminLogin();
+        if (!isAdmin) {
+          onOpenAdminLogin();
+        }
         return 0;
       }
       return next;
