@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Printer, Zap, CheckCircle2, Building2, User, Hash, Phone, Calendar, Archive, QrCode } from 'lucide-react';
 import { STATUS_CONFIG } from '../constants/status';
+import { getKurdistanDate } from '../utils/dateUtils';
 import RoonakiLogo from './RoonakiLogo';
 import runakiLogo from '../assets/runaki-logo.png';
 import QRCode from 'qrcode';
@@ -116,7 +117,7 @@ export default function PrintReceiptModal({ record, isOpen, onClose }) {
             </div>
             <div>
               <span className="text-slate-500 block">بەرواری پێشکەشکردن:</span>
-              <span className="font-mono text-slate-800">{record.submissionDate || new Date().toISOString().slice(0, 10)}</span>
+              <span className="font-mono text-slate-800">{record.submissionDate || getKurdistanDate()}</span>
             </div>
             <div>
               <span className="text-slate-500 block">جۆری دۆسیە (شێوازی پاراستن):</span>
@@ -144,7 +145,7 @@ export default function PrintReceiptModal({ record, isOpen, onClose }) {
           {/* Stamp and Date Footer */}
           <div className="flex justify-between items-end pt-2 text-[11px] text-slate-500 border-t border-slate-200">
             <div>
-              بەرواری دەرچوونی کارت: {new Date().toLocaleDateString('en-CA')}
+              بەرواری دەرچوونی کارت: {getKurdistanDate()}
             </div>
             <div className="text-center">
               <div className="w-24 h-12 border border-slate-300 rounded flex items-center justify-center text-[10px] text-slate-400">

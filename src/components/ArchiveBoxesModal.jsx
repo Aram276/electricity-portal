@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { STATUS_CONFIG, getRecordKYC } from '../constants/status';
 import { exportToExcel } from '../utils/excelHelper';
+import { getKurdistanDate } from '../utils/dateUtils';
 import runakiLogo from '../assets/runaki-logo.png';
 
 export default function ArchiveBoxesModal({ isOpen, onClose, records = [] }) {
@@ -386,7 +387,7 @@ export default function ArchiveBoxesModal({ isOpen, onClose, records = [] }) {
                         {/* Footer */}
                         <div className="flex items-center justify-between text-[11px] text-slate-600 pt-1">
                           <span>شوێن: سندوق و بۆکسی ژمارە {box.boxNumber} (ژووری ١٩)</span>
-                          <span>بەروار: {new Date().toLocaleDateString('en-CA')}</span>
+                          <span>بەروار: {getKurdistanDate()}</span>
                         </div>
                       </div>
                     ))}
@@ -551,7 +552,7 @@ export default function ArchiveBoxesModal({ isOpen, onClose, records = [] }) {
                 {/* ── Footer Signature / Stamp Area ── */}
                 <div className="pt-4 border-t-2 border-slate-300 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-600">
                   <div>
-                    بەرواری ئامادەکردن: <span className="font-mono font-bold text-slate-900">{new Date().toLocaleDateString('en-CA')}</span>
+                    بەرواری ئامادەکردن: <span className="font-mono font-bold text-slate-900">{getKurdistanDate()}</span>
                   </div>
                   <div className="text-center font-bold text-slate-800">
                     بەڕێوەبەرایەتی گشتی دابەشکردنی کارەبا | ژووری ١٩

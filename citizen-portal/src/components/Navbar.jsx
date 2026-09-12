@@ -1,11 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { Sun, Moon, Download, Smartphone, Monitor, X } from 'lucide-react';
+import { Sun, Moon, Download, Smartphone, Monitor, X, Clock } from 'lucide-react';
 import RoonakiLogo from './RoonakiLogo';
+import { getKurdistanTime12, getKurdistanDate } from '../utils/dateUtils';
 
 export default function Navbar({ isDarkMode, onToggleTheme }) {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallGuide, setShowInstallGuide] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
+
+  // Live Kurdistan Time
+  const [liveTime, setLiveTime] = useState(() => getKurdistanTime12(true));
+  const [liveDate, setLiveDate] = useState(() => getKurdistanDate());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setLiveTime(getKurdistanTime12(true));
+      setLiveDate(getKurdistanDate());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
@@ -66,6 +79,17 @@ export default function Navbar({ isDarkMode, onToggleTheme }) {
             {/* Navigation Controls */}
             <div className="flex items-center gap-2 shrink-0">
               
+              {/* Live Kurdistan Digital Clock & Date */}
+              <div 
+                title="کاتی فەرمیی کوردستان (هەولێر - UTC+3)"
+                className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 dark:bg-slate-900/90 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs font-mono font-bold shadow-xs select-none"
+              >
+                <Clock className="w-3.5 h-3.5 text-amber-500 animate-pulse shrink-0" />
+                <span className="font-black text-slate-900 dark:text-amber-200 text-xs">{liveTime}</span>
+                <span className="text-[10px] text-slate-300 dark:text-slate-600">|</span>
+                <span className="text-[11px] text-slate-600 dark:text-slate-400 font-sans">{liveDate}</span>
+              </div>
+
               {/* Install App Button */}
               {!isInstalled && (
                 <button

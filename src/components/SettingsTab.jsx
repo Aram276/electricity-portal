@@ -42,6 +42,7 @@ import {
   logActivity 
 } from '../utils/cloudSync';
 import { exportToExcel } from '../utils/excelHelper';
+import { getKurdistanDate } from '../utils/dateUtils';
 import {
   getCustomWhatsAppTemplate,
   saveCustomWhatsAppTemplate,
@@ -343,7 +344,7 @@ export default function SettingsTab({ onResetData, records = [], activeStaff = n
     const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(dataList, null, 2));
     const a = document.createElement('a');
     a.setAttribute('href', dataStr);
-    a.setAttribute('download', `Electricity_Records_Backup_${new Date().toISOString().slice(0, 10)}.json`);
+    a.setAttribute('download', `Electricity_Records_Backup_${getKurdistanDate()}.json`);
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -1127,7 +1128,7 @@ export default function SettingsTab({ onResetData, records = [], activeStaff = n
             type="button"
             onClick={() => {
               if (!records.length) return;
-              exportToExcel(records, `Roonaki_Full_Cloud_Backup_${records.length}_files_${new Date().toISOString().slice(0, 10)}.xlsx`);
+              exportToExcel(records, `Roonaki_Full_Cloud_Backup_${records.length}_files_${getKurdistanDate()}.xlsx`);
             }}
             className="p-4 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/20 border-2 border-emerald-500/30 hover:border-emerald-500 text-right space-y-1 transition-all shadow-sm active:scale-95 group"
           >

@@ -27,6 +27,7 @@ import {
   X
 } from 'lucide-react';
 import { STATUS_CONFIG } from '../constants/status';
+import { formatKurdistanDateTime } from '../utils/dateUtils';
 import RoonakiLogo from './RoonakiLogo';
 
 // Convert Arabic & Persian / Kurdish numerals (٠-٩, ۰-۹) to standard Latin digits (0-9)
@@ -459,7 +460,7 @@ export default function CitizenSearch({ records, onOpenPrintModal }) {
                       <div className="text-xs sm:text-sm font-bold text-emerald-700 dark:text-emerald-400">{status.citizenAction}</div>
                       {result.deliveredDate && (
                         <div className="text-xs text-blue-700 dark:text-cyan-300 pt-1 font-mono font-bold">
-                          بەرواری تەسلیم: {result.deliveredDate}
+                          بەرواری تەسلیم: {formatKurdistanDateTime(result.deliveredDate)}
                         </div>
                       )}
                     </div>

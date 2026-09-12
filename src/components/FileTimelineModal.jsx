@@ -16,6 +16,7 @@ import {
   Tag
 } from 'lucide-react';
 import { STATUS_CONFIG, FILE_TYPES } from '../constants/status';
+import { getKurdistanDate, getKurdistanTime } from '../utils/dateUtils';
 
 export default function FileTimelineModal({ isOpen, onClose, record, onAddTimelineNote, activeStaff }) {
   const [newNote, setNewNote] = useState('');
@@ -75,14 +76,18 @@ export default function FileTimelineModal({ isOpen, onClose, record, onAddTimeli
 
   // 4. Official Delivery Event
   if (record.deliveredDate || record.receiverName) {
+    const isFullDateTime = record.deliveredDate && record.deliveredDate.includes(' ');
+    const displayDate = isFullDateTime ? record.deliveredDate.slice(0, 10) : (record.deliveredDate || record.completionDate || 'نادیار');
+    const displayTime = isFullDateTime ? record.deliveredDate.slice(11, 16) : (record.deliveredTime || 'کاتی ڕادەستکردن');
+
     timelineEvents.push({
       id: 'delivery',
       title: 'تەسلیمکردنەوەی فەرمی بە هاووڵاتی',
       type: 'DELIVERED',
       icon: ShieldCheck,
       color: 'blue',
-      date: record.deliveredDate || record.completionDate || 'نادیار',
-      time: record.deliveredTime || 'کاتی ڕادەستکردن',
+      date: displayDate,
+      time: displayTime,
       staff: record.handledBy || 'ژووری ١٩ (تەسلیمکردن)',
       description: `دۆسیە و پسوڵە بە فەرمی ڕادەستی (${record.receiverName || record.citizenName || 'خاوەن مامەڵە'}) کرایەوە.`
     });
@@ -97,8 +102,8 @@ export default function FileTimelineModal({ isOpen, onClose, record, onAddTimeli
         type: item.type || 'NOTE',
         icon: Clock,
         color: 'purple',
-        date: item.date || new Date().toISOString().slice(0, 10),
-        time: item.time || '',
+        date: item.date || getKurdistanDate(),
+        time: item.time || getKurdistanTime(),
         staff: item.staff || 'فەرمانبەر',
         description: item.description || item.text || ''
       });
@@ -113,8 +118,8 @@ export default function FileTimelineModal({ isOpen, onClose, record, onAddTimeli
         title: 'تێبینی فەرمی لەلایەن فەرمانبەر',
         description: newNote.trim(),
         staff: activeStaff?.name || 'فەرمانبەری ژووری ١٩',
-        date: new Date().toISOString().slice(0, 10),
-        time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+        date: getKurdistanDate(),
+        time: getKurdistanTime()
       });
     }
     setNewNote('');

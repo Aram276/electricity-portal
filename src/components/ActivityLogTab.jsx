@@ -18,27 +18,11 @@ import {
 } from 'lucide-react';
 import { subscribeToActivityLogs } from '../utils/cloudSync';
 import { exportToExcel } from '../utils/excelHelper';
+import { formatKurdistanDateTime } from '../utils/dateUtils';
 
 function formatLogTimestamp(ts) {
   if (!ts) return '';
-  try {
-    if (typeof ts === 'string' && (ts.endsWith('Z') || ts.includes('T'))) {
-      const d = new Date(ts);
-      return new Intl.DateTimeFormat('en-GB', {
-        timeZone: 'Asia/Baghdad',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false
-      }).format(d).replace(',', '');
-    }
-    return String(ts);
-  } catch (e) {
-    return String(ts);
-  }
+  return formatKurdistanDateTime(ts, true);
 }
 
 export default function ActivityLogTab() {

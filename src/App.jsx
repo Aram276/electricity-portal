@@ -27,6 +27,7 @@ import {
   saveTrashToCloud, 
   logActivity 
 } from './utils/cloudSync';
+import { getKurdistanDateTime, getKurdistanDate } from './utils/dateUtils';
 import { CheckCircle2, Info, Cloud } from 'lucide-react';
 
 export default function App() {
@@ -343,7 +344,7 @@ export default function App() {
     const target = records.find(r => r.id === id);
     if (!target) return;
 
-    const nowTime = new Date().toISOString().replace('T', ' ').slice(0, 16);
+    const nowTime = getKurdistanDateTime(false);
     const deletedItem = {
       ...target,
       isDeleted: true,
@@ -368,7 +369,7 @@ export default function App() {
   const handleBatchDelete = (ids) => {
     const staffName = getActiveStaffName();
     const idSet = new Set(ids);
-    const nowTime = new Date().toISOString().replace('T', ' ').slice(0, 16);
+    const nowTime = getKurdistanDateTime(false);
 
     const deletedItems = records.filter(r => idSet.has(r.id)).map(r => ({
       ...r,
@@ -481,8 +482,8 @@ export default function App() {
   const handleBatchUpdateStatus = (ids, newStatus) => {
     const staffName = getActiveStaffName();
     const idSet = new Set(ids);
-    const today = new Date().toISOString().slice(0, 10);
-    const nowTime = new Date().toISOString().replace('T', ' ').slice(0, 16);
+    const today = getKurdistanDate();
+    const nowTime = getKurdistanDateTime(false);
 
     const isDone = newStatus === 'COMPLETED' || newStatus === 'DELIVERED';
 
@@ -531,10 +532,10 @@ export default function App() {
           changes.kycStatus = 'DONE';
         }
         if (newStatus === 'COMPLETED' && !r.completionDate) {
-          changes.completionDate = new Date().toISOString().slice(0, 10);
+          changes.completionDate = getKurdistanDate();
         }
         if (newStatus === 'DELIVERED' && !r.deliveredDate) {
-          changes.deliveredDate = new Date().toISOString().replace('T', ' ').slice(0, 16);
+          changes.deliveredDate = getKurdistanDateTime(false);
           changes.deliveredBy = staffName;
         }
         return { ...r, ...changes };
@@ -556,7 +557,7 @@ export default function App() {
     const staffName = getActiveStaffName();
     const target = records.find(r => r.id === id);
     const isDone = newKycStatus === 'DONE_BY_US' || newKycStatus === 'PRE_VERIFIED';
-    const nowTime = new Date().toISOString().replace('T', ' ').slice(0, 16);
+    const nowTime = getKurdistanDateTime(false);
 
     const updated = records.map(r => {
       if (r.id === id) {
@@ -601,7 +602,7 @@ export default function App() {
   const handleBatchUpdateKYC = (ids, kycValue = 'DONE_BY_US') => {
     const staffName = getActiveStaffName();
     const idSet = new Set(ids);
-    const nowTime = new Date().toISOString().replace('T', ' ').slice(0, 16);
+    const nowTime = getKurdistanDateTime(false);
     
     let kycStatus = kycValue;
     if (kycValue === true) kycStatus = 'DONE_BY_US';

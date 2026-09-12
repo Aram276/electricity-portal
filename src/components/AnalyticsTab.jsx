@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { exportToExcel } from '../utils/excelHelper';
 import { getRecordKYC, KYC_CONFIG } from '../constants/status';
+import { getKurdistanDate } from '../utils/dateUtils';
 
 export default function AnalyticsTab({ records = [] }) {
   const total = records.length;
@@ -36,7 +37,7 @@ export default function AnalyticsTab({ records = [] }) {
   const withRealName = records.filter(r => r.citizenName && r.citizenName !== 'هاوبەشی کارەبا' && r.citizenName.trim() !== '').length;
   const genericName = total - withRealName;
 
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = getKurdistanDate().slice(0, 10);
   const intakeToday = records.filter(r => r.submissionDate === todayStr).length;
   const deliveredToday = records.filter(r => r.deliveredDate && r.deliveredDate.startsWith(todayStr)).length;
 

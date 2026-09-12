@@ -38,6 +38,7 @@ import {
 } from 'lucide-react';
 import { STATUS_CONFIG, FILE_TYPES, KYC_CONFIG, getRecordKYC } from '../constants/status';
 import { exportToExcel } from '../utils/excelHelper';
+import { getKurdistanDateTime, getKurdistanDate, formatKurdistanDateTime } from '../utils/dateUtils';
 import RoonakiLogo from './RoonakiLogo';
 import DailyIntake from './DailyIntake';
 import SettingsTab from './SettingsTab';
@@ -308,7 +309,7 @@ export default function AdminDashboard({
     if (!target) return;
 
     const staffName = activeStaff?.name ? `${activeStaff.name}` : (activeStaff?.username || 'فەرمانبەری ژووری ١٩');
-    const nowTime = new Date().toISOString().replace('T', ' ').slice(0, 16);
+    const nowTime = getKurdistanDateTime(false);
 
     const updates = { status: newStatus };
     if (newStatus === 'DELIVERED' || newStatus === 'COMPLETED') {
@@ -575,7 +576,7 @@ export default function AdminDashboard({
       dataToExport = filteredRecords;
     }
     const count = dataToExport.length;
-    exportToExcel(dataToExport, `Roonaki_Electricity_Records_${count}_files_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    exportToExcel(dataToExport, `Roonaki_Electricity_Records_${count}_files_${getKurdistanDate()}.xlsx`);
   };
 
   // Generate page number list for pagination controls
@@ -1634,7 +1635,7 @@ export default function AdminDashboard({
                           <td className="p-2 text-center text-xs">
                             {record.deliveredDate ? (
                               <span className="text-blue-700 dark:text-blue-400 font-bold font-mono text-[11px] px-1.5 py-0.5 bg-blue-50 dark:bg-blue-950/40 rounded border border-blue-200 dark:border-blue-500/30">
-                                {record.deliveredDate}
+                                {formatKurdistanDateTime(record.deliveredDate)}
                               </span>
                             ) : (
                               <span className="text-slate-400 text-xs">-</span>
@@ -1861,7 +1862,7 @@ export default function AdminDashboard({
                         {(record.deliveredDate || record.receiverName || record.deliveredBy || record.handledBy) && (
                           <div className="col-span-2 flex items-center justify-between pt-1.5 border-t border-slate-200/60 dark:border-slate-800/60 text-[11px] flex-wrap gap-1">
                             {record.deliveredDate && (
-                              <span className="text-blue-700 dark:text-blue-400 font-mono">بەروار: {record.deliveredDate}</span>
+                              <span className="text-blue-700 dark:text-blue-400 font-mono">بەروار: {formatKurdistanDateTime(record.deliveredDate)}</span>
                             )}
                             {record.receiverName && (
                               <span className="font-bold text-slate-800 dark:text-slate-200">وەرگرەوە: {record.receiverName}</span>
@@ -2062,7 +2063,7 @@ export default function AdminDashboard({
         records={records}
         selectedIds={selectedIds}
         onMarkNotified={(recordId) => {
-          const nowStr = new Date().toISOString().replace('T', ' ').slice(0, 16);
+          const nowStr = getKurdistanDateTime(false);
           const target = records.find(r => r.id === recordId);
           if (target && onSaveRecord) {
             onSaveRecord({ ...target, notifiedAt: nowStr }, recordId);
@@ -2215,10 +2216,10 @@ export default function AdminDashboard({
                       updates.kycStatus = 'DONE';
                     }
                     if (bulkEditForm.status === 'COMPLETED') {
-                      updates.completionDate = new Date().toISOString().slice(0, 10);
+                      updates.completionDate = getKurdistanDate();
                     }
                     if (bulkEditForm.status === 'DELIVERED') {
-                      updates.deliveredDate = new Date().toISOString().replace('T', ' ').slice(0, 16);
+                      updates.deliveredDate = getKurdistanDateTime(false);
                     }
                   }
                   if (bulkEditForm.fileType) updates.fileType = bulkEditForm.fileType;

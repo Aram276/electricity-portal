@@ -17,6 +17,7 @@ import {
   Check
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { getKurdistanDateTime } from '../utils/dateUtils';
 
 // Numerals converter
 function toLatinDigits(str) {
@@ -161,7 +162,7 @@ export default function FastCheckoutModal({ isOpen, onClose, records = [], onDel
     }
 
     const finalReceiver = receiverName.trim() || target.citizenName || 'هاوبەشی کارەبا';
-    const nowTime = new Date().toISOString().replace('T', ' ').slice(0, 16);
+    const nowTime = getKurdistanDateTime(false);
     const activeStaff = JSON.parse(localStorage.getItem('electricity_active_staff') || 'null');
     const staffName = activeStaff?.name ? `${activeStaff.name}` : 'کارمەندی ژووری ١٩';
 

@@ -19,6 +19,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { STATUS_CONFIG, DEPARTMENTS, TRANSACTION_TYPES, KYC_CONFIG, getRecordKYC } from '../constants/status';
+import { getKurdistanDate } from '../utils/dateUtils';
 
 export default function RecordModal({ isOpen, onClose, onSave, editingRecord, initialData, records = [] }) {
   const currentRecord = editingRecord || initialData;
@@ -33,7 +34,7 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, in
     transactionType: TRANSACTION_TYPES[0],
     status: 'IN_PROGRESS',
     archiveLocation: '',
-    submissionDate: new Date().toISOString().slice(0, 10),
+    submissionDate: getKurdistanDate(),
     completionDate: '',
     deliveredDate: '',
     receiverName: '',
@@ -102,7 +103,7 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, in
         transactionType: currentRecord.transactionType || TRANSACTION_TYPES[0],
         status: currentRecord.status || 'IN_PROGRESS',
         archiveLocation: currentRecord.archiveLocation || '',
-        submissionDate: currentRecord.submissionDate || new Date().toISOString().slice(0, 10),
+        submissionDate: currentRecord.submissionDate || getKurdistanDate(),
         completionDate: currentRecord.completionDate || '',
         deliveredDate: currentRecord.deliveredDate || '',
         receiverName: currentRecord.receiverName || '',
@@ -127,7 +128,7 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, in
         transactionType: TRANSACTION_TYPES[0],
         status: 'IN_PROGRESS',
         archiveLocation: `سندوقی ${nextNum}`,
-        submissionDate: new Date().toISOString().slice(0, 10),
+        submissionDate: getKurdistanDate(),
         completionDate: '',
         deliveredDate: '',
         receiverName: '',

@@ -22,9 +22,10 @@ import {
   X
 } from 'lucide-react';
 import { STATUS_CONFIG, KYC_CONFIG, getRecordKYC } from '../constants/status';
+import { getKurdistanDate } from '../utils/dateUtils';
 
 export default function DailyIntake({ records = [], onSaveRecord, onDeleteRecord }) {
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = getKurdistanDate();
   const accountInputRef = useRef(null);
   const [editingItem, setEditingItem] = useState(null); // { id, fields... }
   const [successAlert, setSuccessAlert] = useState(null);
@@ -97,7 +98,7 @@ export default function DailyIntake({ records = [], onSaveRecord, onDeleteRecord
 
   // List of records entered today
   const todayList = useMemo(() => {
-    const localDateStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+    const localDateStr = getKurdistanDate(); // YYYY-MM-DD
     return (records || []).filter(r => {
       return r.submissionDate === todayStr || 
              r.submissionDate === localDateStr || 

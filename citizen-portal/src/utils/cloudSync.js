@@ -7,6 +7,9 @@ import {
 } from 'firebase/firestore';
 import { INITIAL_RECORDS } from '../data/initialData';
 import { getStoredRecords, saveRecords, deduplicateRecords } from './storage';
+import { getKurdistanDateTime, getKurdistanDate, getLocalTimestamp } from './dateUtils';
+
+export { getLocalTimestamp };
 
 const DOC_REF = doc(db, 'portal_data', 'electricity_records');
 const FOOTER_DOC_REF = doc(db, 'portal_data', 'footer_settings');
@@ -66,7 +69,7 @@ export async function saveRecordsToCloud(records) {
     if (existing && existing.length > 0) {
       // Keep a local safety backup snapshot
       localStorage.setItem('electricity_portal_records_safety_backup', JSON.stringify(existing));
-      localStorage.setItem('electricity_portal_backup_time', new Date().toISOString());
+      localStorage.setItem('electricity_portal_backup_time', getKurdistanDateTime(true));
 
       // If replacing with fewer records, save backup to Firestore backup collection
       if (cleaned.length < existing.length) {
@@ -74,7 +77,7 @@ export async function saveRecordsToCloud(records) {
           const BACKUP_DOC = doc(db, 'portal_data', 'electricity_records_backup');
           await setDoc(BACKUP_DOC, {
             records: existing,
-            backupTimestamp: new Date().toISOString(),
+            backupTimestamp: getKurdistanDateTime(true),
             reason: `Auto backup before count change (${existing.length} -> ${cleaned.length})`
           });
         } catch (bErr) {
@@ -86,7 +89,7 @@ export async function saveRecordsToCloud(records) {
     saveRecords(cleaned); // save locally first
     await setDoc(DOC_REF, {
       records: cleaned,
-      lastUpdated: new Date().toISOString(),
+      lastUpdated: getKurdistanDateTime(true),
       updatedBy: 'Admin'
     });
   } catch (error) {
@@ -151,7 +154,7 @@ export async function saveFooterSettingsToCloud(settings) {
 
     await setDoc(FOOTER_DOC_REF, {
       ...settings,
-      lastUpdated: new Date().toISOString()
+      lastUpdated: getKurdistanDateTime(true)
     });
   } catch (error) {
     console.error('Failed to save footer settings to cloud:', error);
@@ -217,35 +220,7 @@ export function subscribeToActivityLogs(onUpdateCallback) {
   }
 }
 
-/**
- * Generates local Erbil / Kurdistan (Asia/Baghdad, UTC+3) formatted timestamp string.
- */
-export function getLocalTimestamp(includeSeconds = true) {
-  const now = new Date();
-  try {
-    const formatter = new Intl.DateTimeFormat('en-GB', {
-      timeZone: 'Asia/Baghdad',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: includeSeconds ? '2-digit' : undefined,
-      hour12: false
-    });
-    const parts = formatter.formatToParts(now);
-    const getPart = (t) => parts.find(p => p.type === t)?.value || '';
-    if (includeSeconds) {
-      return `${getPart('year')}-${getPart('month')}-${getPart('day')} ${getPart('hour')}:${getPart('minute')}:${getPart('second')}`;
-    }
-    return `${getPart('year')}-${getPart('month')}-${getPart('day')} ${getPart('hour')}:${getPart('minute')}`;
-  } catch (e) {
-    const tzOffsetMs = 3 * 60 * 60 * 1000;
-    const local = new Date(now.getTime() + tzOffsetMs);
-    const str = local.toISOString().replace('T', ' ');
-    return includeSeconds ? str.slice(0, 19) : str.slice(0, 16);
-  }
-}
+
 
 /**
  * Log an activity permanently to Firestore Cloud.
@@ -352,7 +327,7 @@ export async function saveStaffAccountsToCloud(staffList) {
     localStorage.setItem('electricity_staff_list', JSON.stringify(staffList));
     await setDoc(STAFF_DOC_REF, {
       staff: staffList,
-      lastUpdated: new Date().toISOString()
+      lastUpdated: getKurdistanDateTime(true)
     });
   } catch (err) {
     console.error('Failed to save staff accounts to cloud:', err);
@@ -408,7 +383,7 @@ export async function saveWhatsAppTemplateToCloud(template) {
       window.dispatchEvent(new CustomEvent('whatsapp_template_updated', { detail: template }));
       await setDoc(WA_DOC_REF, {
         template: template,
-        lastUpdated: new Date().toISOString()
+        lastUpdated: getKurdistanDateTime(true)
       });
     }
   } catch (err) {
@@ -426,14 +401,14 @@ export async function takeCloudBackup(records, reason = 'باکئەپی دەست
     if (!records || !records.length) return false;
     const backupPayload = {
       records: records,
-      backupTimestamp: new Date().toISOString(),
-      timestampFormatted: getLocalTimestamp(true),
+      backupTimestamp: getKurdistanDateTime(true),
+      timestampFormatted: getKurdistanDateTime(true),
       count: records.length,
       reason
     };
     await setDoc(BACKUP_DOC_REF, backupPayload);
     localStorage.setItem('electricity_portal_records_safety_backup', JSON.stringify(records));
-    localStorage.setItem('electricity_portal_backup_time', new Date().toISOString());
+    localStorage.setItem('electricity_portal_backup_time', getKurdistanDateTime(true));
     return backupPayload;
   } catch (err) {
     console.error('Failed to save cloud backup:', err);

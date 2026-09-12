@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { PackageCheck, X, Calendar, User, FileText, CheckCircle2, ShieldCheck, Shield, ShieldAlert, CreditCard } from 'lucide-react';
 import { KYC_CONFIG, getRecordKYC } from '../constants/status';
+import { getKurdistanDateTime } from '../utils/dateUtils';
 
 export default function DeliveryModal({ record, isOpen, onClose, onConfirm }) {
   const [receiverName, setReceiverName] = useState('');
@@ -14,13 +15,7 @@ export default function DeliveryModal({ record, isOpen, onClose, onConfirm }) {
   useEffect(() => {
     if (record) {
       setReceiverName(record.citizenName && record.citizenName !== 'هاوبەشی کارەبا' ? record.citizenName : '');
-      const now = new Date();
-      const formatted = now.getFullYear() + '-' +
-        String(now.getMonth() + 1).padStart(2, '0') + '-' +
-        String(now.getDate()).padStart(2, '0') + ' ' +
-        String(now.getHours()).padStart(2, '0') + ':' +
-        String(now.getMinutes()).padStart(2, '0');
-      setDeliveryDateTime(formatted);
+      setDeliveryDateTime(getKurdistanDateTime(false));
       setNote('');
       // If was already pre-verified keep it, otherwise default to DONE_BY_US since we are delivering it now
       setKycStatus(prevKyc === 'PRE_VERIFIED' ? 'PRE_VERIFIED' : 'DONE_BY_US');
