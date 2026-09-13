@@ -21,20 +21,6 @@ export default function Navbar({ currentView, setCurrentView, isAdmin, isAdminPa
     return () => clearInterval(timer);
   }, []);
 
-  const handleLogoClick = () => {
-    setLogoClicks(prev => {
-      const next = prev + 1;
-      if (next >= 3) {
-        if (!isAdmin) {
-          onOpenAdminLogin();
-        }
-        return 0;
-      }
-      return next;
-    });
-    setTimeout(() => setLogoClicks(0), 1500);
-  };
-
   useEffect(() => {
     // Check if already in standalone/PWA mode
     if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
@@ -88,7 +74,7 @@ export default function Navbar({ currentView, setCurrentView, isAdmin, isAdminPa
               )}
 
               {/* Logo & Directorate Title */}
-              <div className="flex items-center gap-2 cursor-pointer shrink-0" onClick={handleLogoClick} title="پڕۆژەی ڕووناکی">
+              <div className="flex items-center gap-2 select-none shrink-0" title="پڕۆژەی ڕووناکی">
                 <RoonakiLogo 
                   className="h-8 sm:h-10 md:h-11 w-auto" 
                   showText={false}
@@ -131,17 +117,8 @@ export default function Navbar({ currentView, setCurrentView, isAdmin, isAdminPa
                 )}
               </button>
 
-              {/* When on Citizen View */}
-              {currentView === 'citizen' ? (
-                <button
-                  onClick={isAdmin ? () => setCurrentView('admin') : onOpenAdminLogin}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black text-slate-800 dark:text-slate-200 bg-amber-500/15 hover:bg-amber-500/25 dark:bg-slate-900/90 dark:hover:bg-slate-800 border border-amber-400/50 dark:border-amber-500/30 transition-all shadow-sm shrink-0 cursor-pointer"
-                  title={isAdmin ? "چوونە پەنێڵی ئادمین" : "چوونەژوورەوەی ستاف و بەڕێوەبەر"}
-                >
-                  <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                  <span>{isAdmin ? 'پەنێڵی ئادمین' : 'چوونەژوورەوە'}</span>
-                </button>
-              ) : (
+              {/* When inside Admin Portal only */}
+              {currentView === 'admin' && (
                 /* When inside Admin Portal */
                 <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
                   {/* Active Staff Badge with Role */}

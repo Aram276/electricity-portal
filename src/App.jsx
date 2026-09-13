@@ -39,13 +39,13 @@ export default function App() {
       const hash = window.location.hash.toLowerCase();
       const search = window.location.search.toLowerCase();
       
-      // Only show citizen if explicitly specified in the URL
-      if (path.includes('citizen') || hash.includes('citizen') || search.includes('citizen')) {
-        return 'citizen';
+      // Only show admin if explicitly specified in the URL
+      if (path.includes('admin') || hash.includes('admin') || search.includes('admin')) {
+        return 'admin';
       }
     } catch (e) {}
-    // Unconditional default to Admin
-    return 'admin';
+    // Default to Citizen view for public/citizens
+    return 'citizen';
   });
   const [isAdmin, setIsAdmin] = useState(() => {
     try {
@@ -78,7 +78,7 @@ export default function App() {
 
   // Toast notification
   const [toast, setToast] = useState(null);
-  const [isAdminPath, setIsAdminPath] = useState(true);
+  const [isAdminPath, setIsAdminPath] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Check URL path on mount & hashchange
@@ -88,33 +88,24 @@ export default function App() {
       const hash = window.location.hash.toLowerCase();
       const search = window.location.search.toLowerCase();
       
-      const isCitizenExplicit = 
-        path.includes('citizen') || 
-        hash.includes('citizen') || 
-        search.includes('citizen');
+      const isAdminExplicit = 
+        path.includes('admin') || 
+        hash.includes('admin') || 
+        search.includes('admin');
 
-      if (isCitizenExplicit) {
-        setCurrentView('citizen');
-        setIsAdminPath(false);
-      } else {
-        // ALWAYS default to admin
+      if (isAdminExplicit) {
         setCurrentView('admin');
         setIsAdminPath(true);
+      } else {
+        // ALWAYS default to citizen view
+        setCurrentView('citizen');
+        setIsAdminPath(false);
       }
     };
 
     checkUrlRoute();
     window.addEventListener('hashchange', checkUrlRoute);
     window.addEventListener('popstate', checkUrlRoute);
-
-    // Secret Key Combination: Ctrl + Shift + A or Alt + A
-    const handleKeyDown = (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'a') {
-        e.preventDefault();
-        setCurrentView(prev => prev === 'admin' ? 'citizen' : 'admin');
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
 
     // Live Cloud Subscription to Firebase Firestore
     const unsubscribe = subscribeToCloudRecords((cloudRecords) => {
@@ -133,7 +124,6 @@ export default function App() {
     return () => {
       window.removeEventListener('hashchange', checkUrlRoute);
       window.removeEventListener('popstate', checkUrlRoute);
-      window.removeEventListener('keydown', handleKeyDown);
       if (typeof unsubscribe === 'function') unsubscribe();
       if (typeof unsubTrash === 'function') unsubTrash();
     };
