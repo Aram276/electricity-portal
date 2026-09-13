@@ -24,9 +24,11 @@ import {
   CheckCheck,
   HelpCircle,
   Folder,
+  PhoneOff,
   X
 } from 'lucide-react';
 import { STATUS_CONFIG } from '../constants/status';
+import { formatKurdistanDateTime } from '../utils/dateUtils';
 import RoonakiLogo from './RoonakiLogo';
 
 // Convert Arabic & Persian / Kurdish numerals (٠-٩, ۰-۹) to standard Latin digits (0-9)
@@ -59,16 +61,41 @@ function normalizeKurdishFuzzy(str) {
 
 export default function CitizenSearch({ records, onOpenPrintModal }) {
   const [query, setQuery] = useState('');
-  const [searchMode, setSearchMode] = useState('ALL'); // 'ALL' | 'NAME' | 'FILE' | 'PHONE' | 'ID'
+  const [searchMode, setSearchMode] = useState('ALL'); // 'ALL' | 'NAME' | 'FILE' | 'PHONE' | 'ID' | 'MISSING_PHONE' | 'MISSING_ID' | 'MISSING_ANY'
   const [searchResults, setSearchResults] = useState([]);
   const [displayLimit, setDisplayLimit] = useState(25);
   const [hasSearched, setHasSearched] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
 
+  // Helper functions to identify missing records
+  const isPhoneMissing = (r) => !r.phoneNumber || r.phoneNumber === 'نیە' || r.phoneNumber.trim() === '';
+  const isIdMissing = (r) => !r.accountNumber || r.accountNumber === 'نیە' || r.accountNumber.trim() === '' || r.accountNumber === '-';
+
+  const missingPhoneCount = useMemo(() => (records || []).filter(isPhoneMissing).length, [records]);
+  const missingIdCount = useMemo(() => (records || []).filter(isIdMissing).length, [records]);
+  const missingAnyCount = useMemo(() => (records || []).filter(r => isPhoneMissing(r) || isIdMissing(r)).length, [records]);
+
   // Perform Exact & Substring search (strictly matching Admin search)
   const executeSearch = (searchQuery, currentMode) => {
     const rawQuery = searchQuery.trim();
+    
+    // If no text query: in missing modes, display all records in that category
     if (!rawQuery) {
+      if (currentMode === 'MISSING_PHONE') {
+        setSearchResults((records || []).filter(isPhoneMissing));
+        setHasSearched(true);
+        return;
+      }
+      if (currentMode === 'MISSING_ID') {
+        setSearchResults((records || []).filter(isIdMissing));
+        setHasSearched(true);
+        return;
+      }
+      if (currentMode === 'MISSING_ANY') {
+        setSearchResults((records || []).filter(r => isPhoneMissing(r) || isIdMissing(r)));
+        setHasSearched(true);
+        return;
+      }
       setSearchResults([]);
       setHasSearched(false);
       return;
@@ -83,6 +110,11 @@ export default function CitizenSearch({ records, onOpenPrintModal }) {
     const cleanPhoneNoZeroQ = cleanDigitsQ.replace(/^0+/, '');
 
     const directMatches = (records || []).filter(r => {
+      // Check missing constraints if mode is missing
+      if (currentMode === 'MISSING_PHONE' && !isPhoneMissing(r)) return false;
+      if (currentMode === 'MISSING_ID' && !isIdMissing(r)) return false;
+      if (currentMode === 'MISSING_ANY' && (!isPhoneMissing(r) && !isIdMissing(r))) return false;
+
       const hasValidName = Boolean(r.citizenName && r.citizenName !== 'هاوبەشی کارەبا' && r.citizenName.trim() !== '');
       const fuzzyName = normalizeKurdishFuzzy(r.citizenName || '');
       const compactFuzzyName = fuzzyName.replace(/\s+/g, '');
@@ -114,7 +146,7 @@ export default function CitizenSearch({ records, onOpenPrintModal }) {
         return accStr.includes(cleanDigitsQ);
       }
 
-      // ── GENERAL MODE: ALL ──
+      // ── GENERAL OR MISSING MODES: search by name, file, phone, id ──
       if (hasValidName && (fuzzyName.includes(fuzzyQ) || compactFuzzyName.includes(compactFuzzyQ))) {
         return true;
       }
@@ -136,12 +168,7 @@ export default function CitizenSearch({ records, onOpenPrintModal }) {
 
   // Run instant search whenever query or searchMode changes
   useEffect(() => {
-    if (query.trim().length >= 1) {
-      executeSearch(query, searchMode);
-    } else {
-      setSearchResults([]);
-      setHasSearched(false);
-    }
+    executeSearch(query, searchMode);
   }, [query, searchMode, records]);
 
   const handleCopyFileNumber = (recordId, text) => {
@@ -168,6 +195,12 @@ export default function CitizenSearch({ records, onOpenPrintModal }) {
         return 'کەمێک لە ژمارەی مۆبایل بنووسە (بۆ نموونە: 0750494 یان ٠٧٥٠٤٩٤)...';
       case 'ID':
         return 'ژمارەی ئەژماری کارەبا بنووسە (ID)...';
+      case 'MISSING_PHONE':
+        return 'گەڕان بە ناوی خۆت لەناو دۆسیە بێ مۆبایلەکاندا...';
+      case 'MISSING_ID':
+        return 'گەڕان بە ناوی خۆت لەناو دۆسیە بێ ئەژمارەکاندا (ID)...';
+      case 'MISSING_ANY':
+        return 'گەڕان بە ناو یان ژمارەی فایل لەناو دۆسیە ناتەواوەکاندا...';
       default:
         return 'ناو (وەک ڕێبین)، بەشێک لە مۆبایل (وەک ٠٧٥٠٤٩٤)، فایل، یان ID...';
     }
@@ -205,117 +238,227 @@ export default function CitizenSearch({ records, onOpenPrintModal }) {
             </p>
           </div>
 
-          {/* Search Criteria Mode Buttons */}
-          <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 pt-2">
-            <button
-              type="button"
-              onClick={() => setSearchMode('ALL')}
-              className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
-                searchMode === 'ALL'
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/25 font-black'
-                  : 'bg-slate-100 dark:bg-slate-900/80 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:border-amber-400'
-              }`}
-            >
-              🔍 گشت شێوازەکان (گشتی)
-            </button>
+            {/* Search Criteria Mode Buttons */}
+            <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setSearchMode('ALL')}
+                className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+                  searchMode === 'ALL'
+                    ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/25 font-black'
+                    : 'bg-slate-100 dark:bg-slate-900/80 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:border-amber-400'
+                }`}
+              >
+                🔍 گشت شێوازەکان (گشتی)
+              </button>
 
-            <button
-              type="button"
-              onClick={() => setSearchMode('NAME')}
-              className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 ${
-                searchMode === 'NAME'
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/25 font-black'
-                  : 'bg-slate-100 dark:bg-slate-900/80 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:border-amber-400'
-              }`}
-            >
-              <User className="w-3.5 h-3.5" />
-              <span>ناوی هاووڵاتی (وەک ڕێبین)</span>
-            </button>
+              <button
+                type="button"
+                onClick={() => setSearchMode('NAME')}
+                className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 ${
+                  searchMode === 'NAME'
+                    ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/25 font-black'
+                    : 'bg-slate-100 dark:bg-slate-900/80 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:border-amber-400'
+                }`}
+              >
+                <User className="w-3.5 h-3.5" />
+                <span>ناوی هاووڵاتی</span>
+              </button>
 
-            <button
-              type="button"
-              onClick={() => setSearchMode('PHONE')}
-              className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 ${
-                searchMode === 'PHONE'
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/25 font-black'
-                  : 'bg-slate-100 dark:bg-slate-900/80 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:border-amber-400'
-              }`}
-            >
-              <Phone className="w-3.5 h-3.5" />
-              <span>مۆبایل (وەک ٠٧٥٠٤٩٤)</span>
-            </button>
+              <button
+                type="button"
+                onClick={() => setSearchMode('PHONE')}
+                className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 ${
+                  searchMode === 'PHONE'
+                    ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/25 font-black'
+                    : 'bg-slate-100 dark:bg-slate-900/80 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:border-amber-400'
+                }`}
+              >
+                <Phone className="w-3.5 h-3.5" />
+                <span>مۆبایل</span>
+              </button>
 
-            <button
-              type="button"
-              onClick={() => setSearchMode('FILE')}
-              className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 ${
-                searchMode === 'FILE'
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/25 font-black'
-                  : 'bg-slate-100 dark:bg-slate-900/80 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:border-amber-400'
-              }`}
-            >
-              <Archive className="w-3.5 h-3.5" />
-              <span>ژمارەی فایل</span>
-            </button>
+              <button
+                type="button"
+                onClick={() => setSearchMode('FILE')}
+                className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 ${
+                  searchMode === 'FILE'
+                    ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/25 font-black'
+                    : 'bg-slate-100 dark:bg-slate-900/80 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:border-amber-400'
+                }`}
+              >
+                <Archive className="w-3.5 h-3.5" />
+                <span>ژمارەی فایل</span>
+              </button>
 
-            <button
-              type="button"
-              onClick={() => setSearchMode('ID')}
-              className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 ${
-                searchMode === 'ID'
-                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/25 font-black'
-                  : 'bg-slate-100 dark:bg-slate-900/80 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:border-amber-400'
-              }`}
-            >
-              <Hash className="w-3.5 h-3.5" />
-              <span>ژمارەی ئەژمار (ID)</span>
-            </button>
-          </div>
+              <button
+                type="button"
+                onClick={() => setSearchMode('ID')}
+                className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 ${
+                  searchMode === 'ID'
+                    ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/25 font-black'
+                    : 'bg-slate-100 dark:bg-slate-900/80 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:border-amber-400'
+                }`}
+              >
+                <Hash className="w-3.5 h-3.5" />
+                <span>ژمارەی ئەژمار (ID)</span>
+              </button>
 
-          {/* Search Form with Instant Clear & Search */}
-          <form onSubmit={(e) => { e.preventDefault(); executeSearch(query, searchMode); }} className="max-w-2xl mx-auto pt-1 sm:pt-2">
-            <div className="relative flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-white dark:bg-[#090e1a]/95 p-2 rounded-2xl border-2 border-amber-500/40 focus-within:border-amber-500 transition-all shadow-lg">
-              <div className="relative flex-1 flex items-center">
-                <Search className="absolute right-3.5 sm:right-4 w-5 h-5 text-amber-500" />
-                <input
-                  type="text"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder={getPlaceholder()}
-                  className="w-full pr-11 sm:pr-12 pl-10 sm:pl-10 py-3 sm:py-3.5 bg-transparent text-slate-900 dark:text-white placeholder-slate-400 text-xs sm:text-base font-semibold focus:outline-none"
-                  dir="rtl"
-                />
-                {query && (
+              <button
+                type="button"
+                onClick={() => { setSearchMode('MISSING_PHONE'); setDisplayLimit(25); }}
+                className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 ${
+                  searchMode === 'MISSING_PHONE'
+                    ? 'bg-rose-600 text-white shadow-md shadow-rose-600/30 font-black ring-2 ring-rose-500/50'
+                    : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-900/50 hover:border-rose-400'
+                }`}
+              >
+                <PhoneOff className="w-3.5 h-3.5" />
+                <span>📵 بێ مۆبایل ({missingPhoneCount})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setSearchMode('MISSING_ID'); setDisplayLimit(25); }}
+                className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 ${
+                  searchMode === 'MISSING_ID'
+                    ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30 font-black ring-2 ring-purple-500/50'
+                    : 'bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-900/50 hover:border-purple-400'
+                }`}
+              >
+                <Hash className="w-3.5 h-3.5" />
+                <span>🆔 بێ ئەژمار ({missingIdCount})</span>
+              </button>
+            </div>
+
+            {/* Search Form with Instant Clear & Search */}
+            <form onSubmit={(e) => { e.preventDefault(); executeSearch(query, searchMode); }} className="max-w-2xl mx-auto pt-1 sm:pt-2">
+              <div className="relative flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-white dark:bg-[#090e1a]/95 p-2 rounded-2xl border-2 border-amber-500/40 focus-within:border-amber-500 transition-all shadow-lg">
+                <div className="relative flex-1 flex items-center">
+                  <Search className="absolute right-3.5 sm:right-4 w-5 h-5 text-amber-500" />
+                  <input
+                    type="text"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder={getPlaceholder()}
+                    className="w-full pr-11 sm:pr-12 pl-10 sm:pl-10 py-3 sm:py-3.5 bg-transparent text-slate-900 dark:text-white placeholder-slate-400 text-xs sm:text-base font-semibold focus:outline-none"
+                    dir="rtl"
+                  />
+                  {query && (
+                    <button
+                      type="button"
+                      onClick={() => setQuery('')}
+                      className="absolute left-3 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-3.5 rounded-xl roonaki-btn-primary text-slate-950 font-black text-sm sm:text-base flex items-center justify-center gap-2 active:scale-98 shrink-0"
+                >
+                  <Zap className="w-4 h-4 sm:w-5 sm:h-5 fill-slate-950" />
+                  <span>گەڕان</span>
+                </button>
+              </div>
+            </form>
+
+            {/* Quick Examples & Guidance */}
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-100/90 dark:bg-[#0c1322] border border-slate-200 dark:border-amber-500/30 max-w-2xl mx-auto text-xs sm:text-sm text-slate-800 dark:text-slate-200 flex items-center gap-3 text-right shadow-sm">
+              <div className="w-7 h-7 rounded-xl bg-amber-500/15 dark:bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0">
+                <HelpCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+              </div>
+              <p className="leading-relaxed flex-1">
+                <span className="font-black text-amber-700 dark:text-amber-400">💡 شێوازی گەڕانی زیرەک: </span>
+                ئەگەر تەنها بەشێکی ناو وەک <span className="font-bold text-slate-950 dark:text-white bg-amber-500/20 dark:bg-amber-500/30 px-1.5 py-0.5 rounded border border-amber-500/30">ڕێبین</span> یان بەشێکی مۆبایل وەک <span className="font-bold font-mono text-slate-950 dark:text-white bg-amber-500/20 dark:bg-amber-500/30 px-1.5 py-0.5 rounded border border-amber-500/30">0750494</span> بنووسیت، ڕاستەوخۆ دەیدۆزێتەوە.
+              </p>
+            </div>
+
+            {/* Missing Phone & Missing ID Special Quick Action Box */}
+            <div className="max-w-2xl mx-auto rounded-2xl bg-amber-500/10 dark:bg-[#080d1a]/95 border-2 border-amber-500/40 p-3.5 sm:p-4 text-right space-y-3 shadow-md">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
+                    بەشی دۆسیە بێ ژمارە مۆبایل و بێ ئەژمارەکان (ID):
+                  </span>
+                </div>
+                {(searchMode === 'MISSING_PHONE' || searchMode === 'MISSING_ID' || searchMode === 'MISSING_ANY') && (
                   <button
                     type="button"
-                    onClick={() => setQuery('')}
-                    className="absolute left-3 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg transition-colors"
+                    onClick={() => { setSearchMode('ALL'); setQuery(''); }}
+                    className="px-2.5 py-1 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-bold hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors flex items-center gap-1"
                   >
-                    <X className="w-4 h-4" />
+                    <X className="w-3 h-3" />
+                    <span>لابردنی فلتەر</span>
                   </button>
                 )}
               </div>
 
-              <button
-                type="submit"
-                className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-3.5 rounded-xl roonaki-btn-primary text-slate-950 font-black text-sm sm:text-base flex items-center justify-center gap-2 active:scale-98 shrink-0"
-              >
-                <Zap className="w-4 h-4 sm:w-5 sm:h-5 fill-slate-950" />
-                <span>گەڕان</span>
-              </button>
-            </div>
-          </form>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setSearchMode('MISSING_PHONE'); setDisplayLimit(25); }}
+                  className={`p-2.5 rounded-xl border transition-all text-right flex items-center justify-between gap-2 cursor-pointer ${
+                    searchMode === 'MISSING_PHONE'
+                      ? 'bg-rose-500 text-white border-rose-500 shadow-md font-bold'
+                      : 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border-rose-300 dark:border-rose-900/50 hover:bg-rose-50 dark:hover:bg-rose-950/30'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 text-xs font-bold truncate">
+                    <PhoneOff className="w-3.5 h-3.5 shrink-0 text-rose-500" />
+                    <span className="truncate">دۆسیە بێ مۆبایلەکان</span>
+                  </div>
+                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-black ${
+                    searchMode === 'MISSING_PHONE' ? 'bg-white/20 text-white' : 'bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300'
+                  }`}>
+                    {missingPhoneCount}
+                  </span>
+                </button>
 
-          {/* Quick Examples */}
-          <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-100/90 dark:bg-[#0c1322] border border-slate-200 dark:border-amber-500/30 max-w-2xl mx-auto text-xs sm:text-sm text-slate-800 dark:text-slate-200 flex items-center gap-3 text-right shadow-sm">
-            <div className="w-7 h-7 rounded-xl bg-amber-500/15 dark:bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0">
-              <HelpCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                <button
+                  type="button"
+                  onClick={() => { setSearchMode('MISSING_ID'); setDisplayLimit(25); }}
+                  className={`p-2.5 rounded-xl border transition-all text-right flex items-center justify-between gap-2 cursor-pointer ${
+                    searchMode === 'MISSING_ID'
+                      ? 'bg-purple-600 text-white border-purple-600 shadow-md font-bold'
+                      : 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border-purple-300 dark:border-purple-900/50 hover:bg-purple-50 dark:hover:bg-purple-950/30'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 text-xs font-bold truncate">
+                    <Hash className="w-3.5 h-3.5 shrink-0 text-purple-500" />
+                    <span className="truncate">دۆسیە بێ ئەژمارەکان (ID)</span>
+                  </div>
+                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-black ${
+                    searchMode === 'MISSING_ID' ? 'bg-white/20 text-white' : 'bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300'
+                  }`}>
+                    {missingIdCount}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => { setSearchMode('MISSING_ANY'); setDisplayLimit(25); }}
+                  className={`p-2.5 rounded-xl border transition-all text-right flex items-center justify-between gap-2 cursor-pointer ${
+                    searchMode === 'MISSING_ANY'
+                      ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-md font-bold'
+                      : 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border-amber-300 dark:border-amber-900/50 hover:bg-amber-50 dark:hover:bg-amber-950/30'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 text-xs font-bold truncate">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0 text-amber-500" />
+                    <span className="truncate">هەردووکیان / هەریەکێکیان</span>
+                  </div>
+                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-black ${
+                    searchMode === 'MISSING_ANY' ? 'bg-slate-950/20 text-slate-950' : 'bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300'
+                  }`}>
+                    {missingAnyCount}
+                  </span>
+                </button>
+              </div>
             </div>
-            <p className="leading-relaxed flex-1">
-              <span className="font-black text-amber-700 dark:text-amber-400">💡 شێوازی گەڕانی زیرەک: </span>
-              ئەگەر تەنها بەشێکی ناو وەک <span className="font-bold text-slate-950 dark:text-white bg-amber-500/20 dark:bg-amber-500/30 px-1.5 py-0.5 rounded border border-amber-500/30">ڕێبین</span> یان بەشێکی مۆبایل وەک <span className="font-bold font-mono text-slate-950 dark:text-white bg-amber-500/20 dark:bg-amber-500/30 px-1.5 py-0.5 rounded border border-amber-500/30">0750494</span> بنووسیت، ڕاستەوخۆ دەیدۆزێتەوە.
-            </p>
-          </div>
 
         </div>
       </div>
@@ -459,7 +602,7 @@ export default function CitizenSearch({ records, onOpenPrintModal }) {
                       <div className="text-xs sm:text-sm font-bold text-emerald-700 dark:text-emerald-400">{status.citizenAction}</div>
                       {result.deliveredDate && (
                         <div className="text-xs text-blue-700 dark:text-cyan-300 pt-1 font-mono font-bold">
-                          بەرواری تەسلیم: {result.deliveredDate}
+                          بەرواری تەسلیم: {formatKurdistanDateTime(result.deliveredDate)}
                         </div>
                       )}
                     </div>
@@ -487,7 +630,13 @@ export default function CitizenSearch({ records, onOpenPrintModal }) {
                       <span>ژمارەی ئەژمار (ID)</span>
                     </div>
                     <div className="text-sm sm:text-base font-mono font-bold text-amber-700 dark:text-amber-300">
-                      {result.accountNumber || 'تۆمار نەکراوە'}
+                      {isIdMissing(result) ? (
+                        <span className="text-xs px-2 py-0.5 rounded bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-500/30 font-bold inline-block">
+                          🆔 ئەژمار (ID) نیە
+                        </span>
+                      ) : (
+                        result.accountNumber
+                      )}
                     </div>
                   </div>
 
@@ -498,7 +647,13 @@ export default function CitizenSearch({ records, onOpenPrintModal }) {
                       <span>ژمارەی مۆبایل</span>
                     </div>
                     <div className="text-sm sm:text-base font-mono text-slate-800 dark:text-slate-200 font-semibold">
-                      {result.phoneNumber}
+                      {isPhoneMissing(result) ? (
+                        <span className="text-xs px-2 py-0.5 rounded bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-500/30 font-bold inline-block">
+                          📵 ژمارەی مۆبایل نیە
+                        </span>
+                      ) : (
+                        result.phoneNumber
+                      )}
                     </div>
                   </div>
 

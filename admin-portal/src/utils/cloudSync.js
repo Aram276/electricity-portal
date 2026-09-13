@@ -7,6 +7,9 @@ import {
 } from 'firebase/firestore';
 import { INITIAL_RECORDS } from '../data/initialData';
 import { getStoredRecords, saveRecords, deduplicateRecords, getStoredTrash, saveTrash } from './storage';
+import { getKurdistanDateTime, getKurdistanDate, getLocalTimestamp } from './dateUtils';
+
+export { getLocalTimestamp };
 
 const DOC_REF = doc(db, 'portal_data', 'electricity_records');
 const TRASH_DOC_REF = doc(db, 'portal_data', 'electricity_trash');
@@ -263,35 +266,7 @@ export function subscribeToActivityLogs(onUpdateCallback) {
   }
 }
 
-/**
- * Generates local Erbil / Kurdistan (Asia/Baghdad, UTC+3) formatted timestamp string.
- */
-export function getLocalTimestamp(includeSeconds = true) {
-  const now = new Date();
-  try {
-    const formatter = new Intl.DateTimeFormat('en-GB', {
-      timeZone: 'Asia/Baghdad',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: includeSeconds ? '2-digit' : undefined,
-      hour12: false
-    });
-    const parts = formatter.formatToParts(now);
-    const getPart = (t) => parts.find(p => p.type === t)?.value || '';
-    if (includeSeconds) {
-      return `${getPart('year')}-${getPart('month')}-${getPart('day')} ${getPart('hour')}:${getPart('minute')}:${getPart('second')}`;
-    }
-    return `${getPart('year')}-${getPart('month')}-${getPart('day')} ${getPart('hour')}:${getPart('minute')}`;
-  } catch (e) {
-    const tzOffsetMs = 3 * 60 * 60 * 1000;
-    const local = new Date(now.getTime() + tzOffsetMs);
-    const str = local.toISOString().replace('T', ' ');
-    return includeSeconds ? str.slice(0, 19) : str.slice(0, 16);
-  }
-}
+
 
 /**
  * Log an activity permanently to Firestore Cloud.

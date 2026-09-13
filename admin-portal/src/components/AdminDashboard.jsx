@@ -1,16 +1,17 @@
 import React, { useState, useMemo, useDeferredValue, useEffect, useRef } from 'react';
-import { 
-  FileSpreadsheet, 
-  Plus, 
-  Download, 
-  Search, 
-  CheckCircle2, 
-  Clock, 
-  PackageCheck, 
-  AlertCircle, 
-  Edit, 
-  Trash2, 
-  Zap, 
+import { createPortal } from 'react-dom';
+import {
+  FileSpreadsheet,
+  Plus,
+  Download,
+  Search,
+  CheckCircle2,
+  Clock,
+  PackageCheck,
+  AlertCircle,
+  Edit,
+  Trash2,
+  Zap,
   Printer,
   Users,
   Layers,
@@ -38,6 +39,7 @@ import {
 } from 'lucide-react';
 import { STATUS_CONFIG, FILE_TYPES, KYC_CONFIG, getRecordKYC } from '../constants/status';
 import { exportToExcel } from '../utils/excelHelper';
+import { getKurdistanDateTime, getKurdistanDate, formatKurdistanDateTime } from '../utils/dateUtils';
 import RoonakiLogo from './RoonakiLogo';
 import DailyIntake from './DailyIntake';
 import SettingsTab from './SettingsTab';
@@ -52,17 +54,17 @@ import TrashTab from './TrashTab';
 import { generateWhatsAppUrl } from '../utils/whatsappHelper';
 import { logActivity } from '../utils/cloudSync';
 import { MessageSquare, BarChart3, ExternalLink, Send, History } from 'lucide-react';
-import { 
-  getStaffRole, 
-  canCreate, 
-  canEdit, 
-  canDeliver, 
-  canDelete, 
-  canImportExcel, 
-  canManageSettings, 
-  canSendBroadcast, 
+import {
+  getStaffRole,
+  canCreate,
+  canEdit,
+  canDeliver,
+  canDelete,
+  canImportExcel,
+  canManageSettings,
+  canSendBroadcast,
   isViewer,
-  ROLE_CONFIG 
+  ROLE_CONFIG
 } from '../utils/permissions';
 
 // Convert Arabic & Persian / Kurdish numerals (٠-٩, ۰-۹) to standard Latin digits (0-9)
@@ -107,27 +109,79 @@ function RowActionsDropdown({
   onSetTimelineRecord,
   onSetDeleteTarget
 }) {
-  const dropdownRef = useRef(null);
+  const buttonRef = useRef(null);
+  const menuRef = useRef(null);
+  const [coords, setCoords] = useState(null);
+
+  const updatePosition = () => {
+    if (!buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    // Prevent rendering if button is hidden (e.g. inside a hidden responsive container)
+    if (rect.width === 0 || rect.height === 0) {
+      setCoords(null);
+      return;
+    }
+
+    const menuWidth = 240;
+    const menuHeight = 240;
+    const padding = 12;
+
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    const openUpwards = spaceBelow < menuHeight && spaceAbove > spaceBelow;
+
+    let top = openUpwards ? rect.top - menuHeight - 6 : rect.bottom + 6;
+    let left = rect.left;
+
+    if (left + menuWidth > window.innerWidth - padding) {
+      left = window.innerWidth - menuWidth - padding;
+    }
+    if (left < padding) {
+      left = padding;
+    }
+
+    if (top < padding) top = padding;
+    if (top + menuHeight > window.innerHeight - padding) {
+      top = window.innerHeight - menuHeight - padding;
+    }
+
+    setCoords({ top, left });
+  };
 
   useEffect(() => {
-    function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        if (isOpen) onToggle(null);
-      }
-    }
     if (isOpen) {
+      updatePosition();
+      const handleScrollOrResize = () => updatePosition();
+      window.addEventListener('scroll', handleScrollOrResize, true);
+      window.addEventListener('resize', handleScrollOrResize);
+
+      const handleClickOutside = (event) => {
+        if (
+          buttonRef.current && !buttonRef.current.contains(event.target) &&
+          menuRef.current && !menuRef.current.contains(event.target)
+        ) {
+          onToggle(null);
+        }
+      };
+
       document.addEventListener('mousedown', handleClickOutside);
       document.addEventListener('touchstart', handleClickOutside);
+
+      return () => {
+        window.removeEventListener('scroll', handleScrollOrResize, true);
+        window.removeEventListener('resize', handleScrollOrResize);
+        document.removeEventListener('mousedown', handleClickOutside);
+        document.removeEventListener('touchstart', handleClickOutside);
+      };
+    } else {
+      setCoords(null);
     }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('touchstart', handleClickOutside);
-    };
-  }, [isOpen, onToggle]);
+  }, [isOpen]);
 
   return (
-    <div className="relative inline-block text-right" ref={dropdownRef}>
+    <div className="relative inline-block text-right">
       <button
+        ref={buttonRef}
         type="button"
         onClick={(e) => {
           e.preventDefault();
@@ -135,22 +189,29 @@ function RowActionsDropdown({
           onToggle(isOpen ? null : record.id);
         }}
         title="کردارەکانی دۆسیە ⁝"
-        className={`p-2 rounded-xl border transition-all active:scale-90 flex items-center justify-center cursor-pointer ${
-          isOpen
-            ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-md ring-2 ring-amber-500/50'
-            : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700 shadow-xs'
-        }`}
+        className={`p-2 rounded-xl border transition-all active:scale-90 flex items-center justify-center cursor-pointer ${isOpen
+          ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-md ring-2 ring-amber-500/50'
+          : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700 shadow-xs'
+          }`}
       >
         <MoreVertical className="w-4 h-4 pointer-events-none" />
       </button>
 
-      {isOpen && (
-        <div 
+      {isOpen && coords && createPortal(
+        <div
+          ref={menuRef}
+          style={{
+            position: 'fixed',
+            top: `${coords.top}px`,
+            left: `${coords.left}px`,
+            zIndex: 999999,
+            width: '240px',
+          }}
           onMouseDown={(e) => e.stopPropagation()}
           onTouchStart={(e) => e.stopPropagation()}
-          className="absolute left-0 top-full mt-1.5 w-56 rounded-2xl bg-white dark:bg-slate-900 border-2 border-amber-500/50 shadow-2xl z-[9999] py-1.5 text-xs font-bold divide-y divide-slate-100 dark:divide-slate-800/80 animate-fadeIn text-right"
+          className="rounded-2xl bg-white dark:bg-slate-900 border-2 border-amber-500/60 shadow-2xl py-1.5 text-xs font-bold divide-y divide-slate-100 dark:divide-slate-800/80 animate-fadeIn text-right select-none"
         >
-          
+
           <div className="py-1">
             {allowDeliver && (
               <button
@@ -177,10 +238,10 @@ function RowActionsDropdown({
                   onToggle(null);
                   if (onOpenEditModal) onOpenEditModal(record);
                 }}
-                className="w-full px-3 py-2 text-right text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 flex items-center gap-2.5 transition-colors cursor-pointer"
+                className="w-full px-3 py-2 text-right text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 flex items-center gap-2.5 transition-colors cursor-pointer font-bold"
               >
                 <Edit className="w-4 h-4 shrink-0 text-emerald-500 pointer-events-none" />
-                <span>دەستکاریکردنی فایل</span>
+                <span>دەستکاریکردنی فایل ✏️</span>
               </button>
             )}
           </div>
@@ -197,7 +258,7 @@ function RowActionsDropdown({
               className="w-full px-3 py-2 text-right text-purple-700 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/40 flex items-center gap-2.5 transition-colors cursor-pointer"
             >
               <Clock className="w-4 h-4 shrink-0 text-purple-500 pointer-events-none" />
-              <span>مێژوو و هێڵی کاتیی فایل</span>
+              <span>مێژوو و هێڵی کاتیی فایل ⏱️</span>
             </button>
 
             <button
@@ -211,7 +272,7 @@ function RowActionsDropdown({
               className="w-full px-3 py-2 text-right text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 flex items-center gap-2.5 transition-colors cursor-pointer"
             >
               <Printer className="w-4 h-4 shrink-0 text-amber-500 pointer-events-none" />
-              <span>پرێنتکردنی پسوولەی فەرمی</span>
+              <span>پرێنتکردنی پسوولەی فەرمی 🖨️</span>
             </button>
           </div>
 
@@ -228,12 +289,13 @@ function RowActionsDropdown({
                 className="w-full px-3 py-2 text-right text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex items-center gap-2.5 transition-colors cursor-pointer"
               >
                 <Trash2 className="w-4 h-4 shrink-0 text-rose-500 pointer-events-none" />
-                <span>سڕینەوە بۆ سەلەی خۆڵ</span>
+                <span>سڕینەوە بۆ سەلەی خۆڵ 🗑️</span>
               </button>
             </div>
           )}
 
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -276,7 +338,7 @@ export default function AdminDashboard({
   const [dataFilter, setDataFilter] = useState('ALL'); // 'ALL' | 'YELLOW_FOLDER' | 'PAPER' | 'KYC_DONE' | 'KYC_PENDING' | ...
   const [sortField, setSortField] = useState('fileNumber');
   const [sortOrder, setSortOrder] = useState('asc');
-  
+
   // Pagination State for Instant 60 FPS Performance
   const [pageSize, setPageSize] = useState(50);
   const [currentPage, setCurrentPage] = useState(1);
@@ -308,7 +370,7 @@ export default function AdminDashboard({
     if (!target) return;
 
     const staffName = activeStaff?.name ? `${activeStaff.name}` : (activeStaff?.username || 'فەرمانبەری ژووری ١٩');
-    const nowTime = new Date().toISOString().replace('T', ' ').slice(0, 16);
+    const nowTime = getKurdistanDateTime(false);
 
     const updates = { status: newStatus };
     if (newStatus === 'DELIVERED' || newStatus === 'COMPLETED') {
@@ -372,7 +434,7 @@ export default function AdminDashboard({
       else if (r.status === 'DELIVERED') delivered++;
 
       const hasReal = Boolean(
-        r.hasRealName === true || 
+        r.hasRealName === true ||
         (r.citizenName && r.citizenName !== 'هاوبەشی کارەبا' && r.citizenName.trim() !== '' && !r.citizenName.startsWith('مانگی '))
       );
 
@@ -401,12 +463,12 @@ export default function AdminDashboard({
       if (isPNull || isINull || !hasReal) incomplete++;
     }
 
-    return { 
-      total, 
-      completed, 
-      inProgress, 
-      delivered, 
-      withNames, 
+    return {
+      total,
+      completed,
+      inProgress,
+      delivered,
+      withNames,
       withoutNames: total - withNames,
       noPhone,
       hasPhone: total - noPhone,
@@ -459,14 +521,14 @@ export default function AdminDashboard({
       if (statusFilter !== 'ALL' && record.status !== statusFilter) {
         return false;
       }
-      
+
       // Data Completeness & File Type Filter
       if (dataFilter !== 'ALL') {
         const isPhoneMissing = !record.phoneNumber || record.phoneNumber === 'نیە' || record.phoneNumber.trim() === '';
         const isIdMissing = !record.accountNumber || record.accountNumber === 'نیە' || record.accountNumber.trim() === '' || record.accountNumber === '-';
         const hasReceiver = Boolean(record.receiverName && record.receiverName.trim() !== '');
         const hasRealName = Boolean(
-          record.hasRealName === true || 
+          record.hasRealName === true ||
           (record.citizenName && record.citizenName !== 'هاوبەشی کارەبا' && record.citizenName.trim() !== '' && !record.citizenName.startsWith('مانگی '))
         );
         const kycVal = getRecordKYC(record);
@@ -575,7 +637,7 @@ export default function AdminDashboard({
       dataToExport = filteredRecords;
     }
     const count = dataToExport.length;
-    exportToExcel(dataToExport, `Roonaki_Electricity_Records_${count}_files_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    exportToExcel(dataToExport, `Roonaki_Electricity_Records_${count}_files_${getKurdistanDate()}.xlsx`);
   };
 
   // Generate page number list for pagination controls
@@ -605,7 +667,7 @@ export default function AdminDashboard({
 
   return (
     <div className="space-y-6 sm:space-y-8 py-4 sm:py-6 px-1 sm:px-0">
-      
+
       {/* Viewer Mode Alert Banner */}
       {viewerMode && (
         <div className="p-4 rounded-2xl sm:rounded-3xl bg-blue-50/90 dark:bg-blue-950/40 border border-blue-300 dark:border-blue-500/40 text-blue-900 dark:text-blue-200 text-xs sm:text-sm font-bold flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg shadow-blue-500/5 animate-fadeIn">
@@ -661,313 +723,306 @@ export default function AdminDashboard({
       {isSidebarOpen && (
         <div className="fixed inset-0 z-[999] h-screen w-screen overflow-hidden animate-fadeIn font-kurdish">
           {/* Glassmorphic Dark Backdrop */}
-          <div 
+          <div
             className="fixed inset-0 z-[1000] bg-slate-950/75 backdrop-blur-md transition-opacity duration-300"
             onClick={() => setIsSidebarOpen(false)}
           />
 
           {/* Drawer Panel (Zero gap, flush against top, bottom and right edge) */}
           <div className="fixed top-0 right-0 bottom-0 z-[1001] h-screen w-full max-w-md bg-white dark:bg-[#090e1c] border-l border-slate-200/80 dark:border-amber-500/20 shadow-2xl flex flex-col justify-between overflow-hidden animate-slideInRight text-right">
-              
-              {/* Drawer Header (Fixed) */}
-              <div className="px-5 py-4 sm:px-6 sm:py-5 border-b border-slate-200/60 dark:border-slate-800/80 flex items-center justify-between bg-gradient-to-l from-amber-500/10 via-transparent to-transparent shrink-0">
-                <div className="flex items-center gap-3">
-                  <div className="p-1 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center shadow-md shadow-amber-500/15 shrink-0">
-                    <RoonakiLogo className="h-9 w-auto" showText={false} />
-                  </div>
-                  <div>
-                    <h3 className="font-black text-slate-900 dark:text-white text-base leading-tight">
-                      مێنیوی سەرەکی پۆرتاڵ
-                    </h3>
-                    <p className="text-[11px] text-amber-600 dark:text-amber-400 font-bold">
-                      پڕۆژەی ڕووناکی • فرۆشیاری وزە ٢
-                    </p>
-                  </div>
+
+            {/* Drawer Header (Fixed) */}
+            <div className="px-5 py-4 sm:px-6 sm:py-5 border-b border-slate-200/60 dark:border-slate-800/80 flex items-center justify-between bg-gradient-to-l from-amber-500/10 via-transparent to-transparent shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="p-1 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center shadow-md shadow-amber-500/15 shrink-0">
+                  <RoonakiLogo className="h-9 w-auto" showText={false} />
+                </div>
+                <div>
+                  <h3 className="font-black text-slate-900 dark:text-white text-base leading-tight">
+                    مێنیوی سەرەکی پۆرتاڵ
+                  </h3>
+                  <p className="text-[11px] text-amber-600 dark:text-amber-400 font-bold">
+                    پڕۆژەی ڕووناکی • فرۆشیاری وزە ٢
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsSidebarOpen(false)}
+                className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800/80 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-700 transition-all flex items-center justify-center active:scale-90 cursor-pointer"
+                title="داخستن (Esc)"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Drawer Scrollable Content */}
+            <div className="flex-1 overflow-y-auto px-5 py-4 sm:px-6 space-y-6 custom-scrollbar">
+
+              {/* Section 1: Main Tabs */}
+              <div className="space-y-2">
+                <div className="text-[11px] font-black text-slate-400 dark:text-slate-500 px-2 uppercase tracking-wider flex items-center justify-between">
+                  <span>بەشە سەرەکییەکان</span>
+                  <span className="text-[10px] text-amber-500 font-normal">Navigation</span>
                 </div>
 
                 <button
                   type="button"
-                  onClick={() => setIsSidebarOpen(false)}
-                  className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800/80 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-700 transition-all flex items-center justify-center active:scale-90 cursor-pointer"
-                  title="داخستن (Esc)"
+                  onClick={() => { setActiveTab('records'); setIsSidebarOpen(false); }}
+                  className={`w-full flex items-center justify-between p-3 rounded-2xl text-xs sm:text-sm font-black transition-all ${activeTab === 'records'
+                    ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 ring-2 ring-amber-400/50'
+                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-transparent hover:border-slate-200 dark:hover:border-slate-700'
+                    }`}
                 >
-                  <X className="w-5 h-5" />
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-xl ${activeTab === 'records' ? 'bg-slate-950 text-amber-400' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'}`}>
+                      <Layers className="w-4 h-4" />
+                    </div>
+                    <div className="text-right">
+                      <div>گشت فایلەکان (خشتە)</div>
+                      <div className={`text-[10px] font-normal ${activeTab === 'records' ? 'text-slate-900' : 'text-slate-400'}`}>
+                        گەڕان و بەڕێوەبردنی تەواوی دۆسیەکان
+                      </div>
+                    </div>
+                  </div>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-mono font-black ${activeTab === 'records' ? 'bg-slate-950 text-amber-400' : 'bg-amber-500/15 text-amber-800 dark:text-amber-400'
+                    }`}>
+                    {records.length}
+                  </span>
+                </button>
+
+                {allowCreate && (
+                  <button
+                    type="button"
+                    onClick={() => { setActiveTab('daily'); setIsSidebarOpen(false); }}
+                    className={`w-full flex items-center justify-between p-3 rounded-2xl text-xs sm:text-sm font-black transition-all ${activeTab === 'daily'
+                      ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 ring-2 ring-amber-400/50'
+                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-transparent hover:border-slate-200 dark:hover:border-slate-700'
+                      }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-xl ${activeTab === 'daily' ? 'bg-slate-950 text-emerald-400' : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'}`}>
+                        <PlusCircle className="w-4 h-4" />
+                      </div>
+                      <div className="text-right">
+                        <div>داخڵکردنی خێرا (ڕۆژانە)</div>
+                        <div className={`text-[10px] font-normal ${activeTab === 'daily' ? 'text-slate-900' : 'text-slate-400'}`}>
+                          تۆمارکردنی یەک لەدوای یەکی کارمەندان
+                        </div>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-full border border-emerald-500/30">نوێ</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => { setActiveTab('analytics'); setIsSidebarOpen(false); }}
+                  className={`w-full flex items-center justify-between p-3 rounded-2xl text-xs sm:text-sm font-black transition-all ${activeTab === 'analytics'
+                    ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 ring-2 ring-amber-400/50'
+                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-transparent hover:border-slate-200 dark:hover:border-slate-700'
+                    }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-xl ${activeTab === 'analytics' ? 'bg-slate-950 text-sky-400' : 'bg-sky-500/15 text-sky-600 dark:text-sky-400'}`}>
+                      <BarChart3 className="w-4 h-4" />
+                    </div>
+                    <div className="text-right">
+                      <div>ئامار و شیکاری گشتی</div>
+                      <div className={`text-[10px] font-normal ${activeTab === 'analytics' ? 'text-slate-900' : 'text-slate-400'}`}>
+                        ڕێژەی ئەنجامدان، فایلی زەرد و ئەوراق
+                      </div>
+                    </div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => { setActiveTab('activity'); setIsSidebarOpen(false); }}
+                  className={`w-full flex items-center justify-between p-3 rounded-2xl text-xs sm:text-sm font-black transition-all ${activeTab === 'activity'
+                    ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 ring-2 ring-amber-400/50'
+                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-transparent hover:border-slate-200 dark:hover:border-slate-700'
+                    }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-xl ${activeTab === 'activity' ? 'bg-slate-950 text-indigo-400' : 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400'}`}>
+                      <ShieldCheck className="w-4 h-4" />
+                    </div>
+                    <div className="text-right">
+                      <div>تۆماری چالاکیی کارمەندان</div>
+                      <div className={`text-[10px] font-normal ${activeTab === 'activity' ? 'text-slate-900' : 'text-slate-400'}`}>
+                        چاودێری و لۆگی تەواوی کردارەکان
+                      </div>
+                    </div>
+                  </div>
+                </button>
+
+                {allowDelete && (
+                  <button
+                    type="button"
+                    onClick={() => { setActiveTab('trash'); setIsSidebarOpen(false); }}
+                    className={`w-full flex items-center justify-between p-3 rounded-2xl text-xs sm:text-sm font-black transition-all ${activeTab === 'trash'
+                      ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/30 ring-2 ring-rose-500/40'
+                      : 'text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30'
+                      }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-xl ${activeTab === 'trash' ? 'bg-slate-950 text-rose-400' : 'bg-rose-500/15 text-rose-600 dark:text-rose-400'}`}>
+                        <Trash2 className="w-4 h-4" />
+                      </div>
+                      <div className="text-right">
+                        <div>سەلەی خۆڵ (فایلە سڕاوەکان)</div>
+                        <div className={`text-[10px] font-normal ${activeTab === 'trash' ? 'text-rose-200' : 'text-slate-400'}`}>
+                          گەڕاندنەوە یان سڕینەوەی یەکجاری
+                        </div>
+                      </div>
+                    </div>
+                    {trashRecords && trashRecords.length > 0 && (
+                      <span className="px-2 py-0.5 rounded-full text-xs font-black bg-rose-500 text-white font-mono">
+                        {trashRecords.length}
+                      </span>
+                    )}
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => { setActiveTab('settings'); setIsSidebarOpen(false); }}
+                  className={`w-full flex items-center justify-between p-3 rounded-2xl text-xs sm:text-sm font-black transition-all ${activeTab === 'settings'
+                    ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 ring-2 ring-amber-400/50'
+                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-transparent hover:border-slate-200 dark:hover:border-slate-700'
+                    }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-xl ${activeTab === 'settings' ? 'bg-slate-950 text-amber-400' : 'bg-slate-500/15 text-slate-600 dark:text-slate-400'}`}>
+                      <Settings className="w-4 h-4" />
+                    </div>
+                    <div className="text-right">
+                      <div>ڕێکخستنی سیستەم و ڕۆڵەکان</div>
+                      <div className={`text-[10px] font-normal ${activeTab === 'settings' ? 'text-slate-900' : 'text-slate-400'}`}>
+                        کارمەندان، مۆڵەتەکان، و زانیاری فەرمانگە
+                      </div>
+                    </div>
+                  </div>
                 </button>
               </div>
 
-              {/* Drawer Scrollable Content */}
-              <div className="flex-1 overflow-y-auto px-5 py-4 sm:px-6 space-y-6 custom-scrollbar">
-                
-                {/* Section 1: Main Tabs */}
-                <div className="space-y-2">
-                  <div className="text-[11px] font-black text-slate-400 dark:text-slate-500 px-2 uppercase tracking-wider flex items-center justify-between">
-                    <span>بەشە سەرەکییەکان</span>
-                    <span className="text-[10px] text-amber-500 font-normal">Navigation</span>
-                  </div>
+              {/* Section 2: Quick Tools */}
+              <div className="space-y-2 pt-4 border-t border-slate-200/60 dark:border-slate-800/80">
+                <div className="text-[11px] font-black text-slate-400 dark:text-slate-500 px-2 uppercase tracking-wider flex items-center justify-between">
+                  <span>ئامراز و خێراکارییەکان</span>
+                  <span className="text-[10px] text-emerald-500 font-normal">Quick Actions</span>
+                </div>
 
-                  <button
-                    type="button"
-                    onClick={() => { setActiveTab('records'); setIsSidebarOpen(false); }}
-                    className={`w-full flex items-center justify-between p-3 rounded-2xl text-xs sm:text-sm font-black transition-all ${
-                      activeTab === 'records'
-                        ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 ring-2 ring-amber-400/50'
-                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-transparent hover:border-slate-200 dark:hover:border-slate-700'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-xl ${activeTab === 'records' ? 'bg-slate-950 text-amber-400' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'}`}>
-                        <Layers className="w-4 h-4" />
-                      </div>
-                      <div className="text-right">
-                        <div>گشت فایلەکان (خشتە)</div>
-                        <div className={`text-[10px] font-normal ${activeTab === 'records' ? 'text-slate-900' : 'text-slate-400'}`}>
-                          گەڕان و بەڕێوەبردنی تەواوی دۆسیەکان
-                        </div>
-                      </div>
-                    </div>
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-mono font-black ${
-                      activeTab === 'records' ? 'bg-slate-950 text-amber-400' : 'bg-amber-500/15 text-amber-800 dark:text-amber-400'
-                    }`}>
-                      {records.length}
-                    </span>
-                  </button>
-
-                  {allowCreate && (
+                <div className="grid grid-cols-1 gap-2">
+                  {allowDeliver && (
                     <button
                       type="button"
-                      onClick={() => { setActiveTab('daily'); setIsSidebarOpen(false); }}
-                      className={`w-full flex items-center justify-between p-3 rounded-2xl text-xs sm:text-sm font-black transition-all ${
-                        activeTab === 'daily'
-                          ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 ring-2 ring-amber-400/50'
-                          : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-transparent hover:border-slate-200 dark:hover:border-slate-700'
-                      }`}
+                      onClick={() => { setIsSidebarOpen(false); setIsFastCheckoutOpen(true); }}
+                      className="w-full flex items-center justify-between p-3 rounded-2xl text-xs font-black bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-md shadow-amber-500/15 active:scale-98 transition-all"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-xl ${activeTab === 'daily' ? 'bg-slate-950 text-emerald-400' : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'}`}>
-                          <PlusCircle className="w-4 h-4" />
-                        </div>
-                        <div className="text-right">
-                          <div>داخڵکردنی خێرا (ڕۆژانە)</div>
-                          <div className={`text-[10px] font-normal ${activeTab === 'daily' ? 'text-slate-900' : 'text-slate-400'}`}>
-                            تۆمارکردنی یەک لەدوای یەکی کارمەندان
-                          </div>
-                        </div>
+                      <div className="flex items-center gap-2.5">
+                        <Zap className="w-4 h-4 fill-current shrink-0" />
+                        <span>تەسلیمکردنی خێرا (Fast Checkout)</span>
                       </div>
-                      <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-full border border-emerald-500/30">نوێ</span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-950/20">ژووری ١٩</span>
+                    </button>
+                  )}
+
+                  {allowBroadcast && (
+                    <button
+                      type="button"
+                      onClick={() => { setIsSidebarOpen(false); setIsBulkWhatsAppOpen(true); }}
+                      className="w-full flex items-center justify-between p-3 rounded-2xl text-xs font-black bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/15 active:scale-98 transition-all"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Send className="w-4 h-4 shrink-0" />
+                        <span>نامەی بەکۆمەڵ (واتسئاپ بۆ تەواوبووەکان)</span>
+                      </div>
+                      <span className="text-xs">📢</span>
                     </button>
                   )}
 
                   <button
                     type="button"
-                    onClick={() => { setActiveTab('analytics'); setIsSidebarOpen(false); }}
-                    className={`w-full flex items-center justify-between p-3 rounded-2xl text-xs sm:text-sm font-black transition-all ${
-                      activeTab === 'analytics'
-                        ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 ring-2 ring-amber-400/50'
-                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-transparent hover:border-slate-200 dark:hover:border-slate-700'
-                    }`}
+                    onClick={() => { setIsSidebarOpen(false); setIsArchiveBoxesOpen(true); }}
+                    className="w-full flex items-center justify-between p-3 rounded-2xl text-xs font-black bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/15 active:scale-98 transition-all"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-xl ${activeTab === 'analytics' ? 'bg-slate-950 text-sky-400' : 'bg-sky-500/15 text-sky-600 dark:text-sky-400'}`}>
-                        <BarChart3 className="w-4 h-4" />
-                      </div>
-                      <div className="text-right">
-                        <div>ئامار و شیکاری گشتی</div>
-                        <div className={`text-[10px] font-normal ${activeTab === 'analytics' ? 'text-slate-900' : 'text-slate-400'}`}>
-                          ڕێژەی ئەنجامدان، فایلی زەرد و ئەوراق
-                        </div>
-                      </div>
+                    <div className="flex items-center gap-2.5">
+                      <Folder className="w-4 h-4 shrink-0" />
+                      <span>بۆکسەکانی ئەرشیف (١٥٠ دۆسیە بۆ چاپکردن)</span>
                     </div>
+                    <span className="text-xs">📦</span>
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => { setActiveTab('activity'); setIsSidebarOpen(false); }}
-                    className={`w-full flex items-center justify-between p-3 rounded-2xl text-xs sm:text-sm font-black transition-all ${
-                      activeTab === 'activity'
-                        ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 ring-2 ring-amber-400/50'
-                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-transparent hover:border-slate-200 dark:hover:border-slate-700'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-xl ${activeTab === 'activity' ? 'bg-slate-950 text-indigo-400' : 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400'}`}>
-                        <ShieldCheck className="w-4 h-4" />
-                      </div>
-                      <div className="text-right">
-                        <div>تۆماری چالاکیی کارمەندان</div>
-                        <div className={`text-[10px] font-normal ${activeTab === 'activity' ? 'text-slate-900' : 'text-slate-400'}`}>
-                          چاودێری و لۆگی تەواوی کردارەکان
-                        </div>
-                      </div>
-                    </div>
-                  </button>
-
-                  {allowDelete && (
+                  {allowImport && (
                     <button
                       type="button"
-                      onClick={() => { setActiveTab('trash'); setIsSidebarOpen(false); }}
-                      className={`w-full flex items-center justify-between p-3 rounded-2xl text-xs sm:text-sm font-black transition-all ${
-                        activeTab === 'trash'
-                          ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/30 ring-2 ring-rose-500/40'
-                          : 'text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30'
-                      }`}
+                      onClick={() => { setIsSidebarOpen(false); setActiveTab('records'); onOpenExcelImport(); }}
+                      className="w-full flex items-center justify-between p-3 rounded-2xl text-xs font-black bg-slate-800 hover:bg-slate-700 text-white shadow-md active:scale-98 transition-all"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-xl ${activeTab === 'trash' ? 'bg-slate-950 text-rose-400' : 'bg-rose-500/15 text-rose-600 dark:text-rose-400'}`}>
-                          <Trash2 className="w-4 h-4" />
-                        </div>
-                        <div className="text-right">
-                          <div>سەلەی خۆڵ (فایلە سڕاوەکان)</div>
-                          <div className={`text-[10px] font-normal ${activeTab === 'trash' ? 'text-rose-200' : 'text-slate-400'}`}>
-                            گەڕاندنەوە یان سڕینەوەی یەکجاری
-                          </div>
-                        </div>
+                      <div className="flex items-center gap-2.5">
+                        <UploadCloud className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <span>هاوردەکردنی فایلی ئێکسڵ (Excel)</span>
                       </div>
-                      {trashRecords && trashRecords.length > 0 && (
-                        <span className="px-2 py-0.5 rounded-full text-xs font-black bg-rose-500 text-white font-mono">
-                          {trashRecords.length}
-                        </span>
-                      )}
+                      <span className="text-xs text-emerald-400 font-bold">Upload</span>
                     </button>
                   )}
 
-                  <button
-                    type="button"
-                    onClick={() => { setActiveTab('settings'); setIsSidebarOpen(false); }}
-                    className={`w-full flex items-center justify-between p-3 rounded-2xl text-xs sm:text-sm font-black transition-all ${
-                      activeTab === 'settings'
-                        ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 ring-2 ring-amber-400/50'
-                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-transparent hover:border-slate-200 dark:hover:border-slate-700'
-                    }`}
+                  <a
+                    href="/poster.html"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setIsSidebarOpen(false)}
+                    className="w-full flex items-center justify-between p-3 rounded-2xl text-xs font-black bg-sky-600 hover:bg-sky-500 text-white shadow-md shadow-sky-600/15 active:scale-98 transition-all"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-xl ${activeTab === 'settings' ? 'bg-slate-950 text-amber-400' : 'bg-slate-500/15 text-slate-600 dark:text-slate-400'}`}>
-                        <Settings className="w-4 h-4" />
-                      </div>
-                      <div className="text-right">
-                        <div>ڕێکخستنی سیستەم و ڕۆڵەکان</div>
-                        <div className={`text-[10px] font-normal ${activeTab === 'settings' ? 'text-slate-900' : 'text-slate-400'}`}>
-                          کارمەندان، مۆڵەتەکان، و زانیاری فەرمانگە
-                        </div>
-                      </div>
+                    <div className="flex items-center gap-2.5">
+                      <FileText className="w-4 h-4 shrink-0" />
+                      <span>پۆستەری ڕێنمایی A4 (بۆ چاپکردن)</span>
                     </div>
-                  </button>
-                </div>
-
-                {/* Section 2: Quick Tools */}
-                <div className="space-y-2 pt-4 border-t border-slate-200/60 dark:border-slate-800/80">
-                  <div className="text-[11px] font-black text-slate-400 dark:text-slate-500 px-2 uppercase tracking-wider flex items-center justify-between">
-                    <span>ئامراز و خێراکارییەکان</span>
-                    <span className="text-[10px] text-emerald-500 font-normal">Quick Actions</span>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-2">
-                    {allowDeliver && (
-                      <button
-                        type="button"
-                        onClick={() => { setIsSidebarOpen(false); setIsFastCheckoutOpen(true); }}
-                        className="w-full flex items-center justify-between p-3 rounded-2xl text-xs font-black bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-md shadow-amber-500/15 active:scale-98 transition-all"
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <Zap className="w-4 h-4 fill-current shrink-0" />
-                          <span>تەسلیمکردنی خێرا (Fast Checkout)</span>
-                        </div>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-950/20">ژووری ١٩</span>
-                      </button>
-                    )}
-
-                    {allowBroadcast && (
-                      <button
-                        type="button"
-                        onClick={() => { setIsSidebarOpen(false); setIsBulkWhatsAppOpen(true); }}
-                        className="w-full flex items-center justify-between p-3 rounded-2xl text-xs font-black bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/15 active:scale-98 transition-all"
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <Send className="w-4 h-4 shrink-0" />
-                          <span>نامەی بەکۆمەڵ (واتسئاپ بۆ تەواوبووەکان)</span>
-                        </div>
-                        <span className="text-xs">📢</span>
-                      </button>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={() => { setIsSidebarOpen(false); setIsArchiveBoxesOpen(true); }}
-                      className="w-full flex items-center justify-between p-3 rounded-2xl text-xs font-black bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/15 active:scale-98 transition-all"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <Folder className="w-4 h-4 shrink-0" />
-                        <span>بۆکسەکانی ئەرشیف (١٥٠ دۆسیە بۆ چاپکردن)</span>
-                      </div>
-                      <span className="text-xs">📦</span>
-                    </button>
-
-                    {allowImport && (
-                      <button
-                        type="button"
-                        onClick={() => { setIsSidebarOpen(false); setActiveTab('records'); onOpenExcelImport(); }}
-                        className="w-full flex items-center justify-between p-3 rounded-2xl text-xs font-black bg-slate-800 hover:bg-slate-700 text-white shadow-md active:scale-98 transition-all"
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <UploadCloud className="w-4 h-4 text-emerald-400 shrink-0" />
-                          <span>هاوردەکردنی فایلی ئێکسڵ (Excel)</span>
-                        </div>
-                        <span className="text-xs text-emerald-400 font-bold">Upload</span>
-                      </button>
-                    )}
-
-                    <a
-                      href="/poster.html"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={() => setIsSidebarOpen(false)}
-                      className="w-full flex items-center justify-between p-3 rounded-2xl text-xs font-black bg-sky-600 hover:bg-sky-500 text-white shadow-md shadow-sky-600/15 active:scale-98 transition-all"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <FileText className="w-4 h-4 shrink-0" />
-                        <span>پۆستەری ڕێنمایی A4 (بۆ چاپکردن)</span>
-                      </div>
-                      <span className="text-xs">📄</span>
-                    </a>
-                  </div>
-                </div>
-
-              </div>
-
-              {/* Drawer Footer: Active Staff Card */}
-              <div className="p-4 sm:p-5 border-t border-slate-200/60 dark:border-slate-800/80 bg-slate-50/80 dark:bg-[#070b16]/80 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-700 dark:text-amber-400 flex items-center justify-center font-black text-sm shrink-0">
-                    {activeStaff?.name ? activeStaff.name.charAt(0) : '👤'}
-                  </div>
-                  <div className="min-w-0 flex-1 text-right">
-                    <div className="text-xs sm:text-sm font-black text-slate-900 dark:text-white truncate">
-                      {activeStaff?.name || 'فەرمانبەری ژووری ١٩'}
-                    </div>
-                    <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate flex items-center gap-1">
-                      <span>{activeStaff?.title || 'بەشی ئەرشیف'}</span>
-                      <span>•</span>
-                      <span className="text-amber-600 dark:text-amber-400 font-bold">
-                        {activeStaff?.role === 'ADMIN' ? 'ئادمین' : activeStaff?.role === 'VIEWER' ? 'بینەر' : 'ستاف'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Developers & System Ownership Card */}
-                <div className="mt-3 p-3 rounded-2xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/25 space-y-1.5 text-right">
-                  <div className="flex items-center justify-between text-[11px] font-black text-amber-900 dark:text-amber-200">
-                    <span>💻 بیرۆکە و گەشەپێدانی سیستم:</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300 font-mono">Room 19</span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs font-black text-slate-900 dark:text-white">
-                    <span>ئارام عەباس (Aram Abbas)</span>
-                    <span className="text-amber-500 font-black">&</span>
-                    <span>ڕەعد ئیبراهیم (Raad Ebrahim)</span>
-                  </div>
+                    <span className="text-xs">📄</span>
+                  </a>
                 </div>
               </div>
 
             </div>
+
+            {/* Drawer Footer: Active Staff Card */}
+            <div className="p-4 sm:p-5 border-t border-slate-200/60 dark:border-slate-800/80 bg-slate-50/80 dark:bg-[#070b16]/80 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-700 dark:text-amber-400 flex items-center justify-center font-black text-sm shrink-0">
+                  {activeStaff?.name ? activeStaff.name.charAt(0) : '👤'}
+                </div>
+                <div className="min-w-0 flex-1 text-right">
+                  <div className="text-xs sm:text-sm font-black text-slate-900 dark:text-white truncate">
+                    {activeStaff?.name || 'فەرمانبەری ژووری ١٩'}
+                  </div>
+                  <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate flex items-center gap-1">
+                    <span>{activeStaff?.title || 'بەشی ئەرشیف'}</span>
+                    <span>•</span>
+                    <span className="text-amber-600 dark:text-amber-400 font-bold">
+                      {activeStaff?.role === 'ADMIN' ? 'ئادمین' : activeStaff?.role === 'VIEWER' ? 'بینەر' : 'ستاف'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Developers & System Ownership Card */}
+              <div className="mt-3 p-3 rounded-2xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/25 space-y-1.5 text-right">
+                <div className="flex items-center justify-between text-[11px] font-black text-amber-900 dark:text-amber-200">
+                  <span>💻 بیرۆکە و گەشەپێدانی سیستم:</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-300 font-mono">Room 19</span>
+                </div>
+                <div className="flex items-center justify-between text-xs font-black text-slate-900 dark:text-white">
+                  <span>ئارام عەباس (Aram Abbas)</span>
+                  <span className="text-amber-500 font-black">&</span>
+                  <span>ڕەعد ئیبراهیم (Raad Ebrahim)</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
         </div>
       )}
 
@@ -983,10 +1038,10 @@ export default function AdminDashboard({
       {/* View 2: All Records Table & Excel Management */}
       {activeTab === 'records' && (
         <div className="space-y-6 animate-fadeIn">
-          
+
           {/* Action Bar */}
           <div className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-emerald-50/80 dark:bg-gradient-to-r dark:from-emerald-950/40 dark:via-slate-900 dark:to-slate-900 border border-emerald-300 dark:border-emerald-500/30 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 transition-colors">
-            
+
             <div className="space-y-1 text-center md:text-right">
               <div className="text-emerald-800 dark:text-emerald-400 font-black text-xs sm:text-sm flex items-center justify-center md:justify-start gap-2">
                 <FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
@@ -1056,11 +1111,10 @@ export default function AdminDashboard({
 
           {/* KPI Stats Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 sm:gap-3.5">
-            <div 
+            <div
               onClick={() => { setStatusFilter('ALL'); setDataFilter('ALL'); }}
-              className={`p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border transition-all cursor-pointer ${
-                statusFilter === 'ALL' && dataFilter === 'ALL' ? 'bg-amber-50 dark:bg-slate-800/90 border-amber-500 shadow-md' : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 hover:border-amber-400'
-              }`}
+              className={`p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border transition-all cursor-pointer ${statusFilter === 'ALL' && dataFilter === 'ALL' ? 'bg-amber-50 dark:bg-slate-800/90 border-amber-500 shadow-md' : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 hover:border-amber-400'
+                }`}
             >
               <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-1.5">
                 <span className="text-[11px] sm:text-xs font-bold">کۆی گشتی</span>
@@ -1069,11 +1123,10 @@ export default function AdminDashboard({
               <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono">{stats.total}</div>
             </div>
 
-            <div 
+            <div
               onClick={() => setDataFilter(prev => prev === 'YELLOW_FOLDER' ? 'ALL' : 'YELLOW_FOLDER')}
-              className={`p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border transition-all cursor-pointer ${
-                dataFilter === 'YELLOW_FOLDER' ? 'bg-amber-100/80 dark:bg-amber-950/60 border-amber-500 shadow-md ring-2 ring-amber-500/30' : 'bg-white dark:bg-slate-900/60 border-amber-200 dark:border-amber-500/20 hover:border-amber-400'
-              }`}
+              className={`p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border transition-all cursor-pointer ${dataFilter === 'YELLOW_FOLDER' ? 'bg-amber-100/80 dark:bg-amber-950/60 border-amber-500 shadow-md ring-2 ring-amber-500/30' : 'bg-white dark:bg-slate-900/60 border-amber-200 dark:border-amber-500/20 hover:border-amber-400'
+                }`}
             >
               <div className="flex items-center justify-between text-amber-900 dark:text-amber-300 mb-1.5">
                 <span className="text-[11px] sm:text-xs font-bold">فایلی زەرد 📁</span>
@@ -1082,11 +1135,10 @@ export default function AdminDashboard({
               <div className="text-xl sm:text-2xl font-black text-amber-800 dark:text-amber-300 font-mono">{stats.yellowFolders}</div>
             </div>
 
-            <div 
+            <div
               onClick={() => setDataFilter(prev => prev === 'PAPER' ? 'ALL' : 'PAPER')}
-              className={`p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border transition-all cursor-pointer ${
-                dataFilter === 'PAPER' ? 'bg-slate-200 dark:bg-slate-800 border-slate-500 shadow-md ring-2 ring-slate-400/30' : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 hover:border-slate-400'
-              }`}
+              className={`p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border transition-all cursor-pointer ${dataFilter === 'PAPER' ? 'bg-slate-200 dark:bg-slate-800 border-slate-500 shadow-md ring-2 ring-slate-400/30' : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 hover:border-slate-400'
+                }`}
             >
               <div className="flex items-center justify-between text-slate-700 dark:text-slate-300 mb-1.5">
                 <span className="text-[11px] sm:text-xs font-bold">ئەوراق (کاغەز) 📄</span>
@@ -1095,11 +1147,10 @@ export default function AdminDashboard({
               <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono">{stats.papers}</div>
             </div>
 
-            <div 
+            <div
               onClick={() => setStatusFilter(prev => prev === 'COMPLETED' ? 'ALL' : 'COMPLETED')}
-              className={`p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border transition-all cursor-pointer ${
-                statusFilter === 'COMPLETED' ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 shadow-md ring-2 ring-emerald-500/30' : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 hover:border-emerald-500'
-              }`}
+              className={`p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border transition-all cursor-pointer ${statusFilter === 'COMPLETED' ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 shadow-md ring-2 ring-emerald-500/30' : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 hover:border-emerald-500'
+                }`}
             >
               <div className="flex items-center justify-between text-emerald-700 dark:text-emerald-400 mb-1.5">
                 <span className="text-[11px] sm:text-xs font-bold">وەرگیراوەتەوە</span>
@@ -1108,11 +1159,10 @@ export default function AdminDashboard({
               <div className="text-xl sm:text-2xl font-black text-emerald-800 dark:text-emerald-300 font-mono">{stats.completed}</div>
             </div>
 
-            <div 
+            <div
               onClick={() => setStatusFilter(prev => prev === 'IN_PROGRESS' ? 'ALL' : 'IN_PROGRESS')}
-              className={`p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border transition-all cursor-pointer col-span-2 sm:col-span-1 ${
-                statusFilter === 'IN_PROGRESS' ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-500 shadow-md ring-2 ring-amber-500/30' : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 hover:border-amber-500'
-              }`}
+              className={`p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border transition-all cursor-pointer col-span-2 sm:col-span-1 ${statusFilter === 'IN_PROGRESS' ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-500 shadow-md ring-2 ring-amber-500/30' : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 hover:border-amber-500'
+                }`}
             >
               <div className="flex items-center justify-between text-amber-700 dark:text-amber-400 mb-1.5">
                 <span className="text-[11px] sm:text-xs font-bold">پێنەدراوەتەوە</span>
@@ -1125,7 +1175,7 @@ export default function AdminDashboard({
           {/* ── ADVANCED FILTER AND SEARCH BAR ── */}
           <div className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 space-y-3 shadow-md">
             <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
-              
+
               {/* Search input */}
               <div className="relative flex-1">
                 <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-500" />
@@ -1166,11 +1216,10 @@ export default function AdminDashboard({
                 <select
                   value={dataFilter}
                   onChange={(e) => setDataFilter(e.target.value)}
-                  className={`w-full lg:w-auto px-3 py-2.5 sm:py-3 rounded-xl border font-bold text-xs sm:text-sm focus:outline-none transition-colors ${
-                    dataFilter !== 'ALL'
-                      ? 'bg-amber-50 dark:bg-amber-500/15 border-amber-500 text-amber-900 dark:text-amber-300'
-                      : 'bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:border-amber-500'
-                  }`}
+                  className={`w-full lg:w-auto px-3 py-2.5 sm:py-3 rounded-xl border font-bold text-xs sm:text-sm focus:outline-none transition-colors ${dataFilter !== 'ALL'
+                    ? 'bg-amber-50 dark:bg-amber-500/15 border-amber-500 text-amber-900 dark:text-amber-300'
+                    : 'bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:border-amber-500'
+                    }`}
                 >
                   <option value="ALL">🔍 فلتەری زانیارییەکان (گشت داتاکان)</option>
                   <option value="KYC_DONE_BY_US">🟢 تەنها ئەوانەی ئێمە کردمان ({stats.kycDoneByUs})</option>
@@ -1198,7 +1247,7 @@ export default function AdminDashboard({
                 <span className="text-slate-500 dark:text-slate-400 font-bold flex items-center gap-1">
                   <Filter className="w-3.5 h-3.5" /> فلتەرە چالاکەکان:
                 </span>
-                
+
                 {statusFilter !== 'ALL' && (
                   <span className="px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-500/30 font-bold flex items-center gap-1">
                     <span>دۆخ: {statusFilter === 'COMPLETED' ? 'وەرگیراوەتەوە' : (statusFilter === 'IN_PROGRESS' ? 'پێنەدراوەتەوە' : 'تەسلیم کراوە')}</span>
@@ -1210,17 +1259,17 @@ export default function AdminDashboard({
                   <span className="px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30 font-bold flex items-center gap-1">
                     <span>فلتەر: {
                       dataFilter === 'KYC_DONE_BY_US' ? '🟢 ئێمە کردمان' :
-                      dataFilter === 'KYC_PRE_VERIFIED' ? '🔵 پێشتر کراوە (دەرەکی)' :
-                      dataFilter === 'KYC_PENDING' ? '🟡 نەکراوە (پێنەدراوەتەوە)' :
-                      dataFilter === 'KYC_DONE' ? '🟢 هەموو KYC کراوەکان' :
-                      dataFilter === 'YELLOW_FOLDER' ? '📁 فایلی زەرد' :
-                      dataFilter === 'PAPER' ? '📄 ئەوراق' :
-                      dataFilter === 'NO_PHONE' ? 'بێ مۆبایل' :
-                      dataFilter === 'HAS_PHONE' ? 'بە مۆبایل' :
-                      dataFilter === 'NO_ID' ? 'بێ ئەژمار' :
-                      dataFilter === 'HAS_ID' ? 'بە ئەژمار' :
-                      dataFilter === 'WITH_NAME' ? 'بە ناو' :
-                      dataFilter === 'NO_NAME' ? 'بێ ناو' : 'کەموکوڕی'
+                        dataFilter === 'KYC_PRE_VERIFIED' ? '🔵 پێشتر کراوە (دەرەکی)' :
+                          dataFilter === 'KYC_PENDING' ? '🟡 نەکراوە (پێنەدراوەتەوە)' :
+                            dataFilter === 'KYC_DONE' ? '🟢 هەموو KYC کراوەکان' :
+                              dataFilter === 'YELLOW_FOLDER' ? '📁 فایلی زەرد' :
+                                dataFilter === 'PAPER' ? '📄 ئەوراق' :
+                                  dataFilter === 'NO_PHONE' ? 'بێ مۆبایل' :
+                                    dataFilter === 'HAS_PHONE' ? 'بە مۆبایل' :
+                                      dataFilter === 'NO_ID' ? 'بێ ئەژمار' :
+                                        dataFilter === 'HAS_ID' ? 'بە ئەژمار' :
+                                          dataFilter === 'WITH_NAME' ? 'بە ناو' :
+                                            dataFilter === 'NO_NAME' ? 'بێ ناو' : 'کەموکوڕی'
                     }</span>
                     <button onClick={() => setDataFilter('ALL')} className="hover:text-rose-500"><X className="w-3 h-3" /></button>
                   </span>
@@ -1409,7 +1458,7 @@ export default function AdminDashboard({
           {/* Records Table formatted like co2 file */}
           <div className="rounded-2xl sm:rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xl backdrop-blur-xl transition-colors">
             {/* ── DESKTOP & TABLET VIEW: Wide Data Table (hidden on mobile) ── */}
-            <div className="hidden md:block overflow-x-auto">
+            <div className="hidden md:block overflow-x-auto min-h-[360px]">
               <table className="w-full text-right text-xs border-collapse">
                 <thead className="bg-slate-100 dark:bg-slate-950/90 text-slate-700 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-800 text-xs">
                   <tr>
@@ -1472,15 +1521,14 @@ export default function AdminDashboard({
                       const allowDelete = activeStaff?.permissions?.canDelete !== false;
 
                       return (
-                        <tr 
-                          key={record.id} 
-                          className={`transition-colors ${openRowMenuId === record.id ? 'relative z-30' : ''} ${
-                            isSelected 
-                              ? 'bg-amber-50/80 dark:bg-amber-500/10' 
-                              : (isYellowFolder ? 'bg-amber-50/30 dark:bg-amber-500/5 hover:bg-amber-50/60' : 'hover:bg-slate-50/80 dark:hover:bg-slate-800/40')
-                          }`}
+                        <tr
+                          key={record.id}
+                          className={`transition-colors ${openRowMenuId === record.id ? 'relative z-30' : ''} ${isSelected
+                            ? 'bg-amber-50/80 dark:bg-amber-500/10'
+                            : (isYellowFolder ? 'bg-amber-50/30 dark:bg-amber-500/5 hover:bg-amber-50/60' : 'hover:bg-slate-50/80 dark:hover:bg-slate-800/40')
+                            }`}
                         >
-                          
+
                           {/* Row Checkbox */}
                           <td className="p-2 text-center">
                             <button
@@ -1510,13 +1558,11 @@ export default function AdminDashboard({
                               disabled={!allowEdit}
                               onClick={() => onToggleFileType && onToggleFileType(record.id)}
                               title={allowEdit ? "کلیک بکە بۆ گۆڕینی جۆری فایل (فایلی زەرد / ئەوراق)" : "تەنها خوێندنەوە"}
-                              className={`px-2 py-0.5 rounded-lg text-[11px] font-black border transition-all active:scale-95 shadow-xs inline-flex items-center gap-1 ${
-                                !allowEdit ? 'opacity-85 cursor-default' : 'cursor-pointer'
-                              } ${
-                                isYellowFolder
+                              className={`px-2 py-0.5 rounded-lg text-[11px] font-black border transition-all active:scale-95 shadow-xs inline-flex items-center gap-1 ${!allowEdit ? 'opacity-85 cursor-default' : 'cursor-pointer'
+                                } ${isYellowFolder
                                   ? 'bg-amber-200/80 dark:bg-amber-500/25 text-amber-950 dark:text-amber-300 border-amber-400 dark:border-amber-500/50'
                                   : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-700'
-                              }`}
+                                }`}
                             >
                               <span>{isYellowFolder ? '📁 فایلی زەرد' : '📄 ئەوراق'}</span>
                             </button>
@@ -1584,15 +1630,13 @@ export default function AdminDashboard({
                                     }
                                   }}
                                   title={allowEdit ? "بەتنی دیاریکردنی دۆخی کەیوایسی (KYC)" : "تەنها خوێندنەوە"}
-                                  className={`w-full px-1.5 py-1 rounded-lg text-xs font-black border-2 transition-all focus:outline-none shadow-xs text-center ${
-                                    !allowEdit ? 'cursor-default opacity-85' : 'cursor-pointer'
-                                  } ${
-                                    kycState === 'DONE_BY_US'
+                                  className={`w-full px-1.5 py-1 rounded-lg text-xs font-black border-2 transition-all focus:outline-none shadow-xs text-center ${!allowEdit ? 'cursor-default opacity-85' : 'cursor-pointer'
+                                    } ${kycState === 'DONE_BY_US'
                                       ? 'bg-emerald-100 dark:bg-emerald-500/25 text-emerald-950 dark:text-emerald-200 border-emerald-500'
                                       : kycState === 'PRE_VERIFIED'
-                                      ? 'bg-sky-100 dark:bg-sky-500/25 text-sky-950 dark:text-sky-200 border-sky-500'
-                                      : 'bg-amber-100 dark:bg-amber-500/25 text-amber-950 dark:text-amber-200 border-amber-500'
-                                  }`}
+                                        ? 'bg-sky-100 dark:bg-sky-500/25 text-sky-950 dark:text-sky-200 border-sky-500'
+                                        : 'bg-amber-100 dark:bg-amber-500/25 text-amber-950 dark:text-amber-200 border-amber-500'
+                                    }`}
                                 >
                                   <option value="DONE_BY_US" className="bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-300 font-bold">
                                     🟢 ئێمە کردمان
@@ -1614,9 +1658,8 @@ export default function AdminDashboard({
                               value={record.status}
                               disabled={!allowEdit}
                               onChange={(e) => onUpdateStatus(record.id, e.target.value)}
-                              className={`w-full px-1.5 py-1 rounded-lg text-xs font-bold border ${status.badgeClass} bg-white dark:bg-slate-900 focus:outline-none shadow-xs text-center ${
-                                !allowEdit ? 'cursor-default opacity-85' : 'cursor-pointer'
-                              }`}
+                              className={`w-full px-1.5 py-1 rounded-lg text-xs font-bold border ${status.badgeClass} bg-white dark:bg-slate-900 focus:outline-none shadow-xs text-center ${!allowEdit ? 'cursor-default opacity-85' : 'cursor-pointer'
+                                }`}
                             >
                               <option value="COMPLETED" className="bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-300 font-bold">
                                 🟢 وەرگیراوەتەوە
@@ -1657,11 +1700,11 @@ export default function AdminDashboard({
                           </td>
 
                           {/* Actions Column (3-Dots Popover Menu ⁝) */}
-                          <td className={`p-2 text-center relative ${openRowMenuId === record.id ? 'z-50' : ''}`}>
+                          <td className={`p-2 text-center relative ${openRowMenuId === 'desktop-' + record.id ? 'z-50' : ''}`}>
                             <RowActionsDropdown
                               record={record}
-                              isOpen={openRowMenuId === record.id}
-                              onToggle={(id) => setOpenRowMenuId(id)}
+                              isOpen={openRowMenuId === 'desktop-' + record.id}
+                              onToggle={(id) => setOpenRowMenuId(id ? 'desktop-' + id : null)}
                               allowDeliver={allowDeliver}
                               allowEdit={allowEdit}
                               allowDelete={allowDelete}
@@ -1698,20 +1741,19 @@ export default function AdminDashboard({
                   const allowEdit = activeStaff?.permissions?.canEdit !== false;
                   const allowDelete = activeStaff?.permissions?.canDelete !== false;
                   const isKyc = Boolean(
-                    record.isKycDone || 
-                    record.kycStatus === 'DONE' || 
-                    record.status === 'COMPLETED' || 
+                    record.isKycDone ||
+                    record.kycStatus === 'DONE' ||
+                    record.status === 'COMPLETED' ||
                     record.status === 'DELIVERED'
                   );
 
                   return (
-                    <div 
-                      key={record.id} 
-                      className={`p-3.5 sm:p-4 space-y-3 transition-colors ${openRowMenuId === record.id ? 'relative z-30' : ''} ${
-                        isSelected 
-                          ? 'bg-amber-50/90 dark:bg-amber-500/15' 
-                          : (isYellowFolder ? 'bg-amber-50/30 dark:bg-amber-500/5' : 'hover:bg-slate-50 dark:hover:bg-slate-800/40')
-                      }`}
+                    <div
+                      key={record.id}
+                      className={`p-3.5 sm:p-4 space-y-3 transition-colors ${openRowMenuId === record.id ? 'relative z-30' : ''} ${isSelected
+                        ? 'bg-amber-50/90 dark:bg-amber-500/15'
+                        : (isYellowFolder ? 'bg-amber-50/30 dark:bg-amber-500/5' : 'hover:bg-slate-50 dark:hover:bg-slate-800/40')
+                        }`}
                     >
                       {/* Mobile Top Row: Checkbox + File # + File Type Toggle + KYC Toggle + Status Dropdown */}
                       <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -1740,13 +1782,11 @@ export default function AdminDashboard({
                             type="button"
                             disabled={!allowEdit}
                             onClick={() => onToggleFileType && onToggleFileType(record.id)}
-                            className={`px-2 py-0.5 rounded-lg text-xs font-black border transition-all active:scale-95 flex items-center gap-1 ${
-                              !allowEdit ? 'opacity-85 cursor-default' : 'cursor-pointer'
-                            } ${
-                              isYellowFolder
+                            className={`px-2 py-0.5 rounded-lg text-xs font-black border transition-all active:scale-95 flex items-center gap-1 ${!allowEdit ? 'opacity-85 cursor-default' : 'cursor-pointer'
+                              } ${isYellowFolder
                                 ? 'bg-amber-200/80 dark:bg-amber-500/25 text-amber-950 dark:text-amber-300 border-amber-400'
                                 : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-700'
-                            }`}
+                              }`}
                           >
                             <span>{isYellowFolder ? '📁 فایلی زەرد' : '📄 ئەوراق'}</span>
                           </button>
@@ -1770,15 +1810,13 @@ export default function AdminDashboard({
                                     }
                                   }}
                                   title={allowEdit ? "بەتنی گۆڕینی دۆخی KYC" : "تەنها خوێندنەوە"}
-                                  className={`px-2 py-0.5 rounded-lg text-[11px] font-black border-2 transition-all focus:outline-none ${
-                                    !allowEdit ? 'opacity-85 cursor-default' : 'cursor-pointer'
-                                  } ${
-                                    kycState === 'DONE_BY_US'
+                                  className={`px-2 py-0.5 rounded-lg text-[11px] font-black border-2 transition-all focus:outline-none ${!allowEdit ? 'opacity-85 cursor-default' : 'cursor-pointer'
+                                    } ${kycState === 'DONE_BY_US'
                                       ? 'bg-emerald-100 dark:bg-emerald-500/25 text-emerald-950 dark:text-emerald-200 border-emerald-500'
                                       : kycState === 'PRE_VERIFIED'
-                                      ? 'bg-sky-100 dark:bg-sky-500/25 text-sky-950 dark:text-sky-200 border-sky-500'
-                                      : 'bg-amber-100 dark:bg-amber-500/25 text-amber-950 dark:text-amber-200 border-amber-500'
-                                  }`}
+                                        ? 'bg-sky-100 dark:bg-sky-500/25 text-sky-950 dark:text-sky-200 border-sky-500'
+                                        : 'bg-amber-100 dark:bg-amber-500/25 text-amber-950 dark:text-amber-200 border-amber-500'
+                                    }`}
                                 >
                                   <option value="DONE_BY_US" className="bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-300 font-bold">
                                     🟢 ئێمە کردمان
@@ -1800,9 +1838,8 @@ export default function AdminDashboard({
                           value={record.status}
                           disabled={!allowEdit}
                           onChange={(e) => onUpdateStatus(record.id, e.target.value)}
-                          className={`px-2.5 py-1.5 rounded-xl text-xs font-black border ${status.badgeClass} bg-white dark:bg-slate-900 focus:outline-none shadow-sm ${
-                            !allowEdit ? 'opacity-85 cursor-default' : 'cursor-pointer'
-                          }`}
+                          className={`px-2.5 py-1.5 rounded-xl text-xs font-black border ${status.badgeClass} bg-white dark:bg-slate-900 focus:outline-none shadow-sm ${!allowEdit ? 'opacity-85 cursor-default' : 'cursor-pointer'
+                            }`}
                         >
                           <option value="COMPLETED" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-normal">
                             وەرگیراوەتەوە (Done)
@@ -1818,7 +1855,7 @@ export default function AdminDashboard({
 
                       {/* Details Box on Mobile */}
                       <div className="grid grid-cols-2 gap-2 p-3 rounded-2xl bg-slate-50/90 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800/80 text-xs">
-                        
+
                         {/* Citizen Name */}
                         <div className="col-span-2 flex items-center justify-between border-b border-slate-200/60 dark:border-slate-800/60 pb-1.5">
                           <span className="text-slate-500 dark:text-slate-400">ناوی هاووڵاتی:</span>
@@ -1880,8 +1917,8 @@ export default function AdminDashboard({
                         <span className="text-xs font-black text-slate-500 dark:text-slate-400">کردارەکانی دۆسیە:</span>
                         <RowActionsDropdown
                           record={record}
-                          isOpen={openRowMenuId === record.id}
-                          onToggle={(id) => setOpenRowMenuId(id)}
+                          isOpen={openRowMenuId === 'mobile-' + record.id}
+                          onToggle={(id) => setOpenRowMenuId(id ? 'mobile-' + id : null)}
                           allowDeliver={allowDeliver}
                           allowEdit={allowEdit}
                           allowDelete={allowDelete}
@@ -1900,7 +1937,7 @@ export default function AdminDashboard({
 
             {/* ── MODERN PAGINATION & FOOTER CONTROLS ── */}
             <div className="p-4 bg-slate-50 dark:bg-slate-950/90 border-t border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-600 dark:text-slate-400">
-              
+
               {/* Info & Page Size */}
               <div className="flex items-center gap-3 flex-wrap">
                 <div>
@@ -1951,11 +1988,10 @@ export default function AdminDashboard({
                     <button
                       key={pageNum}
                       onClick={() => setCurrentPage(pageNum)}
-                      className={`min-w-[34px] h-[34px] rounded-xl font-mono font-bold text-xs transition-all ${
-                        pageNum === validCurrentPage
-                          ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                          : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:border-amber-400'
-                      }`}
+                      className={`min-w-[34px] h-[34px] rounded-xl font-mono font-bold text-xs transition-all ${pageNum === validCurrentPage
+                        ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                        : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:border-amber-400'
+                        }`}
                     >
                       {pageNum}
                     </button>
@@ -2062,7 +2098,7 @@ export default function AdminDashboard({
         records={records}
         selectedIds={selectedIds}
         onMarkNotified={(recordId) => {
-          const nowStr = new Date().toISOString().replace('T', ' ').slice(0, 16);
+          const nowStr = getKurdistanDateTime(false);
           const target = records.find(r => r.id === recordId);
           if (target && onSaveRecord) {
             onSaveRecord({ ...target, notifiedAt: nowStr }, recordId);
@@ -2089,7 +2125,7 @@ export default function AdminDashboard({
       {isBulkEditOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
           <div className="relative w-full max-w-lg rounded-3xl bg-white dark:bg-slate-900 border-2 border-amber-500/50 shadow-2xl p-6 sm:p-8 space-y-5 max-h-[92vh] overflow-y-auto">
-            
+
             {/* Header */}
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <div className="flex items-center gap-2.5">
@@ -2112,7 +2148,7 @@ export default function AdminDashboard({
             </div>
 
             <div className="space-y-4 text-xs">
-              
+
               {/* Status */}
               <div>
                 <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">دۆخی مامەڵە (Status):</label>
@@ -2215,10 +2251,10 @@ export default function AdminDashboard({
                       updates.kycStatus = 'DONE';
                     }
                     if (bulkEditForm.status === 'COMPLETED') {
-                      updates.completionDate = new Date().toISOString().slice(0, 10);
+                      updates.completionDate = getKurdistanDate();
                     }
                     if (bulkEditForm.status === 'DELIVERED') {
-                      updates.deliveredDate = new Date().toISOString().replace('T', ' ').slice(0, 16);
+                      updates.deliveredDate = getKurdistanDateTime(false);
                     }
                   }
                   if (bulkEditForm.fileType) updates.fileType = bulkEditForm.fileType;

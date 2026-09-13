@@ -1,4 +1,5 @@
 import { INITIAL_RECORDS } from '../data/initialData';
+import { getKurdistanDateTime } from './dateUtils';
 
 const STORAGE_KEY = 'electricity_portal_records_v2_real';
 const ADMIN_KEY = 'electricity_portal_admin_session';
@@ -86,7 +87,7 @@ export function resetToDemoRecords() {
 
 export function markAsDelivered(recordId, receiverName = '', customDate = null, isKycDone = true, nationalId = '') {
   const records = getStoredRecords();
-  const now = customDate || new Date().toISOString().slice(0, 10);
+  const now = customDate || getKurdistanDateTime(false);
   
   const updated = records.map(r => {
     if (r.id === recordId) {

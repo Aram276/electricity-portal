@@ -7,7 +7,7 @@
     --bg-primary: #f8fafc;
     --text-primary: #0f172a;
   }
-  
+
   .dark {
     --bg-primary: #080d1a;
     --text-primary: #f8fafc;
@@ -22,10 +22,11 @@
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 
-  .dark body, body.dark-mode {
+  .dark body,
+  body.dark-mode {
     background-color: #080d1a;
     color: #f8fafc;
-    background-image: 
+    background-image:
       radial-gradient(at 50% 0%, rgba(245, 158, 11, 0.15) 0px, transparent 60%),
       radial-gradient(at 100% 0%, rgba(14, 165, 233, 0.08) 0px, transparent 50%),
       radial-gradient(at 0% 100%, rgba(245, 158, 11, 0.06) 0px, transparent 50%);
@@ -33,7 +34,7 @@
   }
 
   body:not(.dark-mode) {
-    background-image: 
+    background-image:
       radial-gradient(at 50% 0%, rgba(245, 158, 11, 0.12) 0px, transparent 65%),
       radial-gradient(at 100% 0%, rgba(14, 165, 233, 0.05) 0px, transparent 50%);
     background-attachment: fixed;
@@ -123,13 +124,16 @@
 .custom-scrollbar::-webkit-scrollbar {
   width: 5px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background: rgba(245, 158, 11, 0.3);
   border-radius: 9999px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(245, 158, 11, 0.7);
 }
@@ -140,6 +144,7 @@
     transform: translateX(100%);
     opacity: 0;
   }
+
   to {
     transform: translateX(0);
     opacity: 1;
@@ -150,6 +155,7 @@
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -170,7 +176,8 @@
     margin: 8mm 8mm 8mm 8mm;
   }
 
-  html, body {
+  html,
+  body {
     margin: 0 !important;
     padding: 0 !important;
     background: #ffffff !important;
@@ -183,18 +190,21 @@
   }
 
   /* Hide app navigation, modals backdrop, footers and control toolbars */
-  nav, footer, .no-print, header {
+  nav,
+  footer,
+  .no-print,
+  header {
     display: none !important;
   }
 
   /* Reset all modal containers so they don't clip the printable content */
-  .fixed, 
-  .inset-0, 
-  .backdrop-blur-md, 
-  .backdrop-blur-sm, 
-  .overflow-y-auto, 
-  .overflow-hidden, 
-  .max-h-\[96vh\], 
+  .fixed,
+  .inset-0,
+  .backdrop-blur-md,
+  .backdrop-blur-sm,
+  .overflow-y-auto,
+  .overflow-hidden,
+  .max-h-\[96vh\],
   .max-h-\[95vh\],
   .max-h-\[92vh\] {
     position: static !important;
@@ -293,4 +303,3 @@
     print-color-adjust: exact !important;
   }
 }
-

@@ -22,9 +22,10 @@ import {
   X
 } from 'lucide-react';
 import { STATUS_CONFIG, KYC_CONFIG, getRecordKYC } from '../constants/status';
+import { getKurdistanDate } from '../utils/dateUtils';
 
 export default function DailyIntake({ records = [], onSaveRecord, onDeleteRecord }) {
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = getKurdistanDate();
   const accountInputRef = useRef(null);
   const [editingItem, setEditingItem] = useState(null); // { id, fields... }
   const [successAlert, setSuccessAlert] = useState(null);

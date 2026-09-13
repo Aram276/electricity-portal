@@ -16,6 +16,7 @@ import {
   Tag
 } from 'lucide-react';
 import { STATUS_CONFIG, FILE_TYPES } from '../constants/status';
+import { getKurdistanDate, getKurdistanTime12 } from '../utils/dateUtils';
 
 export default function FileTimelineModal({ isOpen, onClose, record, onAddTimelineNote, activeStaff }) {
   const [newNote, setNewNote] = useState('');
@@ -97,7 +98,7 @@ export default function FileTimelineModal({ isOpen, onClose, record, onAddTimeli
         type: item.type || 'NOTE',
         icon: Clock,
         color: 'purple',
-        date: item.date || new Date().toISOString().slice(0, 10),
+        date: item.date || getKurdistanDate(),
         time: item.time || '',
         staff: item.staff || 'فەرمانبەر',
         description: item.description || item.text || ''
@@ -113,8 +114,8 @@ export default function FileTimelineModal({ isOpen, onClose, record, onAddTimeli
         title: 'تێبینی فەرمی لەلایەن فەرمانبەر',
         description: newNote.trim(),
         staff: activeStaff?.name || 'فەرمانبەری ژووری ١٩',
-        date: new Date().toISOString().slice(0, 10),
-        time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+        date: getKurdistanDate(),
+        time: getKurdistanTime12(false)
       });
     }
     setNewNote('');
