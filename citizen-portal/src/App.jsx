@@ -47,22 +47,30 @@ export default function App() {
     }
   }, [isDarkMode]);
 
-  const toggleTheme = () => {
-    setIsDarkMode(prev => !prev);
+  const [language, setLanguage] = useState(() => {
+    return localStorage.getItem('electricity_portal_lang') || 'ku';
+  });
+
+  const handleLanguageChange = (newLang) => {
+    setLanguage(newLang);
+    localStorage.setItem('electricity_portal_lang', newLang);
   };
 
   return (
-    <div className="min-h-screen flex flex-col font-kurdish antialiased bg-slate-50 dark:bg-[#080d1a] text-slate-900 dark:text-slate-100 transition-colors duration-300">
+    <div className="min-h-screen flex flex-col font-kurdish antialiased bg-slate-50 dark:bg-[#080d1a] text-slate-900 dark:text-slate-100 transition-colors duration-300" dir="rtl">
       {/* Navigation - Clean Citizen View */}
       <Navbar
         isDarkMode={isDarkMode}
         onToggleTheme={toggleTheme}
+        language={language}
+        onLanguageChange={handleLanguageChange}
       />
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
         <CitizenSearch
           records={records}
+          language={language}
           onOpenPrintModal={(record) => {
             window.print();
           }}
@@ -70,7 +78,7 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <Footer />
+      <Footer language={language} />
     </div>
   );
 }

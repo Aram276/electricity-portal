@@ -674,8 +674,17 @@ export default function App() {
     }
   };
 
+  const [language, setLanguage] = useState(() => {
+    return localStorage.getItem('electricity_portal_lang') || 'ku';
+  });
+
+  const handleLanguageChange = (newLang) => {
+    setLanguage(newLang);
+    localStorage.setItem('electricity_portal_lang', newLang);
+  };
+
   return (
-    <div className="min-h-screen flex flex-col font-kurdish antialiased bg-slate-50 dark:bg-[#080d1a] text-slate-900 dark:text-slate-100 transition-colors duration-300 overflow-x-hidden w-full max-w-[100vw]">
+    <div className="min-h-screen flex flex-col font-kurdish antialiased bg-slate-50 dark:bg-[#080d1a] text-slate-900 dark:text-slate-100 transition-colors duration-300 overflow-x-hidden w-full max-w-[100vw]" dir="rtl">
       
       {/* Toast Notification */}
       {toast && (
@@ -704,6 +713,8 @@ export default function App() {
         onToggleTheme={toggleTheme}
         onToggleSidebar={() => setIsSidebarOpen(prev => !prev)}
         isSidebarOpen={isSidebarOpen}
+        language={language}
+        onLanguageChange={handleLanguageChange}
       />
 
       {/* Main Content Area */}
@@ -711,6 +722,7 @@ export default function App() {
         {currentView === 'citizen' ? (
           <CitizenSearch
             records={records}
+            language={language}
             onOpenPrintModal={(rec) => setPrintModalRecord(rec)}
           />
         ) : !isAdmin ? (
@@ -752,7 +764,7 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <Footer />
+      <Footer language={language} />
 
       {/* Admin Login Modal */}
       <AdminLoginModal

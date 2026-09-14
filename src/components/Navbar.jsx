@@ -1,13 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, LogOut, Sun, Moon, Download, Smartphone, Monitor, X, Check, Menu, FileText, Cloud, Clock } from 'lucide-react';
+import { Lock, LogOut, Sun, Moon, Download, Smartphone, Monitor, X, Check, Menu, FileText, Cloud, Clock, Languages } from 'lucide-react';
 import RoonakiLogo from './RoonakiLogo';
 import { getKurdistanTime12, getKurdistanDate } from '../utils/dateUtils';
+import { getTranslation } from '../utils/translations';
 
-export default function Navbar({ currentView, setCurrentView, isAdmin, isAdminPath, activeStaff, onOpenAdminLogin, onAdminLogout, isDarkMode, onToggleTheme, onToggleSidebar, isSidebarOpen }) {
+export default function Navbar({ 
+  currentView, 
+  setCurrentView, 
+  isAdmin, 
+  isAdminPath, 
+  activeStaff, 
+  onOpenAdminLogin, 
+  onAdminLogout, 
+  isDarkMode, 
+  onToggleTheme, 
+  onToggleSidebar, 
+  isSidebarOpen,
+  language = 'ku',
+  onLanguageChange
+}) {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallGuide, setShowInstallGuide] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
   const [logoClicks, setLogoClicks] = useState(0);
+
+  const t = getTranslation(language);
 
   // Live Kurdistan Time state
   const [liveTime, setLiveTime] = useState(() => getKurdistanTime12(true));
@@ -54,6 +71,13 @@ export default function Navbar({ currentView, setCurrentView, isAdmin, isAdminPa
     }
   };
 
+  const toggleLanguage = () => {
+    const nextLang = language === 'ku' ? 'ar' : 'ku';
+    if (onLanguageChange) {
+      onLanguageChange(nextLang);
+    }
+  };
+
   return (
     <>
       <header className="relative z-40 w-full border-b border-amber-500/20 bg-white/95 dark:bg-[#070b16]/95 backdrop-blur-xl transition-colors duration-300 shadow-sm">
@@ -81,10 +105,10 @@ export default function Navbar({ currentView, setCurrentView, isAdmin, isAdminPa
                 />
                 <div className="flex flex-col text-right">
                   <span className="text-xs sm:text-sm font-black text-amber-600 dark:text-amber-400 leading-tight">
-                    پڕۆژەی ڕووناکی
+                    {t.projectTitle}
                   </span>
                   <span className="text-[9px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-bold">
-                    فرۆشیاری وزە ٢
+                    {t.subTitle}
                   </span>
                 </div>
               </div>
@@ -93,9 +117,21 @@ export default function Navbar({ currentView, setCurrentView, isAdmin, isAdminPa
             {/* Left Side (دەستەچەپ): Essential Controls & Live Kurdistan Clock */}
             <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
               
+              {/* Language Switcher Button (Citizen view) */}
+              {currentView !== 'admin' && (
+                <button
+                  onClick={toggleLanguage}
+                  title={language === 'ku' ? 'گۆڕین بۆ زمانی عەرەبی (التبديل إلى العربية)' : 'التبديل إلى الكوردية (گۆڕین بۆ زمانی کوردی)'}
+                  className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 dark:bg-slate-900/90 dark:hover:bg-slate-800 border border-amber-500/30 text-amber-900 dark:text-amber-300 text-xs font-black transition-all shadow-xs active:scale-95 select-none"
+                >
+                  <Languages className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                  <span>{language === 'ku' ? '🇮🇶 العربية' : '☀️ کوردی'}</span>
+                </button>
+              )}
+
               {/* Live Kurdistan Digital Clock & Date */}
               <div 
-                title="کاتی فەرمیی کوردستان (هەولێر - UTC+3)"
+                title={t.officialTime}
                 className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 dark:bg-slate-900/90 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs font-mono font-bold shadow-xs select-none"
               >
                 <Clock className="w-3.5 h-3.5 text-amber-500 animate-pulse shrink-0" />
@@ -107,7 +143,7 @@ export default function Navbar({ currentView, setCurrentView, isAdmin, isAdminPa
               {/* Theme Toggle Button (Light/Dark) */}
               <button
                 onClick={onToggleTheme}
-                title={isDarkMode ? 'گۆڕین بۆ لایت مۆد' : 'گۆڕین بۆ دارک مۆد'}
+                title={isDarkMode ? t.lightMode : t.darkMode}
                 className="p-2 sm:p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900/90 dark:hover:bg-slate-800 border border-slate-200 dark:border-amber-500/30 text-amber-600 dark:text-amber-400 transition-all shadow-sm shrink-0"
               >
                 {isDarkMode ? (
