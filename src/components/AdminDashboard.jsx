@@ -35,7 +35,8 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Menu,
-  MoreVertical
+  MoreVertical,
+  Star
 } from 'lucide-react';
 import { STATUS_CONFIG, FILE_TYPES, KYC_CONFIG, getRecordKYC } from '../constants/status';
 import { exportToExcel } from '../utils/excelHelper';
@@ -45,6 +46,7 @@ import DailyIntake from './DailyIntake';
 import SettingsTab from './SettingsTab';
 import AnalyticsTab from './AnalyticsTab';
 import ActivityLogTab from './ActivityLogTab';
+import SpecialFilesTab from './SpecialFilesTab';
 import FastCheckoutModal from './FastCheckoutModal';
 import BulkWhatsAppModal from './BulkWhatsAppModal';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
@@ -107,7 +109,8 @@ function RowActionsDropdown({
   onOpenEditModal,
   onOpenPrintModal,
   onSetTimelineRecord,
-  onSetDeleteTarget
+  onSetDeleteTarget,
+  onToggleSpecial
 }) {
   const buttonRef = useRef(null);
   const menuRef = useRef(null);
@@ -123,7 +126,7 @@ function RowActionsDropdown({
     }
 
     const menuWidth = 240;
-    const menuHeight = 240;
+    const menuHeight = 280;
     const padding = 12;
 
     const spaceBelow = window.innerHeight - rect.bottom;
@@ -244,6 +247,21 @@ function RowActionsDropdown({
                 <span>دەستکاریکردنی فایل ✏️</span>
               </button>
             )}
+
+            {/* VIP Special File Toggle */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onToggle(null);
+                if (onToggleSpecial) onToggleSpecial(record.id);
+              }}
+              className="w-full px-3 py-2 text-right text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 flex items-center gap-2.5 transition-colors cursor-pointer font-bold"
+            >
+              <Star className={`w-4 h-4 shrink-0 pointer-events-none ${record.isSpecial ? 'fill-amber-400 text-amber-400' : 'text-amber-500'}`} />
+              <span>{record.isSpecial ? 'لابردن لە دۆسیە تایبەتەکان ✖' : 'دانان وەک دۆسیەی تایبەت ⭐'}</span>
+            </button>
           </div>
 
           <div className="py-1">
@@ -388,6 +406,40 @@ export default function AdminDashboard({
     }
   };
 
+  // Toggle Special / VIP File Status
+  const handleToggleSpecial = (recordId, noteText = null) => {
+    const target = records.find(r => r.id === recordId);
+    if (!target) return;
+    const newSpecialState = !target.isSpecial;
+    const nowTime = getKurdistanDateTime(false);
+    const updates = {
+      isSpecial: newSpecialState,
+      specialDate: newSpecialState ? (target.specialDate || nowTime) : null,
+      specialNote: noteText !== null ? noteText : (target.specialNote || '')
+    };
+    if (onSaveRecord) {
+      onSaveRecord({ ...target, ...updates }, recordId);
+    }
+    logActivity('UPDATE', `گۆڕینی دۆخی دۆسیەی تایبەت بۆ ${newSpecialState ? 'تایبەت (VIP)' : 'ئاسایی'}: فایلی #${target.fileNumber}`);
+  };
+
+  // Batch Toggle Special / VIP Status
+  const handleBatchSetSpecial = (ids, isSpecial) => {
+    if (!ids || ids.length === 0) return;
+    const nowTime = getKurdistanDateTime(false);
+    ids.forEach(id => {
+      const target = records.find(r => r.id === id);
+      if (target && onSaveRecord) {
+        onSaveRecord({
+          ...target,
+          isSpecial: isSpecial,
+          specialDate: isSpecial ? (target.specialDate || nowTime) : null
+        }, id);
+      }
+    });
+    logActivity('UPDATE', `${isSpecial ? 'زیادکردنی' : 'لابردنی'} ${ids.length} فایل بۆ دۆسیە تایبەتەکان`);
+  };
+
   // Add audit note to file timeline
   const handleTimelineNote = (recordId, noteObj) => {
     const target = records.find(r => r.id === recordId);
@@ -425,10 +477,12 @@ export default function AdminDashboard({
     let kycDoneByUs = 0;
     let kycPreVerified = 0;
     let kycPending = 0;
+    let specialCount = 0;
 
     for (let i = 0; i < total; i++) {
       const r = safeRecords[i];
       if (!r) continue;
+      if (r.isSpecial) specialCount++;
       if (r.status === 'COMPLETED') completed++;
       else if (r.status === 'IN_PROGRESS') inProgress++;
       else if (r.status === 'DELIVERED') delivered++;
@@ -482,7 +536,8 @@ export default function AdminDashboard({
       kycDoneByUs,
       kycPreVerified,
       kycPending,
-      kycDone: kycDoneByUs + kycPreVerified
+      kycDone: kycDoneByUs + kycPreVerified,
+      specialCount
     };
   }, [records]);
 
@@ -533,6 +588,7 @@ export default function AdminDashboard({
         );
         const kycVal = getRecordKYC(record);
 
+        if (dataFilter === 'SPECIAL_ONLY' && !record.isSpecial) return false;
         if (dataFilter === 'YELLOW_FOLDER' && record.fileType !== 'YELLOW_FOLDER') return false;
         if (dataFilter === 'PAPER' && record.fileType === 'YELLOW_FOLDER') return false;
 
@@ -709,6 +765,7 @@ export default function AdminDashboard({
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             <span>
               {activeTab === 'records' && 'گشت فایلەکان (خشتە)'}
+              {activeTab === 'special' && '⭐ دۆسیە تایبەتەکان (VIP)'}
               {activeTab === 'daily' && 'داخڵکردنی خێرا (ڕۆژانە)'}
               {activeTab === 'analytics' && 'ئامار و شیکاری'}
               {activeTab === 'activity' && 'تۆماری چالاکی'}
@@ -789,6 +846,34 @@ export default function AdminDashboard({
                   <span className={`px-2 py-0.5 rounded-full text-xs font-mono font-black ${activeTab === 'records' ? 'bg-slate-950 text-amber-400' : 'bg-amber-500/15 text-amber-800 dark:text-amber-400'
                     }`}>
                     {records.length}
+                  </span>
+                </button>
+
+                {/* Special Files (VIP) Tab Button */}
+                <button
+                  type="button"
+                  onClick={() => { setActiveTab('special'); setIsSidebarOpen(false); }}
+                  className={`w-full flex items-center justify-between p-3 rounded-2xl text-xs sm:text-sm font-black transition-all ${activeTab === 'special'
+                    ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 shadow-lg shadow-amber-500/30 ring-2 ring-amber-400/70'
+                    : 'text-amber-800 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40 border border-amber-300/40 dark:border-amber-500/20'
+                    }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-xl ${activeTab === 'special' ? 'bg-slate-950 text-amber-400' : 'bg-amber-500/20 text-amber-600 dark:text-amber-400'}`}>
+                      <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                    </div>
+                    <div className="text-right">
+                      <div className="flex items-center gap-1.5">
+                        <span>دۆسیە تایبەتەکان (VIP)</span>
+                        <span className="text-[10px] bg-amber-500/30 text-amber-950 dark:text-amber-200 px-1.5 py-0.5 rounded font-black">تایبەت ⭐</span>
+                      </div>
+                      <div className={`text-[10px] font-normal ${activeTab === 'special' ? 'text-slate-900' : 'text-slate-400'}`}>
+                        فایلە گرنگ و جیاکراوەکان
+                      </div>
+                    </div>
+                  </div>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-mono font-black ${activeTab === 'special' ? 'bg-slate-950 text-amber-400' : 'bg-amber-500/20 text-amber-900 dark:text-amber-300'}`}>
+                    {stats.specialCount}
                   </span>
                 </button>
 
@@ -1110,7 +1195,7 @@ export default function AdminDashboard({
           </div>
 
           {/* KPI Stats Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 sm:gap-3.5">
+          <div className="grid grid-cols-2 sm:grid-cols-6 gap-2.5 sm:gap-3.5">
             <div
               onClick={() => { setStatusFilter('ALL'); setDataFilter('ALL'); }}
               className={`p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border transition-all cursor-pointer ${statusFilter === 'ALL' && dataFilter === 'ALL' ? 'bg-amber-50 dark:bg-slate-800/90 border-amber-500 shadow-md' : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 hover:border-amber-400'
@@ -1121,6 +1206,18 @@ export default function AdminDashboard({
                 <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 dark:text-amber-400" />
               </div>
               <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono">{stats.total}</div>
+            </div>
+
+            <div
+              onClick={() => setActiveTab('special')}
+              className={`p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border transition-all cursor-pointer ${activeTab === 'special' ? 'bg-amber-500/20 border-amber-500 shadow-md ring-2 ring-amber-500/30' : 'bg-white dark:bg-slate-900/60 border-amber-300/40 dark:border-amber-500/20 hover:border-amber-400'
+                }`}
+            >
+              <div className="flex items-center justify-between text-amber-900 dark:text-amber-300 mb-1.5">
+                <span className="text-[11px] sm:text-xs font-bold">تایبەت (VIP) ⭐</span>
+                <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-amber-400 text-amber-400" />
+              </div>
+              <div className="text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400 font-mono">{stats.specialCount}</div>
             </div>
 
             <div
@@ -1161,7 +1258,7 @@ export default function AdminDashboard({
 
             <div
               onClick={() => setStatusFilter(prev => prev === 'IN_PROGRESS' ? 'ALL' : 'IN_PROGRESS')}
-              className={`p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border transition-all cursor-pointer col-span-2 sm:col-span-1 ${statusFilter === 'IN_PROGRESS' ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-500 shadow-md ring-2 ring-amber-500/30' : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 hover:border-amber-500'
+              className={`p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border transition-all cursor-pointer ${statusFilter === 'IN_PROGRESS' ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-500 shadow-md ring-2 ring-amber-500/30' : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 hover:border-amber-500'
                 }`}
             >
               <div className="flex items-center justify-between text-amber-700 dark:text-amber-400 mb-1.5">
@@ -1222,6 +1319,7 @@ export default function AdminDashboard({
                     }`}
                 >
                   <option value="ALL">🔍 فلتەری زانیارییەکان (گشت داتاکان)</option>
+                  <option value="SPECIAL_ONLY">⭐ تەنها دۆسیە تایبەتەکان - VIP ({stats.specialCount})</option>
                   <option value="KYC_DONE_BY_US">🟢 تەنها ئەوانەی ئێمە کردمان ({stats.kycDoneByUs})</option>
                   <option value="KYC_PRE_VERIFIED">🔵 تەنها ئەوانەی پێشتر کراون - دەرەکی ({stats.kycPreVerified})</option>
                   <option value="KYC_PENDING">🟡 تەنها ئەوانەی نەکراون - پێنەدراوەتەوە ({stats.kycPending})</option>
@@ -1258,6 +1356,7 @@ export default function AdminDashboard({
                 {dataFilter !== 'ALL' && (
                   <span className="px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30 font-bold flex items-center gap-1">
                     <span>فلتەر: {
+                      dataFilter === 'SPECIAL_ONLY' ? '⭐ دۆسیە تایبەتەکان' :
                       dataFilter === 'KYC_DONE_BY_US' ? '🟢 ئێمە کردمان' :
                         dataFilter === 'KYC_PRE_VERIFIED' ? '🔵 پێشتر کراوە (دەرەکی)' :
                           dataFilter === 'KYC_PENDING' ? '🟡 نەکراوە (پێنەدراوەتەوە)' :
@@ -1336,6 +1435,18 @@ export default function AdminDashboard({
                   >
                     <FileText className="w-3.5 h-3.5" />
                     <span>ئەوراق 📄</span>
+                  </button>
+                )}
+
+                {/* Bulk Toggle Special */}
+                {allowEdit && (
+                  <button
+                    onClick={() => handleBatchSetSpecial(selectedIds, true)}
+                    className="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black transition-all shadow-sm active:scale-95 flex items-center gap-1.5"
+                    title="دانانی هەڵبژێردراوەکان وەک دۆسیەی تایبەت"
+                  >
+                    <Star className="w-3.5 h-3.5 fill-current" />
+                    <span>کردن بە تایبەت ⭐</span>
                   </button>
                 )}
 
@@ -1462,6 +1573,9 @@ export default function AdminDashboard({
               <table className="w-full text-right text-xs border-collapse">
                 <thead className="bg-slate-100 dark:bg-slate-950/90 text-slate-700 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-800 text-xs">
                   <tr>
+                    {/* Star VIP Header */}
+                    <th className="p-2 text-center w-8">⭐</th>
+
                     {/* Select All Checkbox Header */}
                     <th className="p-2 text-center w-8">
                       <button
@@ -1504,7 +1618,7 @@ export default function AdminDashboard({
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-slate-800 dark:text-slate-200">
                   {paginatedRecords.length === 0 ? (
                     <tr>
-                      <td colSpan="11" className="p-12 text-center text-slate-400">
+                      <td colSpan="12" className="p-12 text-center text-slate-400">
                         <AlertCircle className="w-8 h-8 mx-auto mb-2 text-slate-400" />
                         <span>هیچ تۆمارێک بەم فلتەرانە نەدۆزرایەوە</span>
                       </td>
@@ -1529,6 +1643,22 @@ export default function AdminDashboard({
                             }`}
                         >
 
+                          {/* Star VIP Toggle */}
+                          <td className="p-2 text-center">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleSpecial(record.id)}
+                              title={record.isSpecial ? "لابردن لە دۆسیە تایبەتەکان" : "دانان وەک دۆسیەی تایبەت ⭐"}
+                              className="p-1 rounded-lg transition-transform active:scale-75 hover:bg-amber-500/10 cursor-pointer"
+                            >
+                              <Star className={`w-4 h-4 transition-all ${
+                                record.isSpecial
+                                  ? 'fill-amber-400 text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]'
+                                  : 'text-slate-300 dark:text-slate-600 hover:text-amber-400'
+                              }`} />
+                            </button>
+                          </td>
+
                           {/* Row Checkbox */}
                           <td className="p-2 text-center">
                             <button
@@ -1546,9 +1676,14 @@ export default function AdminDashboard({
 
                           {/* number file */}
                           <td className="p-2 text-center">
-                            <span className="font-mono font-black text-amber-700 dark:text-amber-300 text-xs px-1.5 py-0.5 bg-amber-100/70 dark:bg-amber-500/10 rounded border border-amber-300 dark:border-amber-500/30">
-                              {record.fileNumber}
-                            </span>
+                            <div className="inline-flex items-center gap-1">
+                              <span className="font-mono font-black text-amber-700 dark:text-amber-300 text-xs px-1.5 py-0.5 bg-amber-100/70 dark:bg-amber-500/10 rounded border border-amber-300 dark:border-amber-500/30">
+                                {record.fileNumber}
+                              </span>
+                              {record.isSpecial && (
+                                <span className="text-[10px] text-amber-500 font-bold" title="دۆسیەی تایبەت ⭐">⭐</span>
+                              )}
+                            </div>
                           </td>
 
                           {/* File Type Button Toggle (Yellow Folder vs Paper) */}
@@ -1677,7 +1812,7 @@ export default function AdminDashboard({
                           <td className="p-2 text-center text-xs">
                             {record.deliveredDate ? (
                               <span className="text-blue-700 dark:text-blue-400 font-bold font-mono text-[11px] px-1.5 py-0.5 bg-blue-50 dark:bg-blue-950/40 rounded border border-blue-200 dark:border-blue-500/30">
-                                {formatKurdistanDateTime(record.deliveredDate)}
+                                {record.deliveredDate}
                               </span>
                             ) : (
                               <span className="text-slate-400 text-xs">-</span>
@@ -1713,6 +1848,7 @@ export default function AdminDashboard({
                               onOpenPrintModal={onOpenPrintModal}
                               onSetTimelineRecord={(rec) => setTimelineRecord(rec)}
                               onSetDeleteTarget={(target) => setDeleteTarget(target)}
+                              onToggleSpecial={handleToggleSpecial}
                             />
                           </td>
                         </tr>
@@ -1755,9 +1891,23 @@ export default function AdminDashboard({
                         : (isYellowFolder ? 'bg-amber-50/30 dark:bg-amber-500/5' : 'hover:bg-slate-50 dark:hover:bg-slate-800/40')
                         }`}
                     >
-                      {/* Mobile Top Row: Checkbox + File # + File Type Toggle + KYC Toggle + Status Dropdown */}
+                      {/* Mobile Top Row: Star + Checkbox + File # + File Type Toggle + KYC Toggle + Status Dropdown */}
                       <div className="flex items-center justify-between gap-2 flex-wrap">
-                        <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {/* Star button */}
+                          <button
+                            type="button"
+                            onClick={() => handleToggleSpecial(record.id)}
+                            title={record.isSpecial ? "لابردن لە دۆسیە تایبەتەکان" : "دانان وەک دۆسیەی تایبەت ⭐"}
+                            className="p-1 rounded-lg transition-transform active:scale-75 hover:bg-amber-500/10 cursor-pointer"
+                          >
+                            <Star className={`w-5 h-5 transition-all ${
+                              record.isSpecial
+                                ? 'fill-amber-400 text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]'
+                                : 'text-slate-300 dark:text-slate-600 hover:text-amber-400'
+                            }`} />
+                          </button>
+
                           <button
                             type="button"
                             onClick={() => handleToggleSelectOne(record.id)}
@@ -1775,6 +1925,9 @@ export default function AdminDashboard({
                             <span className="font-mono font-black text-amber-700 dark:text-amber-300 text-base px-2.5 py-0.5 bg-amber-100/80 dark:bg-amber-500/15 rounded-xl border border-amber-300 dark:border-amber-500/30 shadow-sm">
                               {record.fileNumber}
                             </span>
+                            {record.isSpecial && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-950 dark:text-amber-300 font-bold border border-amber-500/30">VIP ⭐</span>
+                            )}
                           </div>
 
                           {/* File Type Button on Mobile */}
@@ -1898,7 +2051,7 @@ export default function AdminDashboard({
                         {(record.deliveredDate || record.receiverName || record.deliveredBy || record.handledBy) && (
                           <div className="col-span-2 flex items-center justify-between pt-1.5 border-t border-slate-200/60 dark:border-slate-800/60 text-[11px] flex-wrap gap-1">
                             {record.deliveredDate && (
-                              <span className="text-blue-700 dark:text-blue-400 font-mono">بەروار: {formatKurdistanDateTime(record.deliveredDate)}</span>
+                              <span className="text-blue-700 dark:text-blue-400 font-mono">بەروار: {record.deliveredDate}</span>
                             )}
                             {record.receiverName && (
                               <span className="font-bold text-slate-800 dark:text-slate-200">وەرگرەوە: {record.receiverName}</span>
@@ -1927,6 +2080,7 @@ export default function AdminDashboard({
                           onOpenPrintModal={onOpenPrintModal}
                           onSetTimelineRecord={(rec) => setTimelineRecord(rec)}
                           onSetDeleteTarget={(target) => setDeleteTarget(target)}
+                          onToggleSpecial={handleToggleSpecial}
                         />
                       </div>
                     </div>
@@ -2023,6 +2177,20 @@ export default function AdminDashboard({
           </div>
 
         </div>
+      )}
+
+      {/* View 2.5: Special Files (VIP) Dedicated Section */}
+      {activeTab === 'special' && (
+        <SpecialFilesTab
+          records={records}
+          activeStaff={activeStaff}
+          onToggleSpecial={handleToggleSpecial}
+          onUpdateStatus={handleStatusChangeWithStaff || onUpdateStatus}
+          onSaveRecord={onSaveRecord}
+          onOpenEditModal={onOpenEditModal}
+          onOpenDeliveryModal={onOpenDeliveryModal}
+          onOpenPrintModal={onOpenPrintModal}
+        />
       )}
 
       {/* View 3: Analytics & Reports */}

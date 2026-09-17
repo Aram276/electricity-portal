@@ -19,7 +19,8 @@ import {
   Shield,
   ShieldAlert,
   AlertTriangle,
-  X
+  X,
+  Star
 } from 'lucide-react';
 import { STATUS_CONFIG, KYC_CONFIG, getRecordKYC } from '../constants/status';
 import { getKurdistanDate } from '../utils/dateUtils';
@@ -48,7 +49,9 @@ export default function DailyIntake({ records = [], onSaveRecord, onDeleteRecord
     receiverName: '',
     notes: '',
     kycStatus: 'PENDING', // 'DONE_BY_US' | 'PRE_VERIFIED' | 'PENDING'
-    isKycDone: false
+    isKycDone: false,
+    isSpecial: false,
+    specialNote: ''
   });
 
   // Sync initial fileNumber when records first load
@@ -92,13 +95,15 @@ export default function DailyIntake({ records = [], onSaveRecord, onDeleteRecord
       phoneNumber: (dup.phoneNumber && dup.phoneNumber !== 'نیە') ? dup.phoneNumber : prev.phoneNumber,
       accountNumber: (dup.accountNumber && dup.accountNumber !== 'نیە') ? dup.accountNumber : prev.accountNumber,
       kycStatus: prevKyc,
-      isKycDone: prevKyc === 'DONE_BY_US' || prevKyc === 'PRE_VERIFIED'
+      isKycDone: prevKyc === 'DONE_BY_US' || prevKyc === 'PRE_VERIFIED',
+      isSpecial: Boolean(dup.isSpecial),
+      specialNote: dup.specialNote || ''
     }));
   };
 
   // List of records entered today
   const todayList = useMemo(() => {
-    const localDateStr = getKurdistanDate(); // YYYY-MM-DD
+    const localDateStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
     return (records || []).filter(r => {
       return r.submissionDate === todayStr || 
              r.submissionDate === localDateStr || 
@@ -158,7 +163,10 @@ export default function DailyIntake({ records = [], onSaveRecord, onDeleteRecord
       notes: formData.notes || '',
       kycStatus: formData.kycStatus || 'PENDING',
       kycType: formData.kycStatus || 'PENDING',
-      isKycDone: isKyc
+      isKycDone: isKyc,
+      isSpecial: Boolean(formData.isSpecial),
+      specialDate: formData.isSpecial ? todayStr : null,
+      specialNote: formData.specialNote || ''
     };
 
     if (onSaveRecord) {
@@ -166,7 +174,7 @@ export default function DailyIntake({ records = [], onSaveRecord, onDeleteRecord
     }
 
     // Trigger instant success banner
-    setSuccessAlert(`فایلی ژمارە (${cleanFileNum}) بە ناوی [${hasRealName ? cleanName : 'هاوبەشی کارەبا'}] بە سەرکەوتوویی تۆمار کرا! ✅`);
+    setSuccessAlert(`فایلی ژمارە (${cleanFileNum}) بە ناوی [${hasRealName ? cleanName : 'هاوبەشی کارەبا'}] ${formData.isSpecial ? '⭐ وەک دۆسیەی تایبەت' : ''} بە سەرکەوتوویی تۆمار کرا! ✅`);
     setTimeout(() => setSuccessAlert(null), 3500);
 
     // Calculate next file number for next entry
@@ -184,7 +192,9 @@ export default function DailyIntake({ records = [], onSaveRecord, onDeleteRecord
       receiverName: '',
       notes: '',
       kycStatus: 'PENDING',
-      isKycDone: false
+      isKycDone: false,
+      isSpecial: false,
+      specialNote: ''
     });
 
     if (accountInputRef.current) {
@@ -470,6 +480,30 @@ export default function DailyIntake({ records = [], onSaveRecord, onDeleteRecord
                   🟡 نەکراوە
                 </button>
               </div>
+            </div>
+
+            {/* Special / VIP File Toggle */}
+            <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className={`p-2 rounded-xl ${formData.isSpecial ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/30' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'}`}>
+                  <Star className="w-4 h-4 fill-current" />
+                </div>
+                <div>
+                  <div className="text-xs font-black text-slate-900 dark:text-white">دانان وەک دۆسیەی تایبەت (VIP / گرنگ) ⭐</div>
+                  <div className="text-[10px] text-slate-500 dark:text-slate-400">ئەم فایلە بە جیا لە بەشی «دۆسیە تایبەتەکان» پیشان دەدرێت</div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFormData(prev => ({ ...prev, isSpecial: !prev.isSpecial }))}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                  formData.isSpecial
+                    ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/30 ring-2 ring-amber-500/40'
+                    : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-700'
+                }`}
+              >
+                {formData.isSpecial ? 'تایبەتە ⭐' : 'ئاسایی'}
+              </button>
             </div>
 
             {/* Note below fields */}

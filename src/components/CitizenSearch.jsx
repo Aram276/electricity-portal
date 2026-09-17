@@ -59,6 +59,34 @@ function normalizeKurdishFuzzy(str) {
     .trim();
 }
 
+function getSpecialCategoryLabel(categoryKey, isAr) {
+  switch (categoryKey) {
+    case 'METER_REQUEST':
+      return isAr ? '🔌 طلب مقياس جديد (پێوەر داواکردن)' : '🔌 پێوەر داواکردن (داواکاری نوێ)';
+    case 'METER_REPAIR':
+      return isAr ? '🛠️ تصليح وصيانة المقياس (پێوەر چاککردنەوە)' : '🛠️ پێوەر چاککردنەوە / چاکسازی';
+    case 'INSPECTION':
+      return isAr ? '🔍 كشف وتدقيق موقعي (کەشف)' : '🔍 کەشف / پشکنینی شوێن و پێوەر';
+    case 'METER_TRANSFER':
+      return isAr ? '🔄 نقل المقياس وتحويل الموقع' : '🔄 گواستنەوەی پێوەر / جێگۆڕکێ';
+    case 'NAME_CHANGE':
+      return isAr ? '📝 تغيير وتنازل اسم المشترك' : '📝 گۆڕینی ناوی هاوبەش';
+    case 'VIP':
+      return isAr ? '👑 أولوية خاصة (VIP)' : '👑 دۆسیەی تایبەت (VIP)';
+    case 'DIRECTOR':
+      return isAr ? '🏛️ أمر وتوجيه المدير' : '🏛️ فەرمانی بەڕێوەبەر';
+    case 'URGENT':
+      return isAr ? '⚡ عاجل جداً وفوري' : '⚡ زۆر بەپەلە';
+    case 'COURT':
+      return isAr ? '⚖️ القضاء والشؤون القانونية' : '⚖️ دادگا و یاسایی';
+    case 'METER_ISSUE':
+      return isAr ? '📟 فحص العداد والمنظومة' : '📟 کێشەی پێوەر و ڕووناکی';
+    case 'OTHER':
+    default:
+      return isAr ? '⭐ معاملة ذات متابعة خاصة' : '⭐ دۆسیەی تایبەت و بەدواداچوون';
+  }
+}
+
 export default function CitizenSearch({ records, onOpenPrintModal, language = 'ku' }) {
   const [query, setQuery] = useState('');
   const [searchMode, setSearchMode] = useState('ALL'); // 'ALL' | 'NAME' | 'FILE' | 'PHONE' | 'ID' | 'MISSING_PHONE' | 'MISSING_ID' | 'MISSING_ANY'
@@ -638,13 +666,20 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
                             {isAr ? `الحالة: ${status.shortLabel}` : `دۆخی ئێستا: ${status.shortLabel}`}
                           </span>
                           
+                          {/* Special File VIP Badge */}
+                          {result.isSpecial && (
+                            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-black bg-gradient-to-r from-amber-500/25 to-yellow-500/25 text-amber-900 dark:text-amber-200 border-2 border-amber-500/50 shadow-sm animate-pulse">
+                              <span>{getSpecialCategoryLabel(result.specialCategory, isAr)}</span>
+                            </span>
+                          )}
+
                           {/* File Type Badge (Yellow Folder vs Papers) */}
                           <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-black border shadow-sm ${
-                            result.fileType === 'YELLOW_FOLDER'
+                            (result.isFolder === true || result.fileType === 'YELLOW_FOLDER')
                               ? 'bg-amber-200/80 dark:bg-amber-500/25 text-amber-950 dark:text-amber-200 border-amber-400 dark:border-amber-500/50'
                               : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-700'
                           }`}>
-                            <span>{result.fileType === 'YELLOW_FOLDER' ? (isAr ? '📁 فايل أصفر' : '📁 فایلی زەرد') : (isAr ? '📄 أوراق ومستندات' : '📄 ئەوراق')}</span>
+                            <span>{(result.isFolder === true || result.fileType === 'YELLOW_FOLDER') ? (isAr ? '📁 فايل أصفر' : '📁 فایلی زەرد') : (isAr ? '📄 أوراق ومستندات' : '📄 ئەوراق')}</span>
                           </span>
 
                           {/* KYC Badge in Citizen Search */}
@@ -798,7 +833,7 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
                       <span>{isAr ? 'نوع الإضبارة والأرشيف' : 'جۆری دۆسیە (شێوازی پاراستن)'}</span>
                     </div>
                     <div>
-                      {result.fileType === 'YELLOW_FOLDER' ? (
+                      {(result.isFolder === true || result.fileType === 'YELLOW_FOLDER') ? (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-100 dark:bg-amber-500/20 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-500/40 text-xs font-black">
                           📁 {isAr ? 'فايل أصفر رسمي' : 'فایلی زەرد (دۆسیەی زەرد)'}
                         </span>
@@ -821,10 +856,15 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
                     </div>
                   )}
 
-                  {result.notes && (
-                    <div className="sm:col-span-2 lg:col-span-3 p-3.5 sm:p-4 rounded-xl bg-slate-100 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-300 font-medium">
-                      <span className="font-bold text-amber-700 dark:text-amber-400 ml-1">{isAr ? 'ملاحظات الدائرة:' : 'تێبینی فەرمانگە:'}</span>
-                      {result.notes}
+                  {(result.specialNote || result.notes) && (
+                    <div className="sm:col-span-2 lg:col-span-3 p-3.5 sm:p-4 rounded-xl bg-slate-100 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 text-xs text-slate-800 dark:text-slate-300 font-medium space-y-1">
+                      <div className="font-bold text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                        <span>{isAr ? 'ملاحظات وتوجيهات الدائرة:' : 'تێبینی و ڕێنمایی فەرمانگە:'}</span>
+                      </div>
+                      <p className="leading-relaxed">
+                        {result.specialNote || result.notes}
+                      </p>
                     </div>
                   )}
                 </div>

@@ -42,7 +42,9 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, in
     notes: '',
     kycStatus: 'PENDING', // 'DONE_BY_US' | 'PRE_VERIFIED' | 'PENDING'
     isKycDone: false,
-    nationalId: ''
+    nationalId: '',
+    isSpecial: false,
+    specialNote: ''
   });
 
   // Intelligent Duplicate Detection & Previous File Lookup (Realtime)
@@ -111,7 +113,9 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, in
         notes: currentRecord.notes || '',
         kycStatus: kycVal,
         isKycDone: isKyc,
-        nationalId: currentRecord.nationalId || ''
+        nationalId: currentRecord.nationalId || '',
+        isSpecial: currentRecord.isSpecial || false,
+        specialNote: currentRecord.specialNote || ''
       });
     } else {
       const nums = (records || []).map(r => parseInt(r.fileNumber, 10)).filter(n => !isNaN(n) && n > 0);
@@ -136,7 +140,9 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, in
         notes: '',
         kycStatus: 'PENDING',
         isKycDone: false,
-        nationalId: ''
+        nationalId: '',
+        isSpecial: false,
+        specialNote: ''
       });
     }
   }, [currentRecord, isOpen]);
@@ -605,14 +611,56 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, in
             </div>
           </div>
 
+          {/* ── SPECIAL / VIP RECORD SECTION ── */}
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-yellow-500/5 to-amber-500/15 border-2 border-amber-500/40 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
+                <div>
+                  <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
+                    دانانی ئەم دۆسیەیە لە بەشی تایبەت (Special / VIP Archive)
+                  </span>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    ئەگەر ئەم دۆسیەیە گرنگی پێویستە، دەتوانیت لێرە نیشانەی بکەیت و لە بەشی دۆسیە تایبەتەکان دەربکەوێت.
+                  </p>
+                </div>
+              </div>
+
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.isSpecial || false}
+                  onChange={(e) => setFormData({ ...formData, isSpecial: e.target.checked })}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-amber-500"></div>
+              </label>
+            </div>
+
+            {formData.isSpecial && (
+              <div className="pt-2 animate-fadeIn">
+                <label className="block text-xs font-bold text-amber-900 dark:text-amber-300 mb-1">
+                  تێبینی یان هۆکاری تایبەتکردنی دۆسیە (ئارەزوومەندانە):
+                </label>
+                <input
+                  type="text"
+                  value={formData.specialNote || ''}
+                  onChange={(e) => setFormData({ ...formData, specialNote: e.target.value })}
+                  placeholder="بۆ نموونە: مامەڵەی بەپەلە، پەیوەستە بە پشکنین، هاوبەشی تایبەت..."
+                  className="w-full px-3.5 py-2 rounded-xl bg-white dark:bg-slate-950 border border-amber-400/80 text-slate-900 dark:text-white text-xs focus:outline-none focus:border-amber-500"
+                />
+              </div>
+            )}
+          </div>
+
           {/* Notes */}
           <div>
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
               <FileText className="w-3.5 h-3.5 text-amber-500" />
-              <span>تێبینییەکان:</span>
+              <span>تێبینییە گشتییەکان:</span>
             </label>
             <textarea
-              rows="3"
+              rows="2"
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               placeholder="وردەکاری زیاتر، مەرجەکان یان هۆکاری چاوەڕوانی بنووسە..."

@@ -51,6 +51,10 @@ export default function App() {
     return localStorage.getItem('electricity_portal_lang') || 'ku';
   });
 
+  const toggleTheme = () => {
+    setIsDarkMode(prev => !prev);
+  };
+
   const handleLanguageChange = (newLang) => {
     setLanguage(newLang);
     localStorage.setItem('electricity_portal_lang', newLang);
