@@ -5,44 +5,74 @@ const STORAGE_KEY = 'electricity_portal_records_v2_real';
 const ADMIN_KEY = 'electricity_portal_admin_session';
 
 /**
- * Deduplicate records array by id and fileNumber and sort numerically
+ * Deduplicate records array by id and fileNumber, ensuring both regular records and special records
+ * coexist without colliding, and recovering missing initial regular records.
  */
 export function deduplicateRecords(records) {
-  if (!Array.isArray(records)) return [];
-  const seenIds = new Set();
-  const seenFiles = new Set();
-  const cleaned = [];
+  if (!Array.isArray(records)) records = [];
 
-  for (const r of records) {
-    if (!r) continue;
-    let id = String(r.id || '').trim();
+  const regularMap = new Map(); // fileStr -> record
+  const specialMap = new Map(); // fileStr -> record
+  const seenIds = new Set();
+
+  for (const raw of records) {
+    if (!raw) continue;
+    const r = { ...raw };
+    const isSpecial = Boolean(r.isSpecial);
     const fileStr = String(r.fileNumber || '').trim();
 
-    if (!id) {
-      id = 'rec-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
-      r.id = id;
-    }
-
-    if (seenIds.has(id)) {
-      if (fileStr && seenFiles.has(fileStr)) {
-        continue; // Exact duplicate, skip
+    // Ensure special IDs start with 'sp-' and regular IDs don't collide
+    if (isSpecial) {
+      if (!r.id || r.id.startsWith('rec-')) {
+        r.id = 'sp-' + (r.id ? r.id : (Date.now() + '-' + Math.random().toString(36).slice(2, 7)));
       }
-      // Different file but duplicate ID - assign new unique ID
-      id = 'rec-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
-      r.id = id;
+      if (fileStr && !specialMap.has(fileStr)) {
+        specialMap.set(fileStr, r);
+      } else if (!fileStr) {
+        specialMap.set('no_file_sp_' + (r.id || Math.random()), r);
+      }
+    } else {
+      if (!r.id) {
+        r.id = 'rec-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+      }
+      if (fileStr && !regularMap.has(fileStr)) {
+        regularMap.set(fileStr, r);
+      } else if (!fileStr) {
+        regularMap.set('no_file_reg_' + (r.id || Math.random()), r);
+      }
     }
-
-    if (fileStr && seenFiles.has(fileStr)) {
-      continue; // Duplicate file number, skip
-    }
-
-    seenIds.add(id);
-    if (fileStr) seenFiles.add(fileStr);
-    cleaned.push(r);
   }
 
-  // Sort numerically in ascending order by fileNumber
-  return cleaned.sort((a, b) => {
+  // Restore any missing base regular records from INITIAL_RECORDS (e.g. files 2, 3, 4, 5, etc.)
+  if (Array.isArray(INITIAL_RECORDS)) {
+    for (const initRec of INITIAL_RECORDS) {
+      const fileStr = String(initRec.fileNumber || '').trim();
+      if (fileStr && !regularMap.has(fileStr)) {
+        regularMap.set(fileStr, { ...initRec, isSpecial: false });
+      }
+    }
+  }
+
+  // Combine both regular and special records
+  const allRecords = [...regularMap.values(), ...specialMap.values()];
+
+  // Ensure unique IDs across all records
+  const finalRecords = [];
+  for (const r of allRecords) {
+    let id = String(r.id || '').trim();
+    if (!id || seenIds.has(id)) {
+      id = (r.isSpecial ? 'sp-' : 'rec-') + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+      r.id = id;
+    }
+    seenIds.add(id);
+    finalRecords.push(r);
+  }
+
+  // Sort numerically: Regular files first (sorted by fileNumber), then Special files (sorted by fileNumber)
+  return finalRecords.sort((a, b) => {
+    if (Boolean(a.isSpecial) !== Boolean(b.isSpecial)) {
+      return a.isSpecial ? 1 : -1;
+    }
     const numA = parseInt(a.fileNumber, 10) || 0;
     const numB = parseInt(b.fileNumber, 10) || 0;
     return numA - numB;

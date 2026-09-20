@@ -60,6 +60,7 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, in
 
     return records.filter(r => {
       if (r.id === currentId) return false;
+      if (Boolean(r.isSpecial) !== Boolean(formData.isSpecial)) return false;
       const rFileNum = (r.fileNumber || '').trim();
       const rAccount = (r.accountNumber || '').trim();
       const rName = (r.citizenName || '').trim().toLowerCase();

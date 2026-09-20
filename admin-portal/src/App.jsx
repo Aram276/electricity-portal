@@ -275,37 +275,41 @@ export default function App() {
 
     if (recordId) {
       updated = records.map(r => r.id === recordId ? { ...r, ...processedData } : r);
-      showToast('زانیارییەکانی مامەڵەکە بە سەرکەوتوویی لە کڵاود و سێرڤەر نوێکرایەوە', 'success');
+      showToast('زانیارییەکانی دۆسیەکە بە سەرکەوتوویی نوێکرایەوە', 'success');
       logActivity(
         isDelivered ? 'DELIVERY' : 'STATUS_CHANGE',
         `دەستکاریکردنی فایلی (${processedData.fileNumber}) [${processedData.citizenName}] (لەلایەن: ${staffName})`,
         processedData
       );
     } else {
-      // Check if fileNumber already exists!
+      const isSpecial = Boolean(processedData.isSpecial);
       const targetFileNum = String(processedData.fileNumber || '').trim();
-      const existingIdx = targetFileNum ? records.findIndex(r => String(r.fileNumber || '').trim() === targetFileNum) : -1;
+      
+      // CRITICAL: NEVER match a special record with a regular record!
+      const existingIdx = targetFileNum 
+        ? records.findIndex(r => String(r.fileNumber || '').trim() === targetFileNum && Boolean(r.isSpecial) === isSpecial)
+        : -1;
 
       if (existingIdx !== -1) {
-        // Smart Merge: update existing record rather than creating a duplicate row!
+        // Smart Merge within SAME category
         updated = [...records];
         updated[existingIdx] = {
           ...updated[existingIdx],
           ...processedData,
           id: updated[existingIdx].id
         };
-        showToast(`فایلی (${targetFileNum}) پێشتر هەبوو، زانیارییەکانی بە سەرکەوتوویی نوێکرانەوە`, 'success');
+        showToast(`فایلی (${targetFileNum}) لەم بەشەدا پێشتر هەبوو، زانیارییەکانی نوێکرانەوە`, 'success');
       } else {
         const uniqueId = formData.id && !records.some(r => r.id === formData.id)
           ? formData.id 
-          : ('rec-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7));
+          : ((isSpecial ? 'sp-' : 'rec-') + Date.now() + '-' + Math.random().toString(36).slice(2, 7));
 
         const newRec = {
           id: uniqueId,
           ...processedData
         };
         updated = [newRec, ...records];
-        showToast('مامەڵەی نوێ لە سێرڤەری گشتی بە سەرکەوتوویی تۆمار کرا', 'success');
+        showToast(isSpecial ? 'دۆسیەی تایبەت بە سەرکەوتوویی لە بەشی تایبەت تۆمار کرا ⭐' : 'مامەڵەی نوێ لە سێرڤەری گشتی بە سەرکەوتوویی تۆمار کرا', 'success');
       }
 
       logActivity('CREATE', `تۆمارکردنی فایلی نوێی (${processedData.fileNumber}) بە ناوی [${processedData.citizenName}] (لەلایەن: ${staffName})`, processedData);

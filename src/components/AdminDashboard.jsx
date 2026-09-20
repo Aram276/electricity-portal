@@ -463,7 +463,8 @@ export default function AdminDashboard({
   // Compute Metrics & Data Quality Stats (Memoized)
   const stats = useMemo(() => {
     const safeRecords = Array.isArray(records) ? records : [];
-    const total = safeRecords.length;
+    const regularRecords = safeRecords.filter(r => !r.isSpecial);
+    const total = regularRecords.length;
     let completed = 0;
     let inProgress = 0;
     let delivered = 0;
@@ -477,12 +478,11 @@ export default function AdminDashboard({
     let kycDoneByUs = 0;
     let kycPreVerified = 0;
     let kycPending = 0;
-    let specialCount = 0;
+    let specialCount = safeRecords.filter(r => Boolean(r.isSpecial)).length;
 
-    for (let i = 0; i < total; i++) {
-      const r = safeRecords[i];
+    for (let i = 0; i < regularRecords.length; i++) {
+      const r = regularRecords[i];
       if (!r) continue;
-      if (r.isSpecial) specialCount++;
       if (r.status === 'COMPLETED') completed++;
       else if (r.status === 'IN_PROGRESS') inProgress++;
       else if (r.status === 'DELIVERED') delivered++;
@@ -552,6 +552,12 @@ export default function AdminDashboard({
     const safeRecords = Array.isArray(records) ? records : [];
     const filtered = safeRecords.filter(record => {
       if (!record) return false;
+
+      // CRITICAL SEPARATION: Regular Dashboard Tab NEVER shows special records unless explicitly requested
+      if (record.isSpecial && dataFilter !== 'SPECIAL_ONLY') {
+        return false;
+      }
+
       // Search matching
       if (rawSearch) {
         const fuzzyName = normalizeKurdishFuzzy(record.citizenName || '');

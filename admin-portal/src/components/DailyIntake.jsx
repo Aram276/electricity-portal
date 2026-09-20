@@ -33,7 +33,10 @@ export default function DailyIntake({ records = [], onSaveRecord, onDeleteRecord
 
   // Auto-calculate the next file number starting from 933 onwards (934, 935...)
   const nextFileNumber = useMemo(() => {
-    const nums = (records || []).map(r => parseInt(r.fileNumber, 10)).filter(n => !isNaN(n) && n > 0);
+    const nums = (records || [])
+      .filter(r => !r.isSpecial)
+      .map(r => parseInt(r.fileNumber, 10))
+      .filter(n => !isNaN(n) && n > 0);
     const maxNum = nums.length ? Math.max(933, ...nums) : 933;
     return String(maxNum + 1);
   }, [records]);
@@ -64,16 +67,17 @@ export default function DailyIntake({ records = [], onSaveRecord, onDeleteRecord
     });
   }, [nextFileNumber]);
 
-  // Intelligent Duplicate Detection & Previous File Lookup (Realtime)
+  // Intelligent Duplicate Detection & Previous File Lookup (Realtime - regular records only)
   const duplicates = useMemo(() => {
-    if (!records || !records.length) return [];
+    const regularOnly = (records || []).filter(r => !r.isSpecial);
+    if (!regularOnly.length) return [];
     const cleanAccount = (formData.accountNumber || '').trim();
     const cleanName = (formData.citizenName || '').trim().toLowerCase();
     const cleanPhone = (formData.phoneNumber || '').replace(/\D/g, '');
 
     if (!cleanAccount && !cleanName && !cleanPhone) return [];
 
-    return records.filter(r => {
+    return regularOnly.filter(r => {
       const rAccount = (r.accountNumber || '').trim();
       const rName = (r.citizenName || '').trim().toLowerCase();
       const rPhone = (r.phoneNumber || '').replace(/\D/g, '');
@@ -96,15 +100,16 @@ export default function DailyIntake({ records = [], onSaveRecord, onDeleteRecord
       accountNumber: (dup.accountNumber && dup.accountNumber !== 'نیە') ? dup.accountNumber : prev.accountNumber,
       kycStatus: prevKyc,
       isKycDone: prevKyc === 'DONE_BY_US' || prevKyc === 'PRE_VERIFIED',
-      isSpecial: Boolean(dup.isSpecial),
-      specialNote: dup.specialNote || ''
+      isSpecial: false,
+      specialNote: ''
     }));
   };
 
-  // List of records entered today
+  // List of regular records entered today (strictly excluding special files)
   const todayList = useMemo(() => {
     const localDateStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
     return (records || []).filter(r => {
+      if (r.isSpecial) return false; // Do NOT mix special files in Daily Intake!
       return r.submissionDate === todayStr || 
              r.submissionDate === localDateStr || 
              r.createdAt === todayStr ||
