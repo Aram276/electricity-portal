@@ -494,8 +494,8 @@ export default function DailyIntake({ records = [], onSaveRecord, onDeleteRecord
                   <Star className="w-4 h-4 fill-current" />
                 </div>
                 <div>
-                  <div className="text-xs font-black text-slate-900 dark:text-white">دانان وەک دۆسیەی تایبەت (VIP / گرنگ) ⭐</div>
-                  <div className="text-[10px] text-slate-500 dark:text-slate-400">ئەم فایلە بە جیا لە بەشی «دۆسیە تایبەتەکان» پیشان دەدرێت</div>
+                  <div className="text-xs font-black text-slate-900 dark:text-white">دانان لە فایلەکانی کاک سالار ⭐</div>
+                  <div className="text-[10px] text-slate-500 dark:text-slate-400">ئەم فایلە بە جیا لە بەشی «فایلەکانی کاک سالار» تۆمار دەکرێت</div>
                 </div>
               </div>
               <button
@@ -507,7 +507,7 @@ export default function DailyIntake({ records = [], onSaveRecord, onDeleteRecord
                     : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-700'
                 }`}
               >
-                {formData.isSpecial ? 'تایبەتە ⭐' : 'ئاسایی'}
+                {formData.isSpecial ? 'کاک سالار ⭐' : 'ئاسایی'}
               </button>
             </div>
 

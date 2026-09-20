@@ -260,7 +260,7 @@ function RowActionsDropdown({
               className="w-full px-3 py-2 text-right text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 flex items-center gap-2.5 transition-colors cursor-pointer font-bold"
             >
               <Star className={`w-4 h-4 shrink-0 pointer-events-none ${record.isSpecial ? 'fill-amber-400 text-amber-400' : 'text-amber-500'}`} />
-              <span>{record.isSpecial ? 'لابردن لە دۆسیە تایبەتەکان ✖' : 'دانان وەک دۆسیەی تایبەت ⭐'}</span>
+              <span>{record.isSpecial ? 'لابردن لە فایلەکانی کاک سالار ✖' : 'دانان لە فایلەکانی کاک سالار ⭐'}</span>
             </button>
           </div>
 
@@ -420,7 +420,7 @@ export default function AdminDashboard({
     if (onSaveRecord) {
       onSaveRecord({ ...target, ...updates }, recordId);
     }
-    logActivity('UPDATE', `گۆڕینی دۆخی دۆسیەی تایبەت بۆ ${newSpecialState ? 'تایبەت (VIP)' : 'ئاسایی'}: فایلی #${target.fileNumber}`);
+    logActivity('UPDATE', `گۆڕینی دۆخی فایلی کاک سالار بۆ ${newSpecialState ? 'فایلی کاک سالار (VIP)' : 'ئاسایی'}: فایلی #${target.fileNumber}`);
   };
 
   // Batch Toggle Special / VIP Status
@@ -437,7 +437,7 @@ export default function AdminDashboard({
         }, id);
       }
     });
-    logActivity('UPDATE', `${isSpecial ? 'زیادکردنی' : 'لابردنی'} ${ids.length} فایل بۆ دۆسیە تایبەتەکان`);
+    logActivity('UPDATE', `${isSpecial ? 'زیادکردنی' : 'لابردنی'} ${ids.length} فایل بۆ فایلەکانی کاک سالار`);
   };
 
   // Add audit note to file timeline
@@ -855,7 +855,7 @@ export default function AdminDashboard({
                   </span>
                 </button>
 
-                {/* Special Files (VIP) Tab Button */}
+                {/* Special Files (Kak Salar) Tab Button */}
                 <button
                   type="button"
                   onClick={() => { setActiveTab('special'); setIsSidebarOpen(false); }}
@@ -870,11 +870,11 @@ export default function AdminDashboard({
                     </div>
                     <div className="text-right">
                       <div className="flex items-center gap-1.5">
-                        <span>دۆسیە تایبەتەکان (VIP)</span>
-                        <span className="text-[10px] bg-amber-500/30 text-amber-950 dark:text-amber-200 px-1.5 py-0.5 rounded font-black">تایبەت ⭐</span>
+                        <span>فایلەکانی کاک سالار ⭐</span>
+                        <span className="text-[10px] bg-amber-500/30 text-amber-950 dark:text-amber-200 px-1.5 py-0.5 rounded font-black">تایبەت</span>
                       </div>
                       <div className={`text-[10px] font-normal ${activeTab === 'special' ? 'text-slate-900' : 'text-slate-400'}`}>
-                        فایلە گرنگ و جیاکراوەکان
+                        دۆسیە و مامەڵەکانی کاک سالار
                       </div>
                     </div>
                   </div>
@@ -1449,10 +1449,10 @@ export default function AdminDashboard({
                   <button
                     onClick={() => handleBatchSetSpecial(selectedIds, true)}
                     className="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black transition-all shadow-sm active:scale-95 flex items-center gap-1.5"
-                    title="دانانی هەڵبژێردراوەکان وەک دۆسیەی تایبەت"
+                    title="دانانی هەڵبژێردراوەکان لە فایلەکانی کاک سالار"
                   >
                     <Star className="w-3.5 h-3.5 fill-current" />
-                    <span>کردن بە تایبەت ⭐</span>
+                    <span>فایلەکانی کاک سالار ⭐</span>
                   </button>
                 )}
 
@@ -1654,7 +1654,7 @@ export default function AdminDashboard({
                             <button
                               type="button"
                               onClick={() => handleToggleSpecial(record.id)}
-                              title={record.isSpecial ? "لابردن لە دۆسیە تایبەتەکان" : "دانان وەک دۆسیەی تایبەت ⭐"}
+                              title={record.isSpecial ? "لابردن لە فایلەکانی کاک سالار" : "دانان لە فایلەکانی کاک سالار ⭐"}
                               className="p-1 rounded-lg transition-transform active:scale-75 hover:bg-amber-500/10 cursor-pointer"
                             >
                               <Star className={`w-4 h-4 transition-all ${
@@ -1687,7 +1687,7 @@ export default function AdminDashboard({
                                 {record.fileNumber}
                               </span>
                               {record.isSpecial && (
-                                <span className="text-[10px] text-amber-500 font-bold" title="دۆسیەی تایبەت ⭐">⭐</span>
+                                <span className="text-[10px] text-amber-500 font-bold" title="فایلی کاک سالار ⭐">⭐</span>
                               )}
                             </div>
                           </td>
@@ -1904,7 +1904,7 @@ export default function AdminDashboard({
                           <button
                             type="button"
                             onClick={() => handleToggleSpecial(record.id)}
-                            title={record.isSpecial ? "لابردن لە دۆسیە تایبەتەکان" : "دانان وەک دۆسیەی تایبەت ⭐"}
+                            title={record.isSpecial ? "لابردن لە فایلەکانی کاک سالار" : "دانان لە فایلەکانی کاک سالار ⭐"}
                             className="p-1 rounded-lg transition-transform active:scale-75 hover:bg-amber-500/10 cursor-pointer"
                           >
                             <Star className={`w-5 h-5 transition-all ${

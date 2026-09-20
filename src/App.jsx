@@ -299,7 +299,7 @@ export default function App() {
           ...processedData
         };
         updated = [newRec, ...records];
-        showToast(isSpecial ? 'دۆسیەی تایبەت بە سەرکەوتوویی لە بەشی تایبەت تۆمار کرا ⭐' : 'مامەڵەی نوێ لە سێرڤەری گشتی بە سەرکەوتوویی تۆمار کرا', 'success');
+        showToast(isSpecial ? 'فایلی کاک سالار بە سەرکەوتوویی تۆمار کرا ⭐' : 'مامەڵەی نوێ لە سێرڤەری گشتی بە سەرکەوتوویی تۆمار کرا', 'success');
       }
 
       logActivity('CREATE', `تۆمارکردنی فایلی نوێی (${processedData.fileNumber}) بە ناوی [${processedData.citizenName}] (لەلایەن: ${staffName})`, processedData);

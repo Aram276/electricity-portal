@@ -619,10 +619,10 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, in
                 <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
                 <div>
                   <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
-                    دانانی ئەم دۆسیەیە لە بەشی تایبەت (Special / VIP Archive)
+                    دانانی ئەم دۆسیەیە لە فایلەکانی کاک سالار ⭐
                   </span>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    ئەگەر ئەم دۆسیەیە گرنگی پێویستە، دەتوانیت لێرە نیشانەی بکەیت و لە بەشی دۆسیە تایبەتەکان دەربکەوێت.
+                    ئەم فایلە وەک فایلی تایبەتی کاک سالار نیشانە دەکرێت و لە بەشی «فایلەکانی کاک سالار» تۆمار دەبێت.
                   </p>
                 </div>
               </div>

@@ -236,10 +236,10 @@ export default function SpecialFilesTab({
       isSpecial: true,
       isExclusiveSpecial: true,
       specialCategory: formData.specialCategory || 'VIP',
-      specialNote: cleanNote || 'دۆسیەی تایبەت (داخڵکردنی ڕاستەوخۆ)',
+      specialNote: cleanNote || 'فایلی کاک سالار (داخڵکردنی ڕاستەوخۆ)',
       specialDate: nowTime,
       submissionDate: todayStr,
-      department: 'دابەشکردنی کارەبا - بەشی دۆسیە تایبەتەکان',
+      department: 'دابەشکردنی کارەبا - فایلەکانی کاک سالار',
       handledBy: staffName,
       deliveredBy: formData.status === 'DELIVERED' ? staffName : null,
       deliveredDate: formData.status === 'DELIVERED' ? nowTime : null,
@@ -251,7 +251,7 @@ export default function SpecialFilesTab({
       onSaveRecord(newSpecial, null);
     }
 
-    setSuccessMsg(`دۆسیەی تایبەتی ژمارە (${cleanFileNum}) بە سەرکەوتوویی لەم بەشە تۆمار کرا! ⭐`);
+    setSuccessMsg(`فایلی ژمارە (${cleanFileNum}) بە سەرکەوتوویی لە فایلەکانی کاک سالار تۆمار کرا! ⭐`);
     setTimeout(() => setSuccessMsg(null), 3500);
 
     // Reset Form
@@ -417,16 +417,16 @@ export default function SpecialFilesTab({
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-500/30 text-amber-950 dark:text-amber-200 border border-amber-500/50 text-xs font-black shadow-sm">
               <Star className="w-4 h-4 text-amber-500 fill-amber-500 animate-pulse" />
-              <span>بەشی سەربەخۆی دۆسیە تایبەتەکان (Exclusive VIP Archives)</span>
+              <span>بەشی سەربەخۆی فایلەکانی کاک سالار (Kak Salar Special Files)</span>
             </div>
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 dark:text-white flex items-center gap-3">
-              <span>دۆسیە تایبەتەکان</span>
+              <span>فایلەکانی کاک سالار</span>
               <span className="px-3.5 py-1 rounded-2xl bg-amber-500 text-slate-950 text-base sm:text-lg font-mono font-black shadow-lg shadow-amber-500/30">
-                {stats.total} دۆسیەی تایبەت
+                {stats.total} فایلی کاک سالار
               </span>
             </h2>
             <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-200 max-w-2xl leading-relaxed font-medium">
-              ئەم بەشە بە تەواوی سەربەخۆیە بۆ تۆمارکردن و بەڕێوەبردنی ئەو فایلە تایبەتانەی کە خۆت دەتەوێت بەجیا داخیلیان بکەیت. لێرەوە بە شێوەیەکی ڕاستەوخۆ فایلی تایبەت تۆمار بکە.
+              ئەم بەشە تایبەت و سەربەخۆیە بۆ تۆمارکردن و بەدواداچوونی فایل و مامەڵەکانی کاک سالار. لێرەوە بە شێوەیەکی ڕاستەوخۆ دەتوانیت فایلی نوێ تۆمار بکەیت و بەڕێوەیان ببەیت.
             </p>
           </div>
 
@@ -472,10 +472,10 @@ export default function SpecialFilesTab({
               </div>
               <div>
                 <h3 className="font-black text-slate-900 dark:text-white text-base sm:text-lg">
-                  فۆڕمی داخڵکردنی دۆسیەی تایبەت (Direct Special Entry)
+                  فۆڕمی داخڵکردنی فایلی کاک سالار (Kak Salar Special Entry)
                 </h3>
                 <p className="text-xs text-amber-700 dark:text-amber-400 font-bold">
-                  تۆمارکردنی دۆسیەیەکی نوێ لەناو بەشی تایبەت بەبێ تێکەڵبوون
+                  تۆمارکردنی فایلی نوێ لەناو فایلەکانی کاک سالار بە شێوەی سەربەخۆ
                 </p>
               </div>
             </div>
@@ -666,7 +666,7 @@ export default function SpecialFilesTab({
               className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-sm shadow-xl shadow-amber-500/25 transition-all flex items-center justify-center gap-2 active:scale-98 cursor-pointer border border-amber-400/60"
             >
               <Save className="w-5 h-5" />
-              <span>تۆمارکردنی دۆسیەی تایبەت لەم بەشە (Enter) ⭐</span>
+              <span>تۆمارکردن لە فایلەکانی کاک سالار (Enter) ⭐</span>
             </button>
           </form>
         </div>
@@ -855,7 +855,7 @@ export default function SpecialFilesTab({
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
             <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
-              {selectedIds.length} دۆسیەی تایبەت دیاری کراوە
+              {selectedIds.length} فایلی کاک سالار دیاری کراوە
             </span>
           </div>
 
@@ -1232,11 +1232,11 @@ export default function SpecialFilesTab({
           <div className="space-y-1">
             <h3 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white">
               {searchTerm || statusFilter !== 'ALL' || categoryFilter !== 'ALL' 
-                ? 'هیچ دۆسیەیەکی تایبەت بەم فلتەرە نەدۆزرایەوە!' 
-                : 'هێشتا هیچ دۆسیەیەکی تایبەت تۆمار نەکراوە!'}
+                ? 'هیچ فایلێکی کاک سالار بەم فلتەرە نەدۆزرایەوە!' 
+                : 'هێشتا هیچ فایلێکی کاک سالار تۆمار نەکراوە!'}
             </h3>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
-              دەتوانیت لە سەرەوە لە ڕێگەی «فۆڕمی داخڵکردنی دۆسیەی تایبەت» فایلی تایبەت تۆمار بکەیت، یان لە خشتەی سەرەکی ئەستێرەی ⭐ دابگریت.
+              دەتوانیت لە سەرەوە لە ڕێگەی «فۆڕمی داخڵکردنی فایلی کاک سالار» فایلی نوێ تۆمار بکەیت.
             </p>
           </div>
 
@@ -1257,7 +1257,7 @@ export default function SpecialFilesTab({
               }}
               className="px-5 py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs sm:text-sm transition-all shadow-md active:scale-95 cursor-pointer"
             >
-              داخڵکردنی یەکەمین دۆسیەی تایبەت +
+              داخڵکردنی یەکەمین فایلی کاک سالار +
             </button>
           )}
         </div>
@@ -1274,7 +1274,7 @@ export default function SpecialFilesTab({
                   <Star className="w-5 h-5 fill-amber-500" />
                 </div>
                 <h3 className="font-black text-slate-900 dark:text-white text-base sm:text-lg">
-                  دەستکاریکردنی دۆسیەی تایبەت (#{editingRecord.fileNumber})
+                  دەستکاریکردنی فایلی کاک سالار (#{editingRecord.fileNumber})
                 </h3>
               </div>
               <button
