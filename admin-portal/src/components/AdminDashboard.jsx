@@ -2185,7 +2185,7 @@ export default function AdminDashboard({
         </div>
       )}
 
-      {/* View 2.5: Special Files (VIP) Dedicated Section */}
+      {/* View 2.5: Special Files (Kak Salar) Dedicated Section */}
       {activeTab === 'special' && (
         <SpecialFilesTab
           records={records}
@@ -2193,9 +2193,13 @@ export default function AdminDashboard({
           onToggleSpecial={handleToggleSpecial}
           onUpdateStatus={handleStatusChangeWithStaff || onUpdateStatus}
           onSaveRecord={onSaveRecord}
+          onDeleteRecord={onDeleteRecord}
           onOpenEditModal={onOpenEditModal}
           onOpenDeliveryModal={onOpenDeliveryModal}
           onOpenPrintModal={onOpenPrintModal}
+          allowEdit={allowEdit}
+          allowDeliver={allowDeliver}
+          allowDelete={allowDelete}
         />
       )}
 

@@ -12,6 +12,7 @@ import { getKurdistanDateTime, getKurdistanDate, getLocalTimestamp } from './dat
 export { getLocalTimestamp };
 
 const DOC_REF = doc(db, 'portal_data', 'electricity_records');
+const SPECIAL_DOC_REF = doc(db, 'portal_data', 'electricity_special_records');
 const TRASH_DOC_REF = doc(db, 'portal_data', 'electricity_trash');
 const FOOTER_DOC_REF = doc(db, 'portal_data', 'footer_settings');
 
@@ -27,23 +28,36 @@ const DEFAULT_FOOTER = {
   bottomNote: 'سیستەمی ئەلیکترۆنی پشکنین و بەڕێوەبردنی دۆسیەکانی هاوبەشان'
 };
 
+let latestCloudRegular = [];
+let latestCloudSpecial = [];
+
 /**
- * Listen to real-time changes for records from Firestore Cloud.
+ * Listen to real-time changes for records from Firestore Cloud (both regular and special).
  */
 export function subscribeToCloudRecords(onUpdateCallback) {
+  let unsubRegular = () => {};
+  let unsubSpecial = () => {};
+
+  const notifyMerged = () => {
+    const combined = [...latestCloudRegular, ...latestCloudSpecial];
+    const cleaned = deduplicateRecords(combined.length > 0 ? combined : getStoredRecords(), latestCloudSpecial);
+    saveRecords(cleaned);
+    onUpdateCallback(cleaned);
+  };
+
   try {
-    const unsubscribe = onSnapshot(DOC_REF, (snapshot) => {
+    // 1. Subscribe to main records document
+    unsubRegular = onSnapshot(DOC_REF, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data();
         if (data && Array.isArray(data.records) && data.records.length > 0) {
-          const cleaned = deduplicateRecords(data.records);
-          saveRecords(cleaned); // also cache in local storage
-          onUpdateCallback(cleaned);
+          latestCloudRegular = data.records;
+          notifyMerged();
           return;
         }
       }
 
-      // If cloud document does not exist yet, initialize it with current local/initial data
+      // If cloud document does not exist yet, initialize it
       const current = getStoredRecords();
       saveRecordsToCloud(current);
       onUpdateCallback(current);
@@ -52,7 +66,23 @@ export function subscribeToCloudRecords(onUpdateCallback) {
       onUpdateCallback(getStoredRecords());
     });
 
-    return unsubscribe;
+    // 2. Subscribe to dedicated special records document
+    unsubSpecial = onSnapshot(SPECIAL_DOC_REF, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        if (data && Array.isArray(data.records)) {
+          latestCloudSpecial = data.records;
+          notifyMerged();
+        }
+      }
+    }, (error) => {
+      console.warn('Special records subscription note:', error);
+    });
+
+    return () => {
+      if (typeof unsubRegular === 'function') unsubRegular();
+      if (typeof unsubSpecial === 'function') unsubSpecial();
+    };
   } catch (err) {
     console.error('Failed to subscribe to cloud records:', err);
     onUpdateCallback(getStoredRecords());
@@ -66,28 +96,31 @@ export function subscribeToCloudRecords(onUpdateCallback) {
 export async function saveRecordsToCloud(records) {
   try {
     const cleaned = deduplicateRecords(records);
+    const specials = cleaned.filter(r => r && r.isSpecial === true);
+
+    // Save locally first with dedicated special persistence
+    saveRecords(cleaned);
+
+    // 1. Always save special records to dedicated special collection first
+    try {
+      await setDoc(SPECIAL_DOC_REF, {
+        records: specials,
+        lastUpdated: new Date().toISOString(),
+        updatedBy: 'Admin',
+        count: specials.length
+      });
+    } catch (sErr) {
+      console.warn('Failed to save special records doc to cloud:', sErr);
+    }
+
+    // 2. Save full records list to main document
     const existing = getStoredRecords();
     if (existing && existing.length > 0) {
       // Keep a local safety backup snapshot
       localStorage.setItem('electricity_portal_records_safety_backup', JSON.stringify(existing));
-      localStorage.setItem('electricity_portal_backup_time', getKurdistanDateTime(true));
-
-      // If replacing with fewer records, save backup to Firestore backup collection
-      if (cleaned.length < existing.length) {
-        try {
-          const BACKUP_DOC = doc(db, 'portal_data', 'electricity_records_backup');
-          await setDoc(BACKUP_DOC, {
-            records: existing,
-            backupTimestamp: getKurdistanDateTime(true),
-            reason: `Auto backup before count change (${existing.length} -> ${cleaned.length})`
-          });
-        } catch (bErr) {
-          console.warn('Backup write note:', bErr);
-        }
-      }
+      localStorage.setItem('electricity_portal_backup_time', new Date().toISOString());
     }
 
-    saveRecords(cleaned); // save locally first
     await setDoc(DOC_REF, {
       records: cleaned,
       lastUpdated: getKurdistanDateTime(true),
