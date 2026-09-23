@@ -51,17 +51,21 @@ export default function App() {
     try {
       const loggedOut = localStorage.getItem('electricity_portal_admin_logged_out') === 'true';
       if (loggedOut) return false;
-      return true;
+      const savedStaff = localStorage.getItem('electricity_active_staff');
+      const hasSession = sessionStorage.getItem('electricity_portal_admin_session') === 'true' || localStorage.getItem('electricity_portal_admin_session') === 'true';
+      return Boolean(savedStaff || hasSession);
     } catch (e) {
-      return true;
+      return false;
     }
   });
   const [activeStaff, setActiveStaff] = useState(() => {
     try {
+      const loggedOut = localStorage.getItem('electricity_portal_admin_logged_out') === 'true';
+      if (loggedOut) return null;
       const saved = JSON.parse(localStorage.getItem('electricity_active_staff') || 'null');
       if (saved) return saved;
     } catch (e) {}
-    return { id: 'staff-1', username: 'aram', name: 'ئارام', role: 'ADMIN', title: 'بەڕێوەبەری سەرەکی' };
+    return null;
   });
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('electricity_portal_theme');
@@ -182,11 +186,13 @@ export default function App() {
   // Handle Staff logout
   const handleAdminLogout = () => {
     setIsAdmin(false);
+    setActiveStaff(null);
     setAdminAuthenticated(false);
     try {
       localStorage.setItem('electricity_portal_admin_logged_out', 'true');
       localStorage.removeItem('electricity_active_staff');
       sessionStorage.removeItem('electricity_portal_admin_session');
+      localStorage.removeItem('electricity_portal_admin_session');
     } catch (e) {}
     setCurrentView('admin');
     showToast('دەرچوون لە ئەژمێری فەرمانبەر بە سەرکەوتوویی ئەنجامدرا', 'info');
