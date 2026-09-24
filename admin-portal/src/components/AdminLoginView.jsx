@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, KeyRound, ShieldAlert, CheckCircle2, User, Eye, EyeOff, AlertTriangle, Timer, Search, ShieldCheck } from 'lucide-react';
+import { Lock, KeyRound, ShieldAlert, CheckCircle2, User, Eye, EyeOff, AlertTriangle, Timer, Search, ShieldCheck, Zap } from 'lucide-react';
 import { subscribeToStaffAccounts, DEFAULT_STAFF, logActivity } from '../utils/cloudSync';
 import RoonakiLogo from './RoonakiLogo';
 
@@ -8,7 +8,7 @@ const LOCKOUT_UNTIL_KEY = 'electricity_auth_lockout_until';
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_SECONDS = 60;
 
-export default function AdminLoginView({ onLoginSuccess, onGoToCitizen }) {
+export default function AdminLoginView({ onLoginSuccess, onGoToCitizen, onOpenScanner }) {
   const [staffList, setStaffList] = useState(DEFAULT_STAFF);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -211,6 +211,17 @@ export default function AdminLoginView({ onLoginSuccess, onGoToCitizen }) {
               <ShieldCheck className="w-5 h-5" />
               <span>چوونەژوورەوەی پارێزراو</span>
             </button>
+
+            {onOpenScanner && (
+              <button
+                type="button"
+                onClick={onOpenScanner}
+                className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-amber-500/20 via-yellow-500/20 to-amber-500/20 hover:from-amber-500/30 hover:to-amber-500/30 border-2 border-amber-500/60 text-amber-900 dark:text-amber-300 font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 cursor-pointer"
+              >
+                <Zap className="w-4 h-4 text-amber-500 fill-amber-500 animate-pulse" />
+                <span>⚡ Runaki Smart Scanner (سکانەری زیرەکی وەسڵ)</span>
+              </button>
+            )}
 
             {onGoToCitizen && (
               <button

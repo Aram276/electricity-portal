@@ -8,6 +8,7 @@ import DeliveryModal from './components/DeliveryModal';
 import PrintReceiptModal from './components/PrintReceiptModal';
 import AdminLoginModal from './components/AdminLoginModal';
 import AdminLoginView from './components/AdminLoginView';
+import RunakiSmartScanner from './components/RunakiSmartScanner';
 import Footer from './components/Footer';
 import { 
   getStoredRecords, 
@@ -79,6 +80,7 @@ export default function App() {
   const [editingRecord, setEditingRecord] = useState(null);
   const [deliveryModalRecord, setDeliveryModalRecord] = useState(null);
   const [printModalRecord, setPrintModalRecord] = useState(null);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
 
   // Toast notification
   const [toast, setToast] = useState(null);
@@ -737,6 +739,7 @@ export default function App() {
           <AdminLoginView
             onLoginSuccess={handleLoginSuccess}
             onGoToCitizen={() => setCurrentView('citizen')}
+            onOpenScanner={() => setIsScannerOpen(true)}
           />
         ) : (
           <AdminDashboard
@@ -750,6 +753,7 @@ export default function App() {
             onOpenEditModal={(rec) => { setEditingRecord(rec); setIsRecordModalOpen(true); }}
             onOpenDeliveryModal={(rec) => setDeliveryModalRecord(rec)}
             onOpenPrintModal={(rec) => setPrintModalRecord(rec)}
+            onOpenScanner={() => setIsScannerOpen(true)}
             onDeleteRecord={handleDeleteRecord}
             onBatchDelete={handleBatchDelete}
             onRestoreRecord={handleRestoreRecord}
@@ -773,6 +777,22 @@ export default function App() {
 
       {/* Footer */}
       <Footer />
+
+      {/* Runaki Smart Scanner Modal */}
+      <RunakiSmartScanner
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        records={records}
+        onSelectRecord={(rec) => {
+          setEditingRecord(rec);
+          setIsRecordModalOpen(true);
+          setIsScannerOpen(false);
+        }}
+        onSearchInSystem={(term) => {
+          setIsScannerOpen(false);
+          window.dispatchEvent(new CustomEvent('smart_scanner_search', { detail: term }));
+        }}
+      />
 
       {/* Admin Login Modal */}
       <AdminLoginModal

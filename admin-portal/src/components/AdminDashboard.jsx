@@ -12,6 +12,7 @@ import {
   Edit,
   Trash2,
   Zap,
+  Camera,
   Printer,
   Users,
   Layers,
@@ -328,6 +329,7 @@ export default function AdminDashboard({
   onOpenEditModal,
   onOpenDeliveryModal,
   onOpenPrintModal,
+  onOpenScanner,
   onDeleteRecord,
   onBatchDelete,
   onRestoreRecord,
@@ -351,6 +353,18 @@ export default function AdminDashboard({
   const [activeTab, setActiveTab] = useState('records');
   const [searchTerm, setSearchTerm] = useState('');
   const deferredSearchTerm = useDeferredValue(searchTerm); // Prevents UI typing lag
+
+  // Listen to smart scanner search event
+  useEffect(() => {
+    const handleScannerSearch = (e) => {
+      if (e?.detail) {
+        setSearchTerm(String(e.detail));
+        setActiveTab('records');
+      }
+    };
+    window.addEventListener('smart_scanner_search', handleScannerSearch);
+    return () => window.removeEventListener('smart_scanner_search', handleScannerSearch);
+  }, []);
 
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [dataFilter, setDataFilter] = useState('ALL'); // 'ALL' | 'YELLOW_FOLDER' | 'PAPER' | 'KYC_DONE' | 'KYC_PENDING' | ...
@@ -1007,6 +1021,18 @@ export default function AdminDashboard({
                 </div>
 
                 <div className="grid grid-cols-1 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setIsSidebarOpen(false); if (onOpenScanner) onOpenScanner(); }}
+                    className="w-full flex items-center justify-between p-3 rounded-2xl text-xs font-black bg-gradient-to-r from-amber-500/20 via-yellow-500/30 to-amber-500/20 hover:from-amber-500/35 hover:to-amber-500/35 text-amber-950 dark:text-amber-200 border-2 border-amber-500/60 shadow-md active:scale-98 transition-all cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Zap className="w-4 h-4 text-amber-500 fill-amber-500 shrink-0 animate-pulse" />
+                      <span>⚡ Runaki Smart Scanner (سکانەری وەسڵ)</span>
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500 text-slate-950">AI OCR</span>
+                  </button>
+
                   {allowDeliver && (
                     <button
                       type="button"
@@ -1144,6 +1170,15 @@ export default function AdminDashboard({
             </div>
 
             <div className="flex flex-wrap items-center justify-center md:justify-end gap-2 sm:gap-3">
+              <button
+                type="button"
+                onClick={() => onOpenScanner && onOpenScanner()}
+                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs sm:text-sm shadow-lg shadow-amber-500/25 transition-all active:scale-95 cursor-pointer border border-amber-400/60"
+              >
+                <Zap className="w-4 h-4 fill-slate-950 text-slate-950 shrink-0" />
+                <span>⚡ سکانەری وەسڵ (Scanner)</span>
+              </button>
+
               {allowImport && (
                 <button
                   onClick={onOpenExcelImport}
@@ -1287,17 +1322,27 @@ export default function AdminDashboard({
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="گەڕانی زیرەک: ناو (وەک ڕێبین)، ژمارەی فایل، مۆبایل، ئەژمار (ID)، یان وەرگرەوە..."
-                  className="w-full pr-10 pl-10 py-2.5 sm:py-3 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:outline-none focus:border-amber-500"
+                  className="w-full pr-10 pl-20 py-2.5 sm:py-3 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:outline-none focus:border-amber-500"
                 />
-                {searchTerm && (
+                <div className="absolute left-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                  {searchTerm && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchTerm('')}
+                      className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
                   <button
                     type="button"
-                    onClick={() => setSearchTerm('')}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg"
+                    onClick={() => onOpenScanner && onOpenScanner()}
+                    title="سکانکردنی وەسڵ بە کامێرا (Smart OCR Scanner)"
+                    className="p-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500 text-amber-600 hover:text-slate-950 dark:text-amber-300 dark:hover:text-slate-950 border border-amber-500/40 transition-all cursor-pointer active:scale-90"
                   >
-                    <X className="w-4 h-4" />
+                    <Camera className="w-4 h-4" />
                   </button>
-                )}
+                </div>
               </div>
 
               {/* Status Filter Dropdown */}
