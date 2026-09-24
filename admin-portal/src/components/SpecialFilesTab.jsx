@@ -353,7 +353,11 @@ export default function SpecialFilesTab({
     if (confirm(`ئایا دڵنیایت لە لابردنی فایلی #${record.fileNumber} لە لیستی دۆسیە تایبەتەکان؟`)) {
       onSaveRecord({
         ...record,
-        isSpecial: false
+        isSpecial: false,
+        isExclusiveSpecial: false,
+        specialCategory: null,
+        specialNote: '',
+        specialDate: null
       }, record.id);
     }
   };
@@ -388,7 +392,14 @@ export default function SpecialFilesTab({
       selectedIds.forEach(id => {
         const rec = records.find(r => r.id === id);
         if (rec) {
-          onSaveRecord({ ...rec, isSpecial: false }, rec.id);
+          onSaveRecord({
+            ...rec,
+            isSpecial: false,
+            isExclusiveSpecial: false,
+            specialCategory: null,
+            specialNote: '',
+            specialDate: null
+          }, rec.id);
         }
       });
       setSelectedIds([]);
@@ -1198,6 +1209,26 @@ export default function SpecialFilesTab({
                       </td>
                       <td className="p-3 text-center">
                         <div className="flex items-center justify-center gap-1">
+                          {allowDeliver && record.status !== 'DELIVERED' && onOpenDeliveryModal && (
+                            <button
+                              type="button"
+                              onClick={() => onOpenDeliveryModal(record)}
+                              className="p-1 rounded bg-blue-500/15 text-blue-600 hover:bg-blue-500/25 dark:text-blue-400"
+                              title="تەسلیمکردنەوە"
+                            >
+                              <PackageCheck className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          {onOpenPrintModal && (
+                            <button
+                              type="button"
+                              onClick={() => onOpenPrintModal(record)}
+                              className="p-1 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                              title="چاپ"
+                            >
+                              <Printer className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                           <button
                             type="button"
                             onClick={() => setEditingRecord(record)}
@@ -1214,6 +1245,16 @@ export default function SpecialFilesTab({
                           >
                             <Star className="w-3.5 h-3.5" />
                           </button>
+                          {allowDelete && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteSpecial(record)}
+                              className="p-1 rounded bg-rose-50 text-rose-600 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-400"
+                              title="سڕینەوە بۆ سەلەی خۆڵ"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

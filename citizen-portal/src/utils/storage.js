@@ -33,46 +33,26 @@ export function saveSpecialRecords(specialRecords) {
 
 /**
  * Deduplicate records array by id and fileNumber, ensuring both regular records and special records
- * coexist without colliding, and recovering missing initial regular records and preserving all special records.
+ * coexist cleanly, and recovering missing initial regular records without zombie special resurrections.
  */
-export function deduplicateRecords(records, extraSpecials = []) {
+export function deduplicateRecords(records) {
   if (!Array.isArray(records)) records = [];
 
   const regularMap = new Map(); // fileStr -> record
   const specialMap = new Map(); // fileStr -> record
   const seenIds = new Set();
 
-  // Load any previously persisted special records from dedicated storage
-  const storedSpecials = getStoredSpecialRecords();
-  const allSpecialsToConsider = [...storedSpecials, ...(Array.isArray(extraSpecials) ? extraSpecials : [])];
-
-  for (const raw of allSpecialsToConsider) {
-    if (!raw) continue;
-    const r = { ...raw, isSpecial: true };
-    const fileStr = String(r.fileNumber || '').trim();
-    if (!r.id || r.id.startsWith('rec-')) {
-      r.id = 'sp-' + (r.id ? r.id : (Date.now() + '-' + Math.random().toString(36).slice(2, 7)));
-    }
-    if (fileStr && !specialMap.has(fileStr)) {
-      specialMap.set(fileStr, r);
-    } else if (!fileStr) {
-      specialMap.set('no_file_sp_' + (r.id || Math.random()), r);
-    }
-  }
-
   for (const raw of records) {
-    if (!raw) continue;
+    if (!raw || raw.isDeleted) continue;
     const r = { ...raw };
     const isSpecial = Boolean(r.isSpecial);
     const fileStr = String(r.fileNumber || '').trim();
 
-    // Ensure special IDs start with 'sp-' and regular IDs don't collide
     if (isSpecial) {
       if (!r.id || r.id.startsWith('rec-')) {
         r.id = 'sp-' + (r.id ? r.id : (Date.now() + '-' + Math.random().toString(36).slice(2, 7)));
       }
       if (fileStr) {
-        // Keep or overwrite with latest if newer
         specialMap.set(fileStr, r);
       } else {
         specialMap.set('no_file_sp_' + (r.id || Math.random()), r);
@@ -81,20 +61,10 @@ export function deduplicateRecords(records, extraSpecials = []) {
       if (!r.id) {
         r.id = 'rec-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
       }
-      if (fileStr && !regularMap.has(fileStr)) {
+      if (fileStr) {
         regularMap.set(fileStr, r);
-      } else if (!fileStr) {
+      } else {
         regularMap.set('no_file_reg_' + (r.id || Math.random()), r);
-      }
-    }
-  }
-
-  // Restore any missing base regular records from INITIAL_RECORDS (e.g. files 2, 3, 4, 5, etc.)
-  if (Array.isArray(INITIAL_RECORDS)) {
-    for (const initRec of INITIAL_RECORDS) {
-      const fileStr = String(initRec.fileNumber || '').trim();
-      if (fileStr && !regularMap.has(fileStr)) {
-        regularMap.set(fileStr, { ...initRec, isSpecial: false });
       }
     }
   }
@@ -128,22 +98,21 @@ export function deduplicateRecords(records, extraSpecials = []) {
 export function getStoredRecords() {
   try {
     const data = localStorage.getItem(STORAGE_KEY);
-    const storedSpecials = getStoredSpecialRecords();
     if (!data) {
-      const initial = deduplicateRecords(INITIAL_RECORDS, storedSpecials);
+      const initial = deduplicateRecords(INITIAL_RECORDS);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(initial));
       return initial;
     }
     const parsed = JSON.parse(data);
     if (!parsed || !parsed.length) {
-      const initial = deduplicateRecords(INITIAL_RECORDS, storedSpecials);
+      const initial = deduplicateRecords(INITIAL_RECORDS);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(initial));
       return initial;
     }
-    return deduplicateRecords(parsed, storedSpecials);
+    return deduplicateRecords(parsed);
   } catch (error) {
     console.error('Failed to load from storage, using fallback:', error);
-    return deduplicateRecords(INITIAL_RECORDS, getStoredSpecialRecords());
+    return deduplicateRecords(INITIAL_RECORDS);
   }
 }
 
@@ -154,15 +123,14 @@ export function saveRecords(records) {
     
     // Automatically persist all special records to dedicated key
     const specials = cleaned.filter(r => r && r.isSpecial === true);
-    saveSpecialRecords(specials);
+    localStorage.setItem(SPECIAL_STORAGE_KEY, JSON.stringify(specials));
   } catch (error) {
     console.error('Failed to save to storage:', error);
   }
 }
 
 export function resetToDemoRecords() {
-  const storedSpecials = getStoredSpecialRecords();
-  const initial = deduplicateRecords(INITIAL_RECORDS, storedSpecials);
+  const initial = deduplicateRecords(INITIAL_RECORDS);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(initial));
   return initial;
 }
@@ -238,4 +206,3 @@ export function setAdminAuthenticated(val) {
     }
   } catch (e) {}
 }
-

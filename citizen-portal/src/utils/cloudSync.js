@@ -38,8 +38,15 @@ export function subscribeToCloudRecords(onUpdateCallback) {
   let unsubSpecial = () => {};
 
   const notifyMerged = () => {
-    const combined = [...latestCloudRegular, ...latestCloudSpecial];
-    const cleaned = deduplicateRecords(combined.length > 0 ? combined : getStoredRecords(), latestCloudSpecial);
+    let source = [];
+    if (latestCloudRegular && latestCloudRegular.length > 0) {
+      source = latestCloudRegular;
+    } else if (latestCloudSpecial && latestCloudSpecial.length > 0) {
+      source = latestCloudSpecial;
+    } else {
+      source = getStoredRecords();
+    }
+    const cleaned = deduplicateRecords(source);
     saveRecords(cleaned);
     onUpdateCallback(cleaned);
   };
