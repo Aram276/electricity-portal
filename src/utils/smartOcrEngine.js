@@ -169,8 +169,12 @@ export function extractElectricityNumbers(rawText) {
 
   const isDateString = (str) => {
     if (!str) return false;
-    if (dates.has(str)) return true;
-    if (/(?:20[2-3][0-9]|19[8-9][0-9])/.test(str) && (str.includes('/') || str.includes('-') || str.includes('.'))) {
+    const cleanStr = String(str).trim();
+    if (dates.has(cleanStr)) return true;
+    if (/(?:20[2-3][0-9]|19[8-9][0-9])/.test(cleanStr) && (cleanStr.includes('/') || cleanStr.includes('-') || cleanStr.includes('.'))) {
+      return true;
+    }
+    if (/^\d{4}[\/\-\.]\d{1,2}[\/\-\.]\d{1,2}$/.test(cleanStr) || /^\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{4}$/.test(cleanStr)) {
       return true;
     }
     return false;
@@ -203,7 +207,7 @@ export function extractElectricityNumbers(rawText) {
     foundAccounts.add(match[1]);
   }
 
-  // 2. Iraqi Kurdistan Phone Numbers (0750..., 0770..., 0780..., 0790..., 964..., 964999...)
+  // 2. Iraqi Kurdistan Phone Numbers (0750..., 0770..., 0780..., 0790..., 964...)
   const phonePattern = /\b(?:(?:\+?964|00964)[\s-]?)?(0?7[5789][0-9]{8})\b|\b(964[0-9]{8,11})\b/g;
   while ((match = phonePattern.exec(clean)) !== null) {
     const p = match[1] || match[2] || match[0];
@@ -234,12 +238,29 @@ export function extractElectricityNumbers(rawText) {
       !num.startsWith('2026') &&
       !isDateString(num)
     ) {
-      // If a 9-digit number is detected, auto-add 63 and 70 prefix candidates
+      // In Kurdistan electricity bills, 9-digit account numbers are prefixed with 63 (Erbil) or 70 (Sulaymaniyah)
       if (num.length === 9) {
-        if (clean.includes('63')) foundAccounts.add('63' + num);
-        if (clean.includes('70')) foundAccounts.add('70' + num);
+        foundAccounts.add('63' + num); // Erbil province
+        foundAccounts.add('70' + num); // Sulaymaniyah province
+        foundAccounts.add(num);
+      } else if (num.length === 10) {
+        if (num.startsWith('3')) foundAccounts.add('6' + num); // e.g. 6 + 3450291130 -> 63450291130
+        if (num.startsWith('0')) foundAccounts.add('7' + num); // e.g. 7 + 0000374549 -> 70000374549
+        foundAccounts.add(num);
+      } else {
+        foundAccounts.add(num);
       }
-      foundAccounts.add(num);
+    }
+  }
+
+  // Check all lines in raw text for numbers separated by spaces/newlines
+  const lines = clean.split(/[\r\n]+/);
+  for (const line of lines) {
+    const lineDigits = line.replace(/[^\d]/g, '');
+    if (lineDigits.length >= 10 && lineDigits.length <= 12) {
+      if (/^(?:6[1-5]|7[0-5])/.test(lineDigits)) {
+        foundAccounts.add(lineDigits);
+      }
     }
   }
 
@@ -302,47 +323,43 @@ export function extractElectricityNumbers(rawText) {
     results.totalAmount = amountMatch[1].trim();
   }
 
-  results.accountNumbers = Array.from(foundAccounts).filter(a => !isDateString(a));
+  // ── SORT AND PRIORITIZE ALL ACCOUNT NUMBERS ──
+  const allAccounts = Array.from(foundAccounts).filter(a => !isDateString(a));
+
+  allAccounts.sort((a, b) => {
+    const pureA = a.replace(/\D/g, '');
+    const pureB = b.replace(/\D/g, '');
+
+    // Priority 1: Exact 11-Digit Kurdistan Account (63... or 70... or 61-65, 71-75)
+    const is11KurdA = pureA.length === 11 && (pureA.startsWith('63') || pureA.startsWith('70') || /^(?:6[1-5]|7[0-5])/.test(pureA));
+    const is11KurdB = pureB.length === 11 && (pureB.startsWith('63') || pureB.startsWith('70') || /^(?:6[1-5]|7[0-5])/.test(pureB));
+    if (is11KurdA && !is11KurdB) return -1;
+    if (!is11KurdA && is11KurdB) return 1;
+
+    // Priority 2: Other 11-digit numbers
+    if (pureA.length === 11 && pureB.length !== 11) return -1;
+    if (pureA.length !== 11 && pureB.length === 11) return 1;
+
+    // Priority 3: Slashed yellow folder format (e.g. 1891 / 205)
+    const isSlashA = a.includes('/') || a.includes('-');
+    const isSlashB = b.includes('/') || b.includes('-');
+    if (isSlashA && !isSlashB) return -1;
+    if (!isSlashA && isSlashB) return 1;
+
+    // Priority 4: Longer digit count
+    return pureB.length - pureA.length;
+  });
+
+  results.accountNumbers = allAccounts;
   results.phoneNumbers = Array.from(foundPhones);
   results.fileNumbers = Array.from(foundFiles);
 
-  // Set Primary Phone
   if (results.phoneNumbers.length > 0) {
     results.primaryPhone = results.phoneNumbers[0];
   }
 
-  // ── STRICT HIERARCHY FOR PRIMARY ACCOUNT NUMBER ──
   if (results.accountNumbers.length > 0) {
-    // 🥇 Tier 1: EXACT 11-Digit Kurdistan Electricity Account Number (e.g. 63450291130, 70000374549, 63157262865)
-    const exact11Kurd = results.accountNumbers.find(n => {
-      const pure = n.replace(/\D/g, '');
-      return pure.length === 11 && (
-        pure.startsWith('61') || pure.startsWith('62') || pure.startsWith('63') || pure.startsWith('64') || pure.startsWith('65') ||
-        pure.startsWith('70') || pure.startsWith('71') || pure.startsWith('72') || pure.startsWith('73') || pure.startsWith('74') || pure.startsWith('75')
-      );
-    });
-
-    // 🥈 Tier 2: 8 to 13-digit number with standard Kurdistan prefixes
-    const standardGov = results.accountNumbers.find(n => {
-      const pure = n.replace(/\D/g, '');
-      return pure.length >= 8 && pure.length <= 13 && (
-        pure.startsWith('61') || pure.startsWith('62') || pure.startsWith('63') || pure.startsWith('64') || pure.startsWith('65') ||
-        pure.startsWith('70') || pure.startsWith('71') || pure.startsWith('72') || pure.startsWith('73') || pure.startsWith('74') || pure.startsWith('75')
-      );
-    });
-
-    // 🥉 Tier 3: Slashed yellow folder format (e.g. 1891 / 205)
-    const preferredSlash = results.accountNumbers.find(n => (n.includes('/') || n.includes('-')) && !isDateString(n));
-
-    // 🏅 Tier 4: Any continuous 8+ digit number (not date)
-    const preferredLong = results.accountNumbers.find(n => {
-      const pure = n.replace(/\D/g, '');
-      return pure.length >= 8 && !isDateString(n);
-    });
-
-    results.primaryAccount = exact11Kurd 
-      ? exact11Kurd.replace(/\D/g, '') 
-      : (standardGov ? standardGov.replace(/\D/g, '') : (preferredSlash || preferredLong || null));
+    results.primaryAccount = results.accountNumbers[0].replace(/\s+/g, '');
   }
 
   return results;
@@ -380,7 +397,7 @@ export async function scanBarcodeOrQr(imgElement) {
 }
 
 /**
- * Super-Intelligent Multi-Pass OCR Pipeline
+ * Super-Intelligent Multi-Pass OCR Pipeline across Entire Image
  */
 export async function performSmartOCR(dataUrl, onProgress = () => {}) {
   let combinedText = '';
@@ -393,7 +410,7 @@ export async function performSmartOCR(dataUrl, onProgress = () => {}) {
   });
 
   // ── PASS 0: Instant Barcode / QR Detection ──
-  onProgress(10, 'پشکنینی خێرای باڕکۆد و QR-Code ی وەسڵ...');
+  onProgress(10, 'پشکنینی باڕکۆد و QR-Code ی وەسڵ...');
   const qrResult = await scanBarcodeOrQr(img);
   if (qrResult && qrResult.primaryAccount) {
     onProgress(100, 'سەرکەوتوو بوو! ژمارەی ئەژمار لە QR-Code دۆزرایەوە.');
@@ -403,25 +420,20 @@ export async function performSmartOCR(dataUrl, onProgress = () => {}) {
   // ── PASS 1: Native Mobile TextDetector (Ultra-fast & offline on Android) ──
   if (typeof window !== 'undefined' && 'TextDetector' in window) {
     try {
-      onProgress(20, 'خوێندنەوەی خێرای دەق و ژمارەکان...');
+      onProgress(20, 'خوێندنەوەی خێرای دەق و ژمارەکان لە سەرانسەری وێنە...');
       const detector = new window.TextDetector();
       const detected = await detector.detect(img);
       if (Array.isArray(detected) && detected.length > 0) {
         const nativeText = detected.map(d => d.rawValue || '').join('\n');
         combinedText += '\n' + nativeText;
-        const parsed = extractElectricityNumbers(combinedText);
-        if (parsed.primaryAccount) {
-          onProgress(100, 'سەرکەوتوو بوو! ژمارەی ئەژمار دۆزرایەوە.');
-          return parsed;
-        }
       }
     } catch (nativeErr) {
       console.warn('Native TextDetector fallback:', nativeErr);
     }
   }
 
-  // ── PASS 2: Bundled Tesseract Engine with Adaptive Passes ──
-  onProgress(35, 'شیکردنەوەی پێشکەوتووی وەسڵ بە تەرکیزی ئەژمار...');
+  // ── PASS 2: Bundled Tesseract Engine Across Entire Image (No early cropping) ──
+  onProgress(35, 'شیکردنەوەی تەواوی وێنەکە بە کوالێتی بەرز...');
   let worker = null;
 
   try {
@@ -429,48 +441,30 @@ export async function performSmartOCR(dataUrl, onProgress = () => {}) {
       workerBlobURL: true,
       logger: (m) => {
         if (m.status === 'recognizing text' && typeof m.progress === 'number') {
-          const p = Math.round(35 + m.progress * 45);
-          onProgress(p, `پشکنینی خاڵ بە خاڵی وەسڵەکە... (${Math.round(m.progress * 100)}%)`);
+          const p = Math.round(35 + m.progress * 50);
+          onProgress(p, `پشکنینی خاڵ بە خاڵی سەرجەم وەسڵەکە... (${Math.round(m.progress * 100)}%)`);
         }
       }
     });
 
-    // Pass 2A: Targeted Account Region Zoom (Where Account ID sits on Kurdistan receipts)
-    const targetCroppedUrl = preprocessImage(img, 'receipt', { x: 0.40, y: 0.25, w: 0.58, h: 0.50 });
-    if (targetCroppedUrl) {
-      const resultTarget = await worker.recognize(targetCroppedUrl);
-      const textTarget = resultTarget?.data?.text || '';
-      combinedText += '\n' + textTarget;
-      const parsedTarget = extractElectricityNumbers(combinedText);
-      if (parsedTarget.primaryAccount) {
-        await worker.terminate();
-        onProgress(100, 'سەرکەوتوو بوو! ژمارەی ئەژمار بە سەرکەوتوویی دۆزرایەوە.');
-        return parsedTarget;
-      }
-    }
-
-    // Pass 2B: Full High-Definition Receipt Filter
+    // Pass 2A: Full High-Definition Receipt Filter (Entire Image)
     const receiptUrl = preprocessImage(img, 'receipt');
     const result1 = await worker.recognize(receiptUrl || dataUrl);
     const text1 = result1?.data?.text || '';
     combinedText += '\n' + text1;
-    let parsed = extractElectricityNumbers(combinedText);
 
-    // Pass 2C: Yellow Folder / High Contrast Filter if not found
-    if (!parsed.primaryAccount && parsed.accountNumbers.length === 0) {
-      onProgress(80, 'تاقیکردنەوەی فلتەری دووەم بۆ فایلی زەرد...');
-      const yellowUrl = preprocessImage(img, 'yellow_folder');
-      if (yellowUrl) {
-        const result2 = await worker.recognize(yellowUrl);
-        const text2 = result2?.data?.text || '';
-        combinedText += '\n' + text2;
-        parsed = extractElectricityNumbers(combinedText);
-      }
+    // Pass 2B: High Contrast Yellow-Paper Filter across Entire Image
+    onProgress(85, 'پشکنینی فلتەری دووەم بۆ دەرهێنانی تەواوی ژمارەکان...');
+    const yellowUrl = preprocessImage(img, 'yellow_folder');
+    if (yellowUrl) {
+      const result2 = await worker.recognize(yellowUrl);
+      const text2 = result2?.data?.text || '';
+      combinedText += '\n' + text2;
     }
 
     await worker.terminate();
     onProgress(100, 'پشکنین بە سەرکەوتوویی تەواو بوو');
-    return parsed;
+    return extractElectricityNumbers(combinedText);
   } catch (err) {
     if (worker) {
       try { await worker.terminate(); } catch (e) {}

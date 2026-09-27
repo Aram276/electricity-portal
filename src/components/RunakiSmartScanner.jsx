@@ -527,29 +527,111 @@ export default function RunakiSmartScanner({
             </div>
           )}
 
-          {/* ── 2. DETECTED CANDIDATE NUMBERS CHIPS (ئەگەر دوو ژمارە یان زیاتر دۆزرابێتەوە) ── */}
-          {extractedData?.accountNumbers && extractedData.accountNumbers.length > 1 && (
-            <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-amber-500/30 space-y-2 shadow-md animate-fadeIn">
-              <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-amber-400" />
-                <span>ژمارە دۆزراوەکانی تری وەسڵەکە (بۆ هەڵبژاردن پەنجەی لێبدە):</span>
-              </span>
-              <div className="flex flex-wrap gap-2 pt-1">
-                {extractedData.accountNumbers.map((num, idx) => (
+          {/* ── 2. ALL DETECTED NUMBERS SECTION (سەرجەم ژمارە دۆزراوەکانی وەسڵ) ── */}
+          {extractedData?.accountNumbers && extractedData.accountNumbers.length > 0 && (
+            <div className="p-4 rounded-2xl bg-slate-900/90 border border-amber-500/30 space-y-3 shadow-lg animate-fadeIn">
+              <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  <span>سەرجەم ژمارە ئەژمارە دۆزراوەکان ({extractedData.accountNumbers.length} دانە):</span>
+                </span>
+                {extractedData.accountNumbers.length > 1 && (
                   <button
-                    key={idx}
                     type="button"
-                    onClick={() => handleSelectCandidate(num)}
-                    className={`px-3.5 py-2 rounded-xl font-mono text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 border shadow-sm ${
-                      currentActiveAccount === num
-                        ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md scale-105 ring-2 ring-amber-400/50'
-                        : 'bg-slate-800 hover:bg-amber-500/20 text-slate-200 border-white/10 hover:border-amber-400/40'
-                    }`}
+                    onClick={() => handleCopy(extractedData.accountNumbers.join('\n'), 'all_accounts')}
+                    className="text-[11px] px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 font-bold flex items-center gap-1 cursor-pointer transition-all"
                   >
-                    <span>{num}</span>
-                    {currentActiveAccount === num && <Check className="w-3.5 h-3.5 text-slate-950" />}
+                    {copiedKey === 'all_accounts' ? (
+                      <>
+                        <Check className="w-3 h-3 text-emerald-400" />
+                        <span className="text-emerald-300">هەمووی کۆپی کرا!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3 h-3" />
+                        <span>کۆپیکردنی هەموویان</span>
+                      </>
+                    )}
                   </button>
-                ))}
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 gap-2 pt-1">
+                {extractedData.accountNumbers.map((num, idx) => {
+                  const pure = num.replace(/\D/g, '');
+                  const is11Kurd = pure.length === 11 && (pure.startsWith('63') || pure.startsWith('70') || /^(?:6[1-5]|7[0-5])/.test(pure));
+                  const isSelected = currentActiveAccount === num;
+
+                  return (
+                    <div
+                      key={idx}
+                      className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 transition-all ${
+                        isSelected
+                          ? 'bg-amber-950/40 border-amber-400 ring-1 ring-amber-400/40'
+                          : 'bg-slate-800/80 hover:bg-slate-800 border-white/10'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 overflow-hidden">
+                        <button
+                          type="button"
+                          onClick={() => handleSelectCandidate(num)}
+                          className="font-mono text-base sm:text-lg font-black text-amber-300 hover:text-amber-200 cursor-pointer text-left tracking-wider"
+                        >
+                          {num}
+                        </button>
+                        {is11Kurd && (
+                          <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-md font-bold shrink-0">
+                            ⚡ ۱۱ ژمارەیی کوردستان
+                          </span>
+                        )}
+                        {isSelected && (
+                          <span className="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-md font-bold shrink-0">
+                            سەرەکی
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(num, `acc-${idx}`)}
+                          className={`px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition-all cursor-pointer ${
+                            copiedKey === `acc-${idx}`
+                              ? 'bg-emerald-500 text-slate-950'
+                              : 'bg-slate-700 hover:bg-amber-500/30 text-slate-200 hover:text-amber-300 border border-white/10'
+                          }`}
+                        >
+                          {copiedKey === `acc-${idx}` ? (
+                            <>
+                              <Check className="w-3.5 h-3.5" />
+                              <span>کۆپی کرا</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3.5 h-3.5" />
+                              <span>کۆپی</span>
+                            </>
+                          )}
+                        </button>
+
+                        {onSearchInSystem && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onSearchInSystem(num);
+                              if (onClose) onClose();
+                            }}
+                            className="px-2.5 py-1.5 rounded-lg bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 border border-blue-500/30 text-xs font-bold flex items-center gap-1 cursor-pointer transition-all"
+                            title="گەڕان لە سیستەم"
+                          >
+                            <Search className="w-3.5 h-3.5" />
+                            <span>گەڕان</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
