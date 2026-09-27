@@ -39,15 +39,23 @@ export function subscribeToCloudRecords(onUpdateCallback) {
   let unsubSpecial = () => {};
 
   const notifyMerged = () => {
-    let source = [];
-    if (latestCloudRegular && latestCloudRegular.length > 0) {
-      source = latestCloudRegular;
-    } else if (latestCloudSpecial && latestCloudSpecial.length > 0) {
-      source = latestCloudSpecial;
-    } else {
-      source = getStoredRecords();
-    }
-    const cleaned = deduplicateRecords(source);
+    // 1. Regular records from cloud
+    const regularRecords = (latestCloudRegular || []).filter(r => r && !r.isSpecial && !r.isDeleted);
+
+    // 2. Special records from dedicated cloud doc, regular doc, and local storage safety
+    const specialFromRegular = (latestCloudRegular || []).filter(r => r && r.isSpecial === true && !r.isDeleted);
+    const specialFromDedicated = (latestCloudSpecial || []).filter(r => r && !r.isDeleted).map(r => ({ ...r, isSpecial: true }));
+    const localSpecials = getStoredSpecialRecords().filter(r => r && !r.isDeleted).map(r => ({ ...r, isSpecial: true }));
+
+    // Merge specials by fileNumber / id so no special is ever lost
+    const specialMap = new Map();
+    [...localSpecials, ...specialFromRegular, ...specialFromDedicated].forEach(sp => {
+      const key = String(sp.fileNumber || sp.id || Math.random()).trim();
+      specialMap.set(key, sp);
+    });
+
+    const allMerged = [...regularRecords, ...specialMap.values()];
+    const cleaned = deduplicateRecords(allMerged.length > 0 ? allMerged : getStoredRecords());
     saveRecords(cleaned);
     onUpdateCallback(cleaned);
   };
@@ -57,7 +65,7 @@ export function subscribeToCloudRecords(onUpdateCallback) {
     unsubRegular = onSnapshot(DOC_REF, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data();
-        if (data && Array.isArray(data.records) && data.records.length > 0) {
+        if (data && Array.isArray(data.records)) {
           latestCloudRegular = data.records;
           notifyMerged();
           return;

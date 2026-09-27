@@ -21,10 +21,19 @@ import {
   Sliders,
   Maximize2,
   ScanLine,
-  ArrowRight
+  ArrowRight,
+  Crop,
+  Delete,
+  RotateCcw,
+  MessageSquare,
+  DollarSign,
+  Calendar,
+  Box
 } from 'lucide-react';
-import { performSmartOCR, extractElectricityNumbers, toLatinDigits } from '../utils/smartOcrEngine';
+import { performSmartOCR, extractElectricityNumbers, toLatinDigits, preprocessImage } from '../utils/smartOcrEngine';
 import runakiLogo from '../assets/runaki-logo.png';
+
+const KURDISH_DIGITS = ['١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩', '٠', '/', '-'];
 
 export default function RunakiSmartScanner({
   isOpen = true,
@@ -35,10 +44,9 @@ export default function RunakiSmartScanner({
 }) {
   const [imageSrc, setImageSrc] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [statusMessage, setStatusMessage] = useState('ئامادەیە — وێنەی وەسڵەکە بگرە یان هەڵیبژێرە.');
+  const [statusMessage, setStatusMessage] = useState('ئامادەیە — وێنەی وەسڵەکە بگرە یان ژمارەکە بە کیبۆرد لێبدە.');
   const [progressPercent, setProgressPercent] = useState(0);
   const [extractedData, setExtractedData] = useState(null);
-  const [rawOcrText, setRawOcrText] = useState('');
   const [copiedKey, setCopiedKey] = useState(null);
   const [matchedRecord, setMatchedRecord] = useState(null);
   const [manualInput, setManualInput] = useState('');
@@ -86,15 +94,8 @@ export default function RunakiSmartScanner({
           break;
         } else if (items[i].type === 'text/plain') {
           items[i].getAsString((text) => {
-            if (text && text.trim().length >= 3) {
-              const clean = toLatinDigits(text.trim());
-              setManualInput(clean);
-              const parsed = extractElectricityNumbers(clean);
-              if (parsed.primaryAccount) {
-                setExtractedData(parsed);
-                setEditedPrimary(parsed.primaryAccount);
-                findMatchingRecord(parsed.primaryAccount);
-              }
+            if (text && text.trim().length >= 1) {
+              handleNumberInput(text.trim());
             }
           });
         }
@@ -108,6 +109,47 @@ export default function RunakiSmartScanner({
       window.removeEventListener('paste', handlePaste);
     };
   }, [isOpen, records, onClose]);
+
+  // Handle number input (both typed and keypad)
+  const handleNumberInput = (rawVal) => {
+    setManualInput(rawVal);
+    const cleanLatin = toLatinDigits(rawVal);
+    if (cleanLatin && cleanLatin.trim().length >= 1) {
+      const parsed = extractElectricityNumbers(cleanLatin);
+      const primary = parsed.primaryAccount || cleanLatin.trim();
+      setExtractedData(prev => ({
+        ...(prev || {}),
+        ...parsed,
+        primaryAccount: primary
+      }));
+      setEditedPrimary(primary);
+      findMatchingRecord(primary);
+    } else {
+      setEditedPrimary('');
+      setMatchedRecord(null);
+    }
+  };
+
+  // Keypad button click
+  const handleKeypadPress = (char) => {
+    triggerHaptic();
+    const updated = manualInput + char;
+    handleNumberInput(updated);
+  };
+
+  const handleKeypadBackspace = () => {
+    triggerHaptic();
+    const updated = manualInput.slice(0, -1);
+    handleNumberInput(updated);
+  };
+
+  const handleKeypadClear = () => {
+    triggerHaptic();
+    setManualInput('');
+    setExtractedData(null);
+    setEditedPrimary('');
+    setMatchedRecord(null);
+  };
 
   // Match in local records
   const findMatchingRecord = (accountOrFileNum) => {
@@ -186,23 +228,22 @@ export default function RunakiSmartScanner({
         setStatusMessage(msg);
       });
 
-      setRawOcrText(parsed.rawText || '');
       setExtractedData(parsed);
 
       if (parsed.primaryAccount) {
         setEditedPrimary(parsed.primaryAccount);
         findMatchingRecord(parsed.primaryAccount);
         triggerHaptic();
-        setStatusMessage(`ژمارەی ئەژمار بە سەرکەوتوویی دەرهێنرا: ${parsed.primaryAccount}`);
+        setStatusMessage(`ژمارەی ئەژمار بە سەرکەوتوویی دۆزرایەوە: ${parsed.primaryAccount}`);
       } else if (parsed.phoneNumbers.length > 0 || parsed.accountNumbers.length > 0) {
         triggerHaptic();
-        setStatusMessage('ژمارە لە وێنەکەدا دۆزرایەوە.');
+        setStatusMessage('زانیاری و ژمارە لە وێنەکەدا دۆزرایەوە.');
       } else {
-        setStatusMessage('ژمارەکە بە ڕوونی نەخوێندرایەوە. دەتوانیت لە خوارەوە بینوسیت.');
+        setStatusMessage('ژمارەکە بە ڕوونی نەخوێندرایەوە. دەتوانیت بە کیبۆردی خوارەوە دەستنیشانی بکەیت.');
       }
     } catch (err) {
       console.error('Smart OCR Error:', err);
-      setStatusMessage('هەڵەیەک لە خوێندنەوەی وێنەکە ڕوویدا. دەتوانیت ژمارەکە بنووسیت.');
+      setStatusMessage('دەتوانیت لە خوارەوە ژمارەی ئەژمار بە دوگمەکان لێبدەیت.');
     } finally {
       setIsProcessing(false);
     }
@@ -222,14 +263,7 @@ export default function RunakiSmartScanner({
     try {
       const text = await navigator.clipboard.readText();
       if (text) {
-        const clean = toLatinDigits(text.trim());
-        setManualInput(clean);
-        const parsed = extractElectricityNumbers(clean);
-        if (parsed.primaryAccount) {
-          setExtractedData(parsed);
-          setEditedPrimary(parsed.primaryAccount);
-          findMatchingRecord(parsed.primaryAccount);
-        }
+        handleNumberInput(text.trim());
       }
     } catch (e) {
       console.warn('Clipboard read error:', e);
@@ -245,21 +279,10 @@ export default function RunakiSmartScanner({
     handleCopy(num, `candidate-${num}`);
   };
 
-  // Manual search
-  const handleManualSearch = (e) => {
-    e.preventDefault();
-    const query = (isEditingPrimary && editedPrimary) ? editedPrimary : manualInput;
-    if (!query || !query.trim()) return;
-    const cleanNum = toLatinDigits(query.trim());
-    if (onSearchInSystem) {
-      onSearchInSystem(cleanNum);
-      if (onClose) onClose();
-    }
-  };
-
   if (!isOpen) return null;
 
-  const currentActiveAccount = editedPrimary || extractedData?.primaryAccount;
+  const currentActiveAccount = editedPrimary || extractedData?.primaryAccount || (manualInput ? toLatinDigits(manualInput) : '');
+  const detectedPhone = extractedData?.primaryPhone || (extractedData?.phoneNumbers && extractedData.phoneNumbers[0]);
 
   return (
     <div 
@@ -282,7 +305,7 @@ export default function RunakiSmartScanner({
 
       {/* Main Dialog Modal Container */}
       <div 
-        className={`relative w-full max-w-lg bg-gradient-to-b from-[#111827] via-[#0b0f19] to-[#080b12] text-slate-100 rounded-t-[2.5rem] sm:rounded-3xl border border-amber-500/20 shadow-2xl shadow-black/80 overflow-hidden max-h-[92vh] flex flex-col my-0 sm:my-auto transition-all duration-300 ${
+        className={`relative w-full max-w-xl bg-gradient-to-b from-[#111827] via-[#0b0f19] to-[#080b12] text-slate-100 rounded-t-[2.5rem] sm:rounded-3xl border border-amber-500/20 shadow-2xl shadow-black/80 overflow-hidden max-h-[94vh] flex flex-col my-0 sm:my-auto transition-all duration-300 ${
           dragActive ? 'ring-4 ring-amber-400/50 scale-[1.01]' : ''
         }`}
       >
@@ -291,7 +314,7 @@ export default function RunakiSmartScanner({
         <div className="absolute bottom-10 left-10 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl pointer-events-none -z-0"></div>
 
         {/* Modal Header */}
-        <div className="relative z-10 px-5 sm:px-6 pt-5 pb-4 border-b border-white/5 flex items-center justify-between bg-slate-900/40 backdrop-blur-xl">
+        <div className="relative z-10 px-5 sm:px-6 pt-5 pb-4 border-b border-white/5 flex items-center justify-between bg-slate-900/40 backdrop-blur-xl shrink-0">
           <div className="flex items-center gap-3">
             <div className="relative flex items-center justify-center">
               <img 
@@ -308,7 +331,7 @@ export default function RunakiSmartScanner({
                 Runaki Smart Scanner
               </h2>
               <p className="text-xs text-slate-400 font-medium">
-                سکانەری زیرەکی وەسڵ و ژمارەی ئەژمار
+                سکانەری زیرەکی وەسڵ، ژمارەی ئەژمار و تەلەفۆن
               </p>
             </div>
           </div>
@@ -325,21 +348,19 @@ export default function RunakiSmartScanner({
         </div>
 
         {/* Scrollable Content */}
-        <div className="relative z-10 p-5 sm:p-6 space-y-4.5 overflow-y-auto">
+        <div className="relative z-10 p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
           
           {/* Main Action Buttons Grid */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2.5">
             {/* Camera Button */}
             <button
               type="button"
               onClick={handleTriggerCamera}
               disabled={isProcessing}
-              className="group relative overflow-hidden p-4 rounded-2xl bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/20 active:scale-97 transition-all flex flex-col items-center justify-center gap-2 cursor-pointer disabled:opacity-50 border border-amber-300/60"
+              className="group relative overflow-hidden p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/20 active:scale-97 transition-all flex flex-col items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 border border-amber-300/60"
             >
-              <div className="w-10 h-10 rounded-xl bg-slate-950/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Camera className="w-6 h-6 text-slate-950" />
-              </div>
-              <span className="text-sm font-black text-slate-950">وێنەی وەسڵ بگرە 📸</span>
+              <Camera className="w-5 h-5 sm:w-6 sm:h-6 text-slate-950" />
+              <span className="text-xs sm:text-sm font-black text-slate-950">وێنەی وەسڵ بگرە 📸</span>
             </button>
 
             {/* Gallery Upload Button */}
@@ -347,17 +368,15 @@ export default function RunakiSmartScanner({
               type="button"
               onClick={handleTriggerCamera}
               disabled={isProcessing}
-              className="group p-4 rounded-2xl bg-slate-800/80 hover:bg-slate-750 active:scale-97 text-slate-200 font-bold border border-white/10 hover:border-amber-500/30 transition-all flex flex-col items-center justify-center gap-2 cursor-pointer disabled:opacity-50 shadow-md"
+              className="group p-3.5 sm:p-4 rounded-2xl bg-slate-800/80 hover:bg-slate-750 active:scale-97 text-slate-200 font-bold border border-white/10 hover:border-amber-500/30 transition-all flex flex-col items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-md"
             >
-              <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Upload className="w-5 h-5 text-amber-400" />
-              </div>
-              <span className="text-sm font-bold text-slate-200">هەڵبژاردنی وێنە 🖼️</span>
+              <Upload className="w-5 h-5 text-amber-400" />
+              <span className="text-xs sm:text-sm font-bold text-slate-200">هەڵبژاردنی وێنە 🖼️</span>
             </button>
           </div>
 
           {/* Status Bar */}
-          <div className="p-3 rounded-xl bg-slate-900/60 border border-white/5 flex flex-col items-center justify-center gap-2 text-center">
+          <div className="p-2.5 sm:p-3 rounded-xl bg-slate-900/60 border border-white/5 flex flex-col items-center justify-center gap-1.5 text-center">
             {isProcessing && (
               <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
                 <div 
@@ -381,134 +400,83 @@ export default function RunakiSmartScanner({
             </div>
           </div>
 
-          {/* ── DETECTED RESULT LUXURY CARD ── */}
-          {extractedData && (extractedData.primaryAccount || extractedData.accountNumbers.length > 0 || extractedData.phoneNumbers.length > 0) && (
-            <div className="p-4 sm:p-5 rounded-2xl bg-slate-900/90 border border-amber-500/30 shadow-xl space-y-4 animate-scaleUp">
-              
-              {/* Card Header */}
-              <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                <div className="flex items-center gap-2 text-xs font-bold text-amber-400">
-                  <ScanLine className="w-4 h-4 text-amber-400" />
-                  <span>ئەنجامی پشکنین:</span>
+          {/* ── 1. PRIMARY ACCOUNT NUMBER CARD (ژمارەی ئەژمار) ── */}
+          {currentActiveAccount && (
+            <div className="p-4 rounded-2xl bg-slate-900/90 border-2 border-amber-500/40 shadow-xl space-y-3 animate-scaleUp">
+              <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-amber-400">
+                  <Hash className="w-4 h-4 text-amber-400" />
+                  <span>ژمارەی ئەژمار (Account ID):</span>
                 </div>
-                <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>دۆزرایەوە</span>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsEditingPrimary(!isEditingPrimary)}
+                  className="text-[11px] text-amber-400 hover:text-amber-300 font-bold cursor-pointer flex items-center gap-1"
+                >
+                  <Edit3 className="w-3 h-3" />
+                  <span>{isEditingPrimary ? 'تەواو' : 'دەستکاری'}</span>
+                </button>
               </div>
 
-              {/* Primary Account ID Hero Card */}
-              {currentActiveAccount && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs text-slate-400">
-                    <span className="font-semibold">ژمارەی ئەژمار (Account ID):</span>
-                    <button
-                      type="button"
-                      onClick={() => setIsEditingPrimary(!isEditingPrimary)}
-                      className="text-[11px] text-amber-400 hover:text-amber-300 flex items-center gap-1 cursor-pointer font-bold"
-                    >
-                      <Edit3 className="w-3 h-3" />
-                      <span>{isEditingPrimary ? 'تەواو' : 'دەستکاری'}</span>
-                    </button>
-                  </div>
-
-                  {isEditingPrimary ? (
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={editedPrimary}
-                        onChange={(e) => setEditedPrimary(toLatinDigits(e.target.value))}
-                        className="flex-1 px-4 py-2.5 bg-black/60 border border-amber-400/80 rounded-xl font-mono text-xl text-amber-300 text-center font-black focus:outline-none"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsEditingPrimary(false);
-                          findMatchingRecord(editedPrimary);
-                        }}
-                        className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl cursor-pointer"
-                      >
-                        پاشەکەوت
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="p-3.5 rounded-xl bg-gradient-to-r from-black/80 via-slate-950 to-black/80 border border-amber-400/40 flex items-center justify-between gap-3 shadow-inner">
-                      <div className="font-mono text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400 tracking-wider">
-                        {currentActiveAccount}
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => handleCopy(currentActiveAccount, 'primary')}
-                        className={`px-3.5 py-2.5 rounded-xl font-black text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer ${
-                          copiedKey === 'primary' 
-                            ? 'bg-emerald-500 text-slate-950' 
-                            : 'bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950'
-                        }`}
-                      >
-                        {copiedKey === 'primary' ? (
-                          <>
-                            <Check className="w-4 h-4" />
-                            <span>کۆپی کرا!</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="w-4 h-4" />
-                            <span>کۆپیکردن</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  )}
+              {isEditingPrimary ? (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={editedPrimary}
+                    onChange={(e) => setEditedPrimary(toLatinDigits(e.target.value))}
+                    className="flex-1 px-3 py-2 bg-black/60 border border-amber-400 rounded-xl font-mono text-xl text-amber-300 text-center font-black focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsEditingPrimary(false);
+                      findMatchingRecord(editedPrimary);
+                    }}
+                    className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl cursor-pointer"
+                  >
+                    پاشەکەوت
+                  </button>
                 </div>
-              )}
-
-              {/* Multiple Candidate Selector */}
-              {(extractedData.accountNumbers?.length > 1 || extractedData.phoneNumbers?.length > 0) && (
-                <div className="space-y-1.5 pt-1">
-                  <span className="text-[11px] font-bold text-slate-400">ژمارە پەیوەندیدارەکانی تر:</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {extractedData.accountNumbers?.map((num) => (
-                      <button
-                        key={num}
-                        type="button"
-                        onClick={() => handleSelectCandidate(num)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                          currentActiveAccount === num 
-                            ? 'bg-amber-400 text-slate-950 shadow-sm' 
-                            : 'bg-white/5 hover:bg-white/10 text-amber-300 border border-white/5'
-                        }`}
-                      >
-                        <Hash className="w-3 h-3 opacity-60" />
-                        <span>{num}</span>
-                      </button>
-                    ))}
-                    {extractedData.phoneNumbers?.map((phone) => (
-                      <button
-                        key={phone}
-                        type="button"
-                        onClick={() => handleCopy(phone, `phone-${phone}`)}
-                        className="px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/20 text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1"
-                      >
-                        <Phone className="w-3 h-3 text-emerald-400" />
-                        <span>{phone}</span>
-                        {copiedKey === `phone-${phone}` && <Check className="w-3 h-3 text-emerald-400" />}
-                      </button>
-                    ))}
+              ) : (
+                <div className="p-3.5 rounded-xl bg-gradient-to-r from-black/80 via-slate-950 to-black/80 border border-amber-400/40 flex items-center justify-between gap-2 shadow-inner">
+                  <div className="font-mono text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400 tracking-wider">
+                    {currentActiveAccount}
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(currentActiveAccount, 'primary')}
+                    className={`px-4 py-2.5 rounded-xl font-black text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer ${
+                      copiedKey === 'primary' 
+                        ? 'bg-emerald-500 text-slate-950' 
+                        : 'bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950'
+                    }`}
+                  >
+                    {copiedKey === 'primary' ? (
+                      <>
+                        <Check className="w-4 h-4" />
+                        <span>کۆپی کرا! ✅</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" />
+                        <span>کۆپیکردن 📋</span>
+                      </>
+                    )}
+                  </button>
                 </div>
               )}
 
               {/* Action Buttons: Instant Search & Open File */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-                {onSearchInSystem && currentActiveAccount && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                {onSearchInSystem && (
                   <button
                     type="button"
                     onClick={() => {
                       onSearchInSystem(currentActiveAccount);
                       if (onClose) onClose();
                     }}
-                    className="py-3 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 active:scale-97 transition-all cursor-pointer"
+                    className="py-2.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-xs flex items-center justify-center gap-2 shadow-lg active:scale-97 transition-all cursor-pointer"
                   >
                     <Search className="w-4 h-4" />
                     <span>گەڕان لە سیستەم 🔍</span>
@@ -522,7 +490,7 @@ export default function RunakiSmartScanner({
                       onSelectRecord(matchedRecord);
                       if (onClose) onClose();
                     }}
-                    className="py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 active:scale-97 transition-all cursor-pointer"
+                    className="py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs flex items-center justify-center gap-2 shadow-lg active:scale-97 transition-all cursor-pointer"
                   >
                     <ExternalLink className="w-4 h-4" />
                     <span>کردنەوەی فایل (#{matchedRecord.fileNumber})</span>
@@ -532,13 +500,13 @@ export default function RunakiSmartScanner({
 
               {/* Matched Citizen Record Card */}
               {matchedRecord && (
-                <div className="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-xs space-y-2 animate-fadeIn">
+                <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-xs space-y-1.5 animate-fadeIn">
                   <div className="flex items-center justify-between text-emerald-300 font-bold">
                     <span className="flex items-center gap-1.5">
                       <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                      <span>فایل لە داتابەیس دۆزرایەوە:</span>
+                      <span>فایلی هاووڵاتی لە سیستەم دۆزرایەوە!</span>
                     </span>
-                    <span className="font-mono bg-emerald-500/20 px-2 py-0.5 rounded-md text-[11px] text-emerald-300 border border-emerald-500/30 font-black">
+                    <span className="font-mono bg-emerald-500/20 px-2 py-0.5 rounded-md text-[11px] text-emerald-300 font-black">
                       فایل: #{matchedRecord.fileNumber}
                     </span>
                   </div>
@@ -556,57 +524,221 @@ export default function RunakiSmartScanner({
                   </div>
                 </div>
               )}
-
             </div>
           )}
 
-          {/* ── MANUAL SEARCH BAR ── */}
-          <div className="pt-2 border-t border-white/5 space-y-2">
-            <div className="flex items-center justify-between text-xs text-slate-400">
-              <span className="font-medium">گەڕانی دەستی یان پیستکردن:</span>
+          {/* ── 2. DETECTED CANDIDATE NUMBERS CHIPS (ئەگەر دوو ژمارە یان زیاتر دۆزرابێتەوە) ── */}
+          {extractedData?.accountNumbers && extractedData.accountNumbers.length > 1 && (
+            <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-amber-500/30 space-y-2 shadow-md animate-fadeIn">
+              <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-amber-400" />
+                <span>ژمارە دۆزراوەکانی تری وەسڵەکە (بۆ هەڵبژاردن پەنجەی لێبدە):</span>
+              </span>
+              <div className="flex flex-wrap gap-2 pt-1">
+                {extractedData.accountNumbers.map((num, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => handleSelectCandidate(num)}
+                    className={`px-3.5 py-2 rounded-xl font-mono text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 border shadow-sm ${
+                      currentActiveAccount === num
+                        ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md scale-105 ring-2 ring-amber-400/50'
+                        : 'bg-slate-800 hover:bg-amber-500/20 text-slate-200 border-white/10 hover:border-amber-400/40'
+                    }`}
+                  >
+                    <span>{num}</span>
+                    {currentActiveAccount === num && <Check className="w-3.5 h-3.5 text-slate-950" />}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── 3. PHONE NUMBER CARD (ژمارەی تەلەفۆن / مۆبایل) ── */}
+          {detectedPhone && (
+            <div className="p-3.5 rounded-2xl bg-emerald-950/40 border border-emerald-500/40 shadow-md space-y-2 animate-fadeIn">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-400">
+                  <Phone className="w-4 h-4 text-emerald-400" />
+                  <span>ژمارەی تەلەفۆن / مۆبایلی وەسڵ:</span>
+                </span>
+                <span className="text-[10px] text-emerald-300/80 bg-emerald-500/20 px-2 py-0.5 rounded-full font-bold">
+                  📞 مۆبایل
+                </span>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-black/60 border border-emerald-500/30 flex items-center justify-between gap-2">
+                <div className="font-mono text-lg font-black text-emerald-300 tracking-wider">
+                  {detectedPhone}
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(detectedPhone, 'phone')}
+                    className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1 active:scale-95 transition-all cursor-pointer shadow-sm"
+                  >
+                    {copiedKey === 'phone' ? (
+                      <>
+                        <Check className="w-3.5 h-3.5" />
+                        <span>کۆپی کرا!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>کۆپی 📋</span>
+                      </>
+                    )}
+                  </button>
+
+                  <a
+                    href={`https://wa.me/${detectedPhone.replace(/\D/g, '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-bold text-xs flex items-center gap-1 active:scale-95 transition-all border border-emerald-500/30"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span>واتسئاپ</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── 4. EXTRA EXTRACTED DETAILS (ناوی هاووڵاتی، سندوق، بڕی پارە) ── */}
+          {extractedData && (extractedData.citizenName || extractedData.boxNumber || extractedData.totalAmount) && (
+            <div className="p-3.5 rounded-2xl bg-slate-900/60 border border-white/10 space-y-2.5 text-xs animate-fadeIn">
+              <div className="text-xs font-bold text-slate-400 flex items-center gap-1.5 border-b border-white/5 pb-1.5">
+                <FileText className="w-3.5 h-3.5 text-blue-400" />
+                <span>زانیارییە دۆزراوەکانی تری وەسڵەکە:</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {/* Citizen Name */}
+                {extractedData.citizenName && (
+                  <div className="p-2 rounded-xl bg-black/40 border border-white/5 flex items-center justify-between gap-2">
+                    <span className="text-slate-400 flex items-center gap-1">
+                      <User className="w-3 h-3 text-amber-400" />
+                      <span>ناو:</span>
+                    </span>
+                    <span className="font-bold text-white truncate">{extractedData.citizenName}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(extractedData.citizenName, 'name')}
+                      className="text-amber-400 hover:text-amber-300 p-1 cursor-pointer"
+                    >
+                      <Copy className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
+
+                {/* Box Number */}
+                {extractedData.boxNumber && (
+                  <div className="p-2 rounded-xl bg-black/40 border border-white/5 flex items-center justify-between gap-2">
+                    <span className="text-slate-400 flex items-center gap-1">
+                      <Box className="w-3 h-3 text-cyan-400" />
+                      <span>سندوق:</span>
+                    </span>
+                    <span className="font-mono font-bold text-cyan-300">{extractedData.boxNumber}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(extractedData.boxNumber, 'box')}
+                      className="text-cyan-400 hover:text-cyan-300 p-1 cursor-pointer"
+                    >
+                      <Copy className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
+
+                {/* Total Bill Amount */}
+                {extractedData.totalAmount && (
+                  <div className="p-2 rounded-xl bg-black/40 border border-white/5 flex items-center justify-between gap-2 sm:col-span-2">
+                    <span className="text-slate-400 flex items-center gap-1">
+                      <DollarSign className="w-3 h-3 text-emerald-400" />
+                      <span>کۆی گشتی پسوولە:</span>
+                    </span>
+                    <span className="font-mono font-black text-emerald-400 text-sm">
+                      {extractedData.totalAmount} دینار
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ── 5. FAST KURDISH/ENGLISH NUMPAD & DIRECT TRANSLATOR ── */}
+          <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-3">
+            <div className="flex items-center justify-between text-xs text-amber-300 font-bold">
+              <span className="flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-amber-400" />
+                <span>کیبۆردی خێرای ژمارەی دەستنووس و ئەژمار:</span>
+              </span>
               <button
                 type="button"
                 onClick={handlePasteClipboard}
-                className="text-[11px] text-amber-400 hover:text-amber-300 flex items-center gap-1 cursor-pointer font-bold"
+                className="text-[11px] text-amber-400 hover:text-amber-300 flex items-center gap-1 cursor-pointer font-black"
               >
                 <ClipboardPaste className="w-3.5 h-3.5" />
-                <span>پیست لە مۆبایل</span>
+                <span>پیست 📋</span>
               </button>
             </div>
 
-            <form onSubmit={handleManualSearch} className="flex gap-2">
-              <div className="relative flex-1">
-                <input
-                  type="text"
-                  value={manualInput}
-                  onChange={(e) => setManualInput(toLatinDigits(e.target.value))}
-                  placeholder="ژمارەی ئەژمار یان مۆبایل..."
-                  className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-slate-900/90 border border-white/10 focus:border-amber-400/80 focus:ring-1 focus:ring-amber-400 text-xs font-mono text-white placeholder:text-slate-500 focus:outline-none"
-                />
+            {/* Input display bar */}
+            <div className="relative">
+              <input
+                type="text"
+                value={manualInput}
+                onChange={(e) => handleNumberInput(e.target.value)}
+                placeholder="ژمارەکە لێرە بنووسە (کوردی یان ئینگلیزی)..."
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-amber-500/40 font-mono text-base text-amber-300 placeholder:text-slate-500 focus:outline-none focus:border-amber-400"
+              />
+              {manualInput && (
                 <button
                   type="button"
-                  onClick={handlePasteClipboard}
-                  title="پیست کردن"
-                  className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-400 p-1 cursor-pointer"
+                  onClick={handleKeypadClear}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs font-bold p-1 cursor-pointer"
                 >
-                  <ClipboardPaste className="w-4 h-4" />
+                  ✕
                 </button>
-              </div>
+              )}
+            </div>
 
+            {/* Kurdish / Arabic Numeral Touch Pad */}
+            <div className="grid grid-cols-6 gap-1.5 pt-1">
+              {KURDISH_DIGITS.map((digit) => (
+                <button
+                  key={digit}
+                  type="button"
+                  onClick={() => handleKeypadPress(digit)}
+                  className="py-2.5 rounded-xl bg-slate-800/90 hover:bg-amber-500 text-amber-300 hover:text-slate-950 text-base font-black font-mono shadow-sm active:scale-90 transition-all border border-white/5 cursor-pointer"
+                >
+                  {digit}
+                </button>
+              ))}
+            </div>
+
+            {/* Quick Actions Row */}
+            <div className="flex gap-2 pt-1">
               <button
-                type="submit"
-                disabled={!manualInput.trim()}
-                className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-40 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer"
+                type="button"
+                onClick={handleKeypadBackspace}
+                className="flex-1 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-300 text-xs font-bold active:scale-95 transition-all cursor-pointer border border-white/5"
               >
-                <Search className="w-3.5 h-3.5" />
-                <span>گەڕان</span>
+                ⌫ سڕینەوەی دوا پیت
               </button>
-            </form>
+              <button
+                type="button"
+                onClick={handleKeypadClear}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-rose-900/50 text-rose-400 text-xs font-bold active:scale-95 transition-all cursor-pointer border border-white/5"
+              >
+                پاککردنەوە 🗑️
+              </button>
+            </div>
           </div>
 
           {/* Micro Helper Note */}
           <p className="text-[11px] text-slate-500 text-center font-medium">
-            💡 لە مۆبایل دەتوانیت وێنە بگریت یان لە گەلەری دایبنێیت.
+            💡 سکانەرەکە بە شێوەیەکی زیرەک لەدوای ژمارەی ئەژمار و تەلەفۆن دەگەڕێت و هەردووکت پێ دەدات.
           </p>
 
         </div>
