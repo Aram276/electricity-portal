@@ -6,7 +6,15 @@ import {
   onSnapshot 
 } from 'firebase/firestore';
 import { INITIAL_RECORDS } from '../data/initialData';
-import { getStoredRecords, saveRecords, deduplicateRecords, getStoredTrash, saveTrash } from './storage';
+import { 
+  getStoredRecords, 
+  saveRecords, 
+  deduplicateRecords, 
+  getStoredTrash, 
+  saveTrash,
+  getStoredSpecialRecords,
+  saveSpecialRecords
+} from './storage';
 import { getKurdistanDateTime, getKurdistanDate, getLocalTimestamp } from './dateUtils';
 
 export { getLocalTimestamp };

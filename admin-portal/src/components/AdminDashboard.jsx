@@ -478,7 +478,8 @@ export default function AdminDashboard({
   const stats = useMemo(() => {
     const safeRecords = Array.isArray(records) ? records : [];
     const regularRecords = safeRecords.filter(r => !r.isSpecial);
-    const total = regularRecords.length;
+    const total = safeRecords.length;
+    const regularTotal = regularRecords.length;
     let completed = 0;
     let inProgress = 0;
     let delivered = 0;
@@ -533,6 +534,7 @@ export default function AdminDashboard({
 
     return {
       total,
+      regularTotal,
       completed,
       inProgress,
       delivered,
