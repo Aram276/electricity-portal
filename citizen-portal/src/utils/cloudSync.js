@@ -118,16 +118,29 @@ export async function saveRecordsToCloud(records) {
     const cleaned = deduplicateRecords(records);
     const specials = cleaned.filter(r => r && r.isSpecial === true);
 
-    // Save locally first with dedicated special persistence
-    saveRecords(cleaned);
+    // Safety Guard: NEVER allow a small/truncated array to overwrite the full cloud database!
+    if (cleaned.length < 1000 && latestCloudRegular && latestCloudRegular.length >= 1000) {
+      console.warn(`🛡️ Data Safety Guard Blocked destructive write of ${cleaned.length} records over ${latestCloudRegular.length} cloud records.`);
+      // Merge with cloud records rather than deleting
+      const cloudMap = new Map();
+      latestCloudRegular.forEach(r => cloudMap.set(String(r.fileNumber || r.id).trim(), r));
+      cleaned.forEach(r => cloudMap.set(String(r.fileNumber || r.id).trim(), r));
+      records = Array.from(cloudMap.values());
+    }
 
-    // 1. Always save special records to dedicated special collection first
+    const safeFinal = deduplicateRecords(records);
+    const safeSpecials = safeFinal.filter(r => r && r.isSpecial === true);
+
+    // Save locally
+    saveRecords(safeFinal);
+
+    // 1. Always save special records to dedicated special collection
     try {
       await setDoc(SPECIAL_DOC_REF, {
-        records: specials,
+        records: safeSpecials,
         lastUpdated: new Date().toISOString(),
         updatedBy: 'Admin',
-        count: specials.length
+        count: safeSpecials.length
       });
     } catch (sErr) {
       console.warn('Failed to save special records doc to cloud:', sErr);
@@ -136,16 +149,28 @@ export async function saveRecordsToCloud(records) {
     // 2. Save full records list to main document
     const existing = getStoredRecords();
     if (existing && existing.length > 0) {
-      // Keep a local safety backup snapshot
       localStorage.setItem('electricity_portal_records_safety_backup', JSON.stringify(existing));
-      localStorage.setItem('electricity_portal_backup_time', getKurdistanDateTime(true));
+      localStorage.setItem('electricity_portal_backup_time', new Date().toISOString());
     }
 
     await setDoc(DOC_REF, {
-      records: cleaned,
-      lastUpdated: getKurdistanDateTime(true),
-      updatedBy: 'Admin'
+      records: safeFinal,
+      lastUpdated: new Date().toISOString(),
+      updatedBy: 'Admin',
+      count: safeFinal.length
     });
+
+    // 3. Keep persistent cloud backup
+    try {
+      if (safeFinal.length >= 1000) {
+        await setDoc(doc(db, 'portal_data', 'electricity_records_backup'), {
+          records: safeFinal,
+          lastUpdated: new Date().toISOString(),
+          updatedBy: 'AutoSafetyBackup',
+          count: safeFinal.length
+        });
+      }
+    } catch (bErr) {}
   } catch (error) {
     console.error('Failed to save records to Firestore Cloud:', error);
   }
