@@ -305,7 +305,7 @@ export default function RunakiSmartScanner({
 
       {/* Main Dialog Modal Container */}
       <div 
-        className={`relative w-full max-w-xl bg-gradient-to-b from-[#111827] via-[#0b0f19] to-[#080b12] text-slate-100 rounded-t-[2.5rem] sm:rounded-3xl border border-amber-500/20 shadow-2xl shadow-black/80 overflow-hidden max-h-[94vh] flex flex-col my-0 sm:my-auto transition-all duration-300 ${
+        className={`relative w-full max-w-xl bg-gradient-to-b from-[#111827] via-[#0b0f19] to-[#080b12] text-slate-100 rounded-t-[2.5rem] sm:rounded-3xl border border-amber-500/30 shadow-2xl shadow-black/80 overflow-hidden max-h-[94vh] flex flex-col my-0 sm:my-auto transition-all duration-300 electric-border-glow ${
           dragActive ? 'ring-4 ring-amber-400/50 scale-[1.01]' : ''
         }`}
       >
@@ -320,15 +320,16 @@ export default function RunakiSmartScanner({
               <img 
                 src={runakiLogo} 
                 alt="پڕۆژەی ڕووناکی" 
-                className="w-11 h-11 object-contain filter drop-shadow-[0_0_12px_rgba(245,158,11,0.5)]"
+                className="w-11 h-11 object-contain filter drop-shadow-[0_0_12px_rgba(245,158,11,0.5)] electric-zap-pulse"
               />
               <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-slate-950 flex items-center justify-center">
                 <span className="w-1 h-1 rounded-full bg-white animate-ping"></span>
               </div>
             </div>
             <div>
-              <h2 className="text-lg sm:text-xl font-black text-white tracking-tight">
-                Runaki Smart Scanner
+              <h2 className="text-lg sm:text-xl font-black text-white tracking-tight flex items-center gap-1.5">
+                <span>Runaki Smart Scanner</span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 font-bold">⚡ AI OCR</span>
               </h2>
               <p className="text-xs text-slate-400 font-medium">
                 سکانەری زیرەکی وەسڵ، ژمارەی ئەژمار و تەلەفۆن
@@ -357,7 +358,7 @@ export default function RunakiSmartScanner({
               type="button"
               onClick={handleTriggerCamera}
               disabled={isProcessing}
-              className="group relative overflow-hidden p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/20 active:scale-97 transition-all flex flex-col items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 border border-amber-300/60"
+              className="group relative overflow-hidden p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/20 active:scale-97 transition-all flex flex-col items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 border border-amber-300/60 electric-btn"
             >
               <Camera className="w-5 h-5 sm:w-6 sm:h-6 text-slate-950" />
               <span className="text-xs sm:text-sm font-black text-slate-950">وێنەی وەسڵ بگرە 📸</span>

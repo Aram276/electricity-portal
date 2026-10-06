@@ -57,51 +57,57 @@ export default function Navbar({ currentView, setCurrentView, isAdmin, isAdminPa
 
   return (
     <>
-      <header className="relative z-40 w-full border-b border-amber-500/20 bg-white/95 dark:bg-[#070b16]/95 backdrop-blur-xl transition-colors duration-300 shadow-sm">
+      <header className="sticky top-0 z-40 w-full ios-glass-header transition-all duration-300">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-14 sm:h-16 gap-2">
             
-            {/* Right Side (دەستەڕاست): Menu Hamburger Toggle Button + Logo */}
-            <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
-              {/* Slide-over Sidebar Drawer Button on the Right */}
+            {/* Right Side: Menu Hamburger Toggle Button + Logo */}
+            <div className="flex items-center gap-2.5 sm:gap-3.5 shrink-0">
+              {/* Slide-over Sidebar Drawer Button */}
               {currentView === 'admin' && onToggleSidebar && (
                 <button
                   onClick={onToggleSidebar}
                   title="مێنیوی بەڕێوەبردن (سڵایدباڕ) ☰"
-                  className="p-2 sm:p-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 shadow-md shadow-amber-500/25 active:scale-90 transition-all border border-amber-400/60 shrink-0 cursor-pointer flex items-center justify-center"
+                  className="p-2 sm:p-2.5 rounded-2xl bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-slate-950 shadow-lg shadow-amber-500/25 active:scale-90 transition-all border border-amber-300/60 shrink-0 cursor-pointer flex items-center justify-center"
                 >
                   <Menu className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
               )}
 
-              {/* Logo & Directorate Title */}
-              <div className="flex items-center gap-2 cursor-pointer shrink-0" onClick={handleLogoClick} title="پڕۆژەی ڕووناکی">
-                <RoonakiLogo 
-                  className="h-8 sm:h-10 md:h-11 w-auto" 
-                  showText={false}
-                />
+              {/* Logo & Directorate Title with Apple-style hover */}
+              <div 
+                className="flex items-center gap-2.5 cursor-pointer shrink-0 p-1 rounded-2xl transition-transform active:scale-95" 
+                onClick={handleLogoClick} 
+                title="پڕۆژەی ڕووناکی"
+              >
+                <div className="p-1 rounded-2xl bg-amber-500/10 dark:bg-amber-400/10 border border-amber-500/20 backdrop-blur-md">
+                  <RoonakiLogo 
+                    className="h-7 sm:h-9 md:h-10 w-auto" 
+                    showText={false}
+                  />
+                </div>
                 <div className="flex flex-col text-right">
-                  <span className="text-xs sm:text-sm font-black text-amber-600 dark:text-amber-400 leading-tight">
+                  <span className="text-xs sm:text-sm font-black text-amber-700 dark:text-amber-400 leading-tight tracking-tight">
                     پڕۆژەی ڕووناکی
                   </span>
                   <span className="text-[9px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-bold">
-                    فرۆشیاری وزە ٢
+                    فرۆشیاری وزە ٢ • ژووری ١٩
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Left Side (دەستەچەپ): Essential Controls Only */}
+            {/* Left Side: Essential iOS-style Controls */}
             <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
               
               {/* Theme Toggle Button (Light/Dark) */}
               <button
                 onClick={onToggleTheme}
                 title={isDarkMode ? 'گۆڕین بۆ لایت مۆد' : 'گۆڕین بۆ دارک مۆد'}
-                className="p-2 sm:p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900/90 dark:hover:bg-slate-800 border border-slate-200 dark:border-amber-500/30 text-amber-600 dark:text-amber-400 transition-all shadow-sm shrink-0"
+                className="p-2 sm:p-2.5 rounded-2xl bg-white/60 dark:bg-slate-900/60 hover:bg-white dark:hover:bg-slate-800 border border-slate-200/80 dark:border-white/10 text-amber-600 dark:text-amber-400 backdrop-blur-xl shadow-xs transition-all active:scale-90 shrink-0 cursor-pointer"
               >
                 {isDarkMode ? (
-                  <Sun className="w-4 h-4 text-amber-400" />
+                  <Sun className="w-4 h-4 text-amber-400 animate-spin-slow" />
                 ) : (
                   <Moon className="w-4 h-4 text-slate-700" />
                 )}
@@ -111,7 +117,7 @@ export default function Navbar({ currentView, setCurrentView, isAdmin, isAdminPa
               {currentView === 'citizen' ? (
                 <button
                   onClick={isAdmin ? () => setCurrentView('admin') : onOpenAdminLogin}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black text-slate-800 dark:text-slate-200 bg-amber-500/15 hover:bg-amber-500/25 dark:bg-slate-900/90 dark:hover:bg-slate-800 border border-amber-400/50 dark:border-amber-500/30 transition-all shadow-sm shrink-0 cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-2xl text-xs font-black text-slate-800 dark:text-slate-200 bg-amber-500/15 hover:bg-amber-500/25 dark:bg-slate-900/90 dark:hover:bg-slate-800 border border-amber-400/50 dark:border-amber-500/30 backdrop-blur-xl transition-all shadow-xs shrink-0 cursor-pointer"
                   title={isAdmin ? "چوونە پەنێڵی ئادمین" : "چوونەژوورەوەی ستاف و بەڕێوەبەر"}
                 >
                   <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
@@ -120,31 +126,34 @@ export default function Navbar({ currentView, setCurrentView, isAdmin, isAdminPa
               ) : (
                 /* When inside Admin Portal */
                 <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
-                  {/* Active Staff Badge with Role */}
+                  {/* Active Staff Badge with iOS Pill Style */}
                   {activeStaff && (
                     <div 
                       title={`${activeStaff.name} (${activeStaff.title || 'ژووری ١٩'})`}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-900 dark:text-amber-200 text-xs font-bold shadow-sm shrink-0"
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/25 text-amber-950 dark:text-amber-200 text-xs font-bold backdrop-blur-xl shadow-xs shrink-0"
                     >
-                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></div>
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                      </span>
                       <span className="hidden md:inline font-black max-w-[120px] truncate">{activeStaff.name}</span>
-                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-black border shrink-0 ${
+                      <span className={`px-2 py-0.5 rounded-xl text-[9px] font-black border shrink-0 ${
                         activeStaff.role === 'ADMIN' 
-                          ? 'bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30' 
+                          ? 'bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/30' 
                           : activeStaff.role === 'VIEWER'
-                          ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30'
-                          : 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/30'
+                          ? 'bg-sky-500/20 text-sky-700 dark:text-sky-300 border-sky-500/30'
+                          : 'bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-500/30'
                       }`}>
                         {activeStaff.role === 'ADMIN' ? 'ئادمین' : activeStaff.role === 'VIEWER' ? 'بینەر' : 'ستاف'}
                       </span>
                     </div>
                   )}
 
-                  {/* Logout Button (Icon) */}
+                  {/* Logout Button */}
                   <button
                     onClick={onAdminLogout}
                     title="دەرچوون لە ئەژمێر"
-                    className="p-2 sm:p-2.5 rounded-xl text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-rose-300 dark:border-rose-500/30 transition-all shrink-0 flex items-center justify-center"
+                    className="p-2 sm:p-2.5 rounded-2xl text-rose-600 dark:text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 backdrop-blur-xl transition-all active:scale-90 shrink-0 flex items-center justify-center cursor-pointer shadow-xs"
                   >
                     <LogOut className="w-4 h-4" />
                   </button>

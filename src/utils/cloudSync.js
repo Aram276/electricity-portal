@@ -71,6 +71,9 @@ export function subscribeToCloudRecords(onUpdateCallback) {
   try {
     // 1. Subscribe to main records document
     unsubRegular = onSnapshot(DOC_REF, (snapshot) => {
+      if (snapshot.metadata && snapshot.metadata.hasPendingWrites) {
+        return; // Ignore local in-flight writes to avoid lagging or rollback
+      }
       if (snapshot.exists()) {
         const data = snapshot.data();
         if (data && Array.isArray(data.records)) {
@@ -91,6 +94,9 @@ export function subscribeToCloudRecords(onUpdateCallback) {
 
     // 2. Subscribe to dedicated special records document
     unsubSpecial = onSnapshot(SPECIAL_DOC_REF, (snapshot) => {
+      if (snapshot.metadata && snapshot.metadata.hasPendingWrites) {
+        return;
+      }
       if (snapshot.exists()) {
         const data = snapshot.data();
         if (data && Array.isArray(data.records)) {
@@ -133,6 +139,10 @@ export async function saveRecordsToCloud(records) {
 
     const safeFinal = deduplicateRecords(records);
     const safeSpecials = safeFinal.filter(r => r && r.isSpecial === true);
+
+    // Immediately sync local in-memory cache
+    latestCloudRegular = safeFinal.filter(r => !r.isSpecial);
+    latestCloudSpecial = safeSpecials;
 
     // Save locally
     saveRecords(safeFinal);

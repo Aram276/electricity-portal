@@ -1,14 +1,14 @@
 import React from 'react';
-import { 
-  BarChart3, 
-  TrendingUp, 
-  CheckCircle2, 
-  Clock, 
-  Folder, 
-  FileText, 
-  Users, 
-  PhoneCall, 
-  ShieldCheck, 
+import {
+  BarChart3,
+  TrendingUp,
+  CheckCircle2,
+  Clock,
+  Folder,
+  FileText,
+  Users,
+  PhoneCall,
+  ShieldCheck,
   Calendar,
   AlertTriangle,
   Download,
@@ -85,12 +85,12 @@ export default function AnalyticsTab({ records = [] }) {
     staffMap[handler].totalHandled++;
     if (r.status === 'DELIVERED') staffMap[handler].delivered++;
     if (getRecordKYC(r) !== 'PENDING') staffMap[handler].kycVerified++;
-    
-    const isToday = (r.submissionDate === todayStr) || 
+
+    const isToday = (r.submissionDate === todayStr) ||
       (r.deliveredDate && r.deliveredDate.startsWith(todayStr)) ||
       (r.completionDate === todayStr) ||
       (r.kycVerifiedAt && r.kycVerifiedAt.startsWith(todayStr));
-      
+
     if (isToday) {
       staffMap[handler].todayActions++;
     }
@@ -113,7 +113,7 @@ export default function AnalyticsTab({ records = [] }) {
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-fadeIn">
-      
+
       {/* Top Header */}
       <div className="p-6 rounded-3xl bg-amber-50 dark:bg-gradient-to-r dark:from-amber-500/15 dark:via-slate-900 dark:to-slate-900 border border-amber-200 dark:border-amber-500/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="space-y-1">
@@ -149,7 +149,7 @@ export default function AnalyticsTab({ records = [] }) {
 
       {/* Main KPI Row with KYC Highlight */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        
+
         {/* Total Records */}
         <div className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
@@ -261,11 +261,10 @@ export default function AnalyticsTab({ records = [] }) {
                 return (
                   <tr key={staff.name} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
                     <td className="p-3 font-bold flex items-center gap-2">
-                      <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black ${
-                        idx === 0 
-                          ? 'bg-amber-500 text-slate-950' 
+                      <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black ${idx === 0
+                          ? 'bg-amber-500 text-slate-950'
                           : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
-                      }`}>
+                        }`}>
                         {idx + 1}
                       </div>
                       <span className="text-slate-900 dark:text-white">{staff.name}</span>
@@ -302,7 +301,7 @@ export default function AnalyticsTab({ records = [] }) {
 
       {/* Visual Distributions Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
+
         {/* 3-State KYC Breakdown Card */}
         <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
           <div className="flex items-center justify-between">
@@ -315,18 +314,18 @@ export default function AnalyticsTab({ records = [] }) {
           <div className="space-y-4">
             {/* Combined 3-Color Bar */}
             <div className="h-4 w-full rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden flex shadow-inner">
-              <div 
-                style={{ width: `${kycDoneByUsPercent}%` }} 
+              <div
+                style={{ width: `${kycDoneByUsPercent}%` }}
                 className="bg-emerald-500 h-full transition-all duration-500"
                 title={`ئێمە کردمان: ${kycDoneByUs} (${kycDoneByUsPercent}%)`}
               />
-              <div 
-                style={{ width: `${kycPreVerifiedPercent}%` }} 
+              <div
+                style={{ width: `${kycPreVerifiedPercent}%` }}
                 className="bg-sky-500 h-full transition-all duration-500"
                 title={`پێشتر کراوە (دەرەکی): ${kycPreVerified} (${kycPreVerifiedPercent}%)`}
               />
-              <div 
-                style={{ width: `${kycPendingPercent}%` }} 
+              <div
+                style={{ width: `${kycPendingPercent}%` }}
                 className="bg-amber-500 h-full transition-all duration-500"
                 title={`نەکراوە: ${kycPending} (${kycPendingPercent}%)`}
               />
@@ -367,13 +366,13 @@ export default function AnalyticsTab({ records = [] }) {
           <div className="space-y-4">
             {/* Combined Bar */}
             <div className="h-4 w-full rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden flex shadow-inner">
-              <div 
-                style={{ width: `${yellowPercent}%` }} 
+              <div
+                style={{ width: `${yellowPercent}%` }}
                 className="bg-amber-400 dark:bg-amber-500 h-full transition-all duration-500"
                 title={`فایلی زەرد: ${yellowFolders} (${yellowPercent}%)`}
               />
-              <div 
-                style={{ width: `${paperPercent}%` }} 
+              <div
+                style={{ width: `${paperPercent}%` }}
                 className="bg-slate-700 dark:bg-slate-600 h-full transition-all duration-500"
                 title={`ئەوراق: ${papers} (${paperPercent}%)`}
               />

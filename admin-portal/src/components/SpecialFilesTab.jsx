@@ -422,17 +422,17 @@ export default function SpecialFilesTab({
     <div className="space-y-6 sm:space-y-8 animate-fadeIn font-kurdish text-right" dir="rtl">
       
       {/* ── HERO BANNER: SPECIAL & VIP ARCHIVES ── */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-amber-500/25 via-amber-600/15 to-yellow-500/25 border-2 border-amber-500/50 p-6 sm:p-8 md:p-10 shadow-2xl backdrop-blur-xl">
+      <div className="relative overflow-hidden rounded-3xl ios-glass border border-amber-500/40 p-6 sm:p-8 md:p-10 shadow-2xl backdrop-blur-2xl">
         <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/20 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
         <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-500/30 text-amber-950 dark:text-amber-200 border border-amber-500/50 text-xs font-black shadow-sm">
-              <Star className="w-4 h-4 text-amber-500 fill-amber-500 animate-pulse" />
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/20 text-amber-950 dark:text-amber-200 border border-amber-500/40 text-xs font-black shadow-md shadow-amber-500/10">
+              <Star className="w-4 h-4 text-amber-500 fill-amber-500 electric-zap-pulse" />
               <span>بەشی سەربەخۆی فایلەکانی کاک سالار (Kak Salar Special Files)</span>
             </div>
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900 dark:text-white flex items-center gap-3">
               <span>فایلەکانی کاک سالار</span>
-              <span className="px-3.5 py-1 rounded-2xl bg-amber-500 text-slate-950 text-base sm:text-lg font-mono font-black shadow-lg shadow-amber-500/30">
+              <span className="px-3.5 py-1 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 text-base sm:text-lg font-mono font-black shadow-lg shadow-amber-500/30">
                 {stats.total} فایلی کاک سالار
               </span>
             </h2>
@@ -445,7 +445,7 @@ export default function SpecialFilesTab({
             <button
               type="button"
               onClick={() => setIsFormOpen(prev => !prev)}
-              className="px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-amber-500/30 transition-all active:scale-95 border border-amber-400/60 cursor-pointer"
+              className="px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-amber-500/30 transition-all active:scale-95 border border-amber-400/60 cursor-pointer electric-btn"
             >
               <Plus className="w-4 h-4" />
               <span>{isFormOpen ? 'داخستنی فۆڕمی داخڵکردن' : 'داخڵکردنی فایلی نوێ +'}</span>
@@ -456,7 +456,7 @@ export default function SpecialFilesTab({
               type="button"
               onClick={handleExportSpecial}
               disabled={specialRecords.length === 0}
-              className="px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800 text-amber-900 dark:text-amber-300 font-black text-xs sm:text-sm flex items-center gap-2 border border-amber-500/40 shadow-md transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+              className="px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl bg-white/80 hover:bg-white dark:bg-slate-900/80 dark:hover:bg-slate-800 text-amber-900 dark:text-amber-300 font-black text-xs sm:text-sm flex items-center gap-2 border border-amber-500/40 shadow-md backdrop-blur-xl transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
             >
               <FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               <span>هەناردەی ئێکسڵ ({specialRecords.length})</span>
@@ -689,7 +689,7 @@ export default function SpecialFilesTab({
         {/* Total Special */}
         <div 
           onClick={() => { setStatusFilter('ALL'); setCategoryFilter('ALL'); }}
-          className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-white dark:bg-slate-900/90 border-2 border-amber-500/40 shadow-lg space-y-1 cursor-pointer hover:border-amber-400 transition-all"
+          className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl ios-glass-card border border-amber-500/40 shadow-lg space-y-1 cursor-pointer electric-card-hover"
         >
           <div className="flex items-center justify-between">
             <span className="text-xs text-slate-500 dark:text-slate-400 font-bold">کۆی دۆسیە تایبەتەکان</span>
@@ -706,10 +706,10 @@ export default function SpecialFilesTab({
         {/* Completed */}
         <div 
           onClick={() => setStatusFilter(statusFilter === 'COMPLETED' ? 'ALL' : 'COMPLETED')}
-          className={`p-4 sm:p-5 rounded-2xl sm:rounded-3xl border shadow-md space-y-1 cursor-pointer transition-all ${
+          className={`p-4 sm:p-5 rounded-2xl sm:rounded-3xl border shadow-md space-y-1 cursor-pointer transition-all electric-card-hover ${
             statusFilter === 'COMPLETED' 
               ? 'bg-emerald-500/15 border-emerald-500 ring-2 ring-emerald-500/40' 
-              : 'bg-white dark:bg-slate-900/90 border-slate-200 dark:border-slate-800 hover:border-emerald-400'
+              : 'ios-glass-card border-slate-200 dark:border-slate-800 hover:border-emerald-400'
           }`}
         >
           <div className="flex items-center justify-between">
@@ -727,10 +727,10 @@ export default function SpecialFilesTab({
         {/* In Progress */}
         <div 
           onClick={() => setStatusFilter(statusFilter === 'IN_PROGRESS' ? 'ALL' : 'IN_PROGRESS')}
-          className={`p-4 sm:p-5 rounded-2xl sm:rounded-3xl border shadow-md space-y-1 cursor-pointer transition-all ${
+          className={`p-4 sm:p-5 rounded-2xl sm:rounded-3xl border shadow-md space-y-1 cursor-pointer transition-all electric-card-hover ${
             statusFilter === 'IN_PROGRESS' 
               ? 'bg-amber-500/15 border-amber-500 ring-2 ring-amber-500/40' 
-              : 'bg-white dark:bg-slate-900/90 border-slate-200 dark:border-slate-800 hover:border-amber-400'
+              : 'ios-glass-card border-slate-200 dark:border-slate-800 hover:border-amber-400'
           }`}
         >
           <div className="flex items-center justify-between">

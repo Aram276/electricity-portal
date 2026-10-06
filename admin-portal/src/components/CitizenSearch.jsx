@@ -490,9 +490,9 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
 
               <button
                 type="submit"
-                className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-3.5 rounded-xl roonaki-btn-primary text-slate-950 font-black text-sm sm:text-base flex items-center justify-center gap-2 active:scale-98 shrink-0"
+                className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-3.5 rounded-xl roonaki-btn-primary text-slate-950 font-black text-sm sm:text-base flex items-center justify-center gap-2 active:scale-98 shrink-0 electric-btn cursor-pointer"
               >
-                <Zap className="w-4 h-4 sm:w-5 sm:h-5 fill-slate-950" />
+                <Zap className="w-4 h-4 sm:w-5 sm:h-5 fill-slate-950 electric-zap-pulse" />
                 <span>{t.searchBtn}</span>
               </button>
             </div>

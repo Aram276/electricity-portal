@@ -1410,18 +1410,18 @@ export default function AdminDashboard({
                   <span className="px-2.5 py-1 rounded-lg bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30 font-bold flex items-center gap-1">
                     <span>فلتەر: {
                       dataFilter === 'SPECIAL_ONLY' ? '⭐ دۆسیە تایبەتەکان' :
-                      dataFilter === 'KYC_DONE_BY_US' ? '🟢 ئێمە کردمان' :
-                        dataFilter === 'KYC_PRE_VERIFIED' ? '🔵 پێشتر کراوە (دەرەکی)' :
-                          dataFilter === 'KYC_PENDING' ? '🟡 نەکراوە (پێنەدراوەتەوە)' :
-                            dataFilter === 'KYC_DONE' ? '🟢 هەموو KYC کراوەکان' :
-                              dataFilter === 'YELLOW_FOLDER' ? '📁 فایلی زەرد' :
-                                dataFilter === 'PAPER' ? '📄 ئەوراق' :
-                                  dataFilter === 'NO_PHONE' ? 'بێ مۆبایل' :
-                                    dataFilter === 'HAS_PHONE' ? 'بە مۆبایل' :
-                                      dataFilter === 'NO_ID' ? 'بێ ئەژمار' :
-                                        dataFilter === 'HAS_ID' ? 'بە ئەژمار' :
-                                          dataFilter === 'WITH_NAME' ? 'بە ناو' :
-                                            dataFilter === 'NO_NAME' ? 'بێ ناو' : 'کەموکوڕی'
+                        dataFilter === 'KYC_DONE_BY_US' ? '🟢 ئێمە کردمان' :
+                          dataFilter === 'KYC_PRE_VERIFIED' ? '🔵 پێشتر کراوە (دەرەکی)' :
+                            dataFilter === 'KYC_PENDING' ? '🟡 نەکراوە (پێنەدراوەتەوە)' :
+                              dataFilter === 'KYC_DONE' ? '🟢 هەموو KYC کراوەکان' :
+                                dataFilter === 'YELLOW_FOLDER' ? '📁 فایلی زەرد' :
+                                  dataFilter === 'PAPER' ? '📄 ئەوراق' :
+                                    dataFilter === 'NO_PHONE' ? 'بێ مۆبایل' :
+                                      dataFilter === 'HAS_PHONE' ? 'بە مۆبایل' :
+                                        dataFilter === 'NO_ID' ? 'بێ ئەژمار' :
+                                          dataFilter === 'HAS_ID' ? 'بە ئەژمار' :
+                                            dataFilter === 'WITH_NAME' ? 'بە ناو' :
+                                              dataFilter === 'NO_NAME' ? 'بێ ناو' : 'کەموکوڕی'
                     }</span>
                     <button onClick={() => setDataFilter('ALL')} className="hover:text-rose-500"><X className="w-3 h-3" /></button>
                   </span>
@@ -1704,11 +1704,10 @@ export default function AdminDashboard({
                               title={record.isSpecial ? "لابردن لە فایلەکانی کاک سالار" : "دانان لە فایلەکانی کاک سالار ⭐"}
                               className="p-1 rounded-lg transition-transform active:scale-75 hover:bg-amber-500/10 cursor-pointer"
                             >
-                              <Star className={`w-4 h-4 transition-all ${
-                                record.isSpecial
+                              <Star className={`w-4 h-4 transition-all ${record.isSpecial
                                   ? 'fill-amber-400 text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]'
                                   : 'text-slate-300 dark:text-slate-600 hover:text-amber-400'
-                              }`} />
+                                }`} />
                             </button>
                           </td>
 
@@ -1954,11 +1953,10 @@ export default function AdminDashboard({
                             title={record.isSpecial ? "لابردن لە فایلەکانی کاک سالار" : "دانان لە فایلەکانی کاک سالار ⭐"}
                             className="p-1 rounded-lg transition-transform active:scale-75 hover:bg-amber-500/10 cursor-pointer"
                           >
-                            <Star className={`w-5 h-5 transition-all ${
-                              record.isSpecial
+                            <Star className={`w-5 h-5 transition-all ${record.isSpecial
                                 ? 'fill-amber-400 text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]'
                                 : 'text-slate-300 dark:text-slate-600 hover:text-amber-400'
-                            }`} />
+                              }`} />
                           </button>
 
                           <button

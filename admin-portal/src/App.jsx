@@ -697,8 +697,16 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col font-kurdish antialiased bg-slate-50 dark:bg-[#080d1a] text-slate-900 dark:text-slate-100 transition-colors duration-300 overflow-x-hidden w-full max-w-[100vw]">
+    <div className="relative min-h-screen flex flex-col font-kurdish antialiased bg-[#f4f7fb] dark:bg-[#060a15] text-slate-900 dark:text-slate-100 transition-colors duration-300 overflow-x-hidden w-full max-w-[100vw]">
       
+      {/*  iOS Ambient Dynamic Mesh Lighting Orbs (Background Light Show) */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div className="absolute -top-24 -right-24 w-[600px] h-[600px] bg-amber-500/20 dark:bg-amber-500/25 rounded-full blur-[140px] mix-blend-screen" />
+        <div className="absolute top-1/4 -left-32 w-[650px] h-[650px] bg-sky-500/15 dark:bg-sky-600/20 rounded-full blur-[150px] mix-blend-screen" />
+        <div className="absolute bottom-10 right-1/4 w-[700px] h-[700px] bg-emerald-500/12 dark:bg-emerald-500/18 rounded-full blur-[160px] mix-blend-screen" />
+        <div className="absolute top-2/3 -right-20 w-[450px] h-[450px] bg-purple-500/12 dark:bg-purple-600/18 rounded-full blur-[140px] mix-blend-screen" />
+      </div>
+
       {/* Toast Notification */}
       {toast && (
         <div className="fixed bottom-6 right-6 z-50 animate-bounce">
@@ -729,7 +737,7 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
+      <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
         {currentView === 'citizen' ? (
           <CitizenSearch
             records={records}

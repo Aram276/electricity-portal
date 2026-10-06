@@ -11,11 +11,16 @@ const ADMIN_KEY = 'electricity_portal_admin_session';
 export function getStoredSpecialRecords() {
   try {
     const data = localStorage.getItem(SPECIAL_STORAGE_KEY);
-    if (!data) return [];
-    const parsed = JSON.parse(data);
-    return Array.isArray(parsed) ? parsed : [];
+    const parsed = data ? JSON.parse(data) : [];
+    const initialSpecials = INITIAL_RECORDS.filter(r => r && r.isSpecial === true);
+    const map = new Map();
+    initialSpecials.forEach(r => map.set(String(r.fileNumber || r.id).trim(), r));
+    if (Array.isArray(parsed)) {
+      parsed.forEach(r => map.set(String(r.fileNumber || r.id).trim(), r));
+    }
+    return Array.from(map.values());
   } catch (e) {
-    return [];
+    return INITIAL_RECORDS.filter(r => r && r.isSpecial === true);
   }
 }
 
