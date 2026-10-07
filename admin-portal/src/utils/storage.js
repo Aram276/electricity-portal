@@ -143,6 +143,7 @@ export function resetToDemoRecords() {
 export function markAsDelivered(recordId, receiverName = '', customDate = null, isKycDone = true, nationalId = '') {
   const records = getStoredRecords();
   const now = customDate || getKurdistanDateTime(false);
+  const nowTs = Date.now();
   
   const updated = records.map(r => {
     if (r.id === recordId) {
@@ -154,6 +155,7 @@ export function markAsDelivered(recordId, receiverName = '', customDate = null, 
         isKycDone: isKycDone ?? true,
         kycStatus: isKycDone ? 'DONE' : 'PENDING',
         nationalId: nationalId || r.nationalId || '',
+        updatedAt: nowTs,
         notes: (r.notes ? r.notes + ' | ' : '') + `تەسلیم کرایەوە لە [${now}]`
       };
     }

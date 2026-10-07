@@ -262,12 +262,14 @@ export default function App() {
     const rawName = (formData.citizenName || '').trim();
     const hasRealName = Boolean(rawName && rawName !== 'هاوبەشی کارەبا' && !rawName.startsWith('مانگی '));
     const isDelivered = formData.status === 'DELIVERED';
+    const nowTs = Date.now();
 
     const processedData = {
       ...formData,
       citizenName: hasRealName ? rawName : 'هاوبەشی کارەبا',
       hasRealName: hasRealName,
       handledBy: formData.handledBy || staffName,
+      updatedAt: nowTs,
       ...(isDelivered ? { deliveredBy: formData.deliveredBy || formData.handledBy || staffName } : {})
     };
 
@@ -322,12 +324,14 @@ export default function App() {
   const handleBatchEditRecords = (ids, updates) => {
     const staffName = getActiveStaffName();
     const idSet = new Set(ids);
+    const nowTs = Date.now();
     const updated = records.map(r => {
       if (idSet.has(r.id)) {
         return {
           ...r,
           ...updates,
-          handledBy: updates.handledBy || r.handledBy || staffName
+          handledBy: updates.handledBy || r.handledBy || staffName,
+          updatedAt: nowTs
         };
       }
       return r;
@@ -347,11 +351,13 @@ export default function App() {
     if (!target) return;
 
     const nowTime = getKurdistanDateTime(false);
+    const nowTs = Date.now();
     const deletedItem = {
       ...target,
       isDeleted: true,
       deletedAt: nowTime,
-      deletedBy: staffName
+      deletedBy: staffName,
+      updatedAt: nowTs
     };
 
     const updatedRecords = records.filter(r => r.id !== id);
@@ -372,12 +378,14 @@ export default function App() {
     const staffName = getActiveStaffName();
     const idSet = new Set(ids);
     const nowTime = getKurdistanDateTime(false);
+    const nowTs = Date.now();
 
     const deletedItems = records.filter(r => idSet.has(r.id)).map(r => ({
       ...r,
       isDeleted: true,
       deletedAt: nowTime,
-      deletedBy: staffName
+      deletedBy: staffName,
+      updatedAt: nowTs
     }));
 
     const updatedRecords = records.filter(r => !idSet.has(r.id));
@@ -399,7 +407,8 @@ export default function App() {
     const target = trashRecords.find(t => t.id === id);
     if (!target) return;
 
-    const restoredItem = { ...target };
+    const nowTs = Date.now();
+    const restoredItem = { ...target, updatedAt: nowTs };
     delete restoredItem.isDeleted;
     delete restoredItem.deletedAt;
     delete restoredItem.deletedBy;
@@ -421,9 +430,10 @@ export default function App() {
   const handleBatchRestore = (ids) => {
     const staffName = getActiveStaffName();
     const idSet = new Set(ids);
+    const nowTs = Date.now();
 
     const restoredItems = trashRecords.filter(t => idSet.has(t.id)).map(item => {
-      const copy = { ...item };
+      const copy = { ...item, updatedAt: nowTs };
       delete copy.isDeleted;
       delete copy.deletedAt;
       delete copy.deletedBy;
@@ -486,25 +496,30 @@ export default function App() {
     const idSet = new Set(ids);
     const today = getKurdistanDate();
     const nowTime = getKurdistanDateTime(false);
-
-    const isDone = newStatus === 'COMPLETED' || newStatus === 'DELIVERED';
+    const nowTs = Date.now();
 
     const updated = records.map(r => {
       if (idSet.has(r.id)) {
         const changes = { 
           status: newStatus,
-          handledBy: staffName
+          handledBy: staffName,
+          updatedAt: nowTs
         };
-        if (isDone) {
-          changes.isKycDone = true;
-          changes.kycStatus = 'DONE';
-        }
-        if (newStatus === 'COMPLETED' && !r.completionDate) {
-          changes.completionDate = today;
-        }
-        if (newStatus === 'DELIVERED' && !r.deliveredDate) {
-          changes.deliveredDate = nowTime;
+        if (newStatus === 'DELIVERED') {
+          changes.deliveredDate = r.deliveredDate || nowTime;
           changes.deliveredBy = staffName;
+          changes.receiverName = r.receiverName || (r.hasRealName ? r.citizenName : 'هاوبەشی کارەبا');
+          changes.isKycDone = true;
+          changes.kycStatus = r.kycStatus === 'PRE_VERIFIED' ? 'PRE_VERIFIED' : 'DONE_BY_US';
+        } else if (newStatus === 'COMPLETED') {
+          changes.completionDate = r.completionDate || today;
+          changes.isKycDone = true;
+          changes.kycStatus = r.kycStatus === 'PRE_VERIFIED' ? 'PRE_VERIFIED' : 'DONE_BY_US';
+        } else if (newStatus === 'IN_PROGRESS') {
+          changes.deliveredDate = null;
+          changes.deliveredBy = '';
+          changes.receiverName = '';
+          changes.completionDate = null;
         }
         return { ...r, ...changes };
       }
@@ -521,24 +536,32 @@ export default function App() {
   const handleUpdateStatus = (id, newStatus) => {
     const staffName = getActiveStaffName();
     const target = records.find(r => r.id === id);
-    const isDone = newStatus === 'COMPLETED' || newStatus === 'DELIVERED';
+    const today = getKurdistanDate();
+    const nowTime = getKurdistanDateTime(false);
+    const nowTs = Date.now();
 
     const updated = records.map(r => {
       if (r.id === id) {
         const changes = { 
           status: newStatus,
-          handledBy: staffName
+          handledBy: staffName,
+          updatedAt: nowTs
         };
-        if (isDone) {
-          changes.isKycDone = true;
-          changes.kycStatus = 'DONE';
-        }
-        if (newStatus === 'COMPLETED' && !r.completionDate) {
-          changes.completionDate = getKurdistanDate();
-        }
-        if (newStatus === 'DELIVERED' && !r.deliveredDate) {
-          changes.deliveredDate = getKurdistanDateTime(false);
+        if (newStatus === 'DELIVERED') {
+          changes.deliveredDate = r.deliveredDate || nowTime;
           changes.deliveredBy = staffName;
+          changes.receiverName = r.receiverName || (r.hasRealName ? r.citizenName : 'هاوبەشی کارەبا');
+          changes.isKycDone = true;
+          changes.kycStatus = r.kycStatus === 'PRE_VERIFIED' ? 'PRE_VERIFIED' : 'DONE_BY_US';
+        } else if (newStatus === 'COMPLETED') {
+          changes.completionDate = r.completionDate || today;
+          changes.isKycDone = true;
+          changes.kycStatus = r.kycStatus === 'PRE_VERIFIED' ? 'PRE_VERIFIED' : 'DONE_BY_US';
+        } else if (newStatus === 'IN_PROGRESS') {
+          changes.deliveredDate = null;
+          changes.deliveredBy = '';
+          changes.receiverName = '';
+          changes.completionDate = null;
         }
         return { ...r, ...changes };
       }
@@ -546,7 +569,7 @@ export default function App() {
     });
     setRecords(updated);
     saveRecordsToCloud(updated);
-    showToast('دۆخی مامەڵە لە سێرڤەر گۆڕدرا', 'success');
+    showToast('دۆخی مامەڵە لە سێرڤەر بە سەرکەوتوویی نوێکرایەوە', 'success');
     logActivity('STATUS_CHANGE', `گۆڕینی دۆخی فایلی (${target?.fileNumber || id}) بۆ (${newStatus}) (لەلایەن: ${staffName})`, {
       fileNumber: target?.fileNumber,
       citizenName: target?.citizenName,
@@ -560,6 +583,7 @@ export default function App() {
     const target = records.find(r => r.id === id);
     const isDone = newKycStatus === 'DONE_BY_US' || newKycStatus === 'PRE_VERIFIED';
     const nowTime = getKurdistanDateTime(false);
+    const nowTs = Date.now();
 
     const updated = records.map(r => {
       if (r.id === id) {
@@ -569,7 +593,8 @@ export default function App() {
           kycType: newKycStatus,
           isKycDone: isDone,
           kycVerifiedAt: isDone ? (r.kycVerifiedAt || nowTime) : null,
-          kycVerifiedBy: isDone ? (r.kycVerifiedBy || staffName) : null
+          kycVerifiedBy: isDone ? (r.kycVerifiedBy || staffName) : null,
+          updatedAt: nowTs
         };
       }
       return r;
@@ -605,6 +630,7 @@ export default function App() {
     const staffName = getActiveStaffName();
     const idSet = new Set(ids);
     const nowTime = getKurdistanDateTime(false);
+    const nowTs = Date.now();
     
     let kycStatus = kycValue;
     if (kycValue === true) kycStatus = 'DONE_BY_US';
@@ -620,7 +646,8 @@ export default function App() {
           kycType: kycStatus,
           isKycDone: isDone,
           kycVerifiedAt: isDone ? (r.kycVerifiedAt || nowTime) : null,
-          kycVerifiedBy: isDone ? (r.kycVerifiedBy || staffName) : null
+          kycVerifiedBy: isDone ? (r.kycVerifiedBy || staffName) : null,
+          updatedAt: nowTs
         };
       }
       return r;
@@ -636,10 +663,11 @@ export default function App() {
   const handleToggleFileType = (id) => {
     const staffName = getActiveStaffName();
     const target = records.find(r => r.id === id);
+    const nowTs = Date.now();
     const updated = records.map(r => {
       if (r.id === id) {
         const nextType = r.fileType === 'YELLOW_FOLDER' ? 'PAPER' : 'YELLOW_FOLDER';
-        return { ...r, fileType: nextType, handledBy: staffName };
+        return { ...r, fileType: nextType, handledBy: staffName, updatedAt: nowTs };
       }
       return r;
     });
@@ -652,9 +680,10 @@ export default function App() {
   // Bulk File Type update
   const handleBatchUpdateFileType = (ids, newFileType) => {
     const idSet = new Set(ids);
+    const nowTs = Date.now();
     const updated = records.map(r => {
       if (idSet.has(r.id)) {
-        return { ...r, fileType: newFileType };
+        return { ...r, fileType: newFileType, updatedAt: nowTs };
       }
       return r;
     });
@@ -666,9 +695,15 @@ export default function App() {
   // Delivery Modal confirm
   const handleConfirmDelivery = (id, receiverName, customDate, note, isKycDone = true, nationalId = '') => {
     const updated = markAsDelivered(id, receiverName, customDate, isKycDone, nationalId);
+    const staffName = getActiveStaffName();
+    const nowTs = Date.now();
     if (note) {
       const rec = updated.find(r => r.id === id);
-      if (rec) rec.notes = (rec.notes ? rec.notes + ' | ' : '') + note;
+      if (rec) {
+        rec.notes = (rec.notes ? rec.notes + ' | ' : '') + note;
+        rec.updatedAt = nowTs;
+        rec.handledBy = staffName;
+      }
     }
     setRecords(updated);
     saveRecordsToCloud(updated);

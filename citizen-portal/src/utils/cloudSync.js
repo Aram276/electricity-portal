@@ -35,6 +35,7 @@ const DEFAULT_FOOTER = {
 
 let latestCloudRegular = [];
 let latestCloudSpecial = [];
+let isLocalSaving = false;
 
 /**
  * Compact/Sanitize a record to dramatically reduce JSON size before storing in Firestore.
@@ -52,70 +53,10 @@ function sanitizeRecordForCloud(record) {
 }
 
 /**
- * Smart merge a single record between local state and cloud state without losing user edits.
+ * Cleanly combines cloud documents (regular + dedicated specials) and local safety cache.
+ * Uses Last-Write-Wins (LWW) timestamp reconciliation to guarantee no local edits are ever overwritten.
  */
-function mergeSingleRecord(local, cloud) {
-  if (!local) return cloud;
-  if (!cloud) return local;
-
-  // Preserve DELIVERED state and details
-  const isDelivered = local.status === 'DELIVERED' || cloud.status === 'DELIVERED';
-  const isCompleted = isDelivered || local.status === 'COMPLETED' || cloud.status === 'COMPLETED';
-
-  const status = isDelivered 
-    ? 'DELIVERED' 
-    : (isCompleted ? 'COMPLETED' : (local.status || cloud.status || 'IN_PROGRESS'));
-
-  const deliveredDate = local.deliveredDate || cloud.deliveredDate || (isDelivered ? getKurdistanDateTime(false) : null);
-  const deliveredBy = local.deliveredBy || cloud.deliveredBy || '';
-  const receiverName = local.receiverName || cloud.receiverName || (isDelivered ? (local.citizenName || cloud.citizenName || 'هاوبەشی کارەبا') : '');
-  const completionDate = local.completionDate || cloud.completionDate || (isCompleted ? (local.completionDate || cloud.completionDate || getKurdistanDate()) : null);
-
-  // Preserve KYC status
-  const kycStatus = (local.kycStatus === 'DONE_BY_US' || local.kycStatus === 'PRE_VERIFIED') 
-    ? local.kycStatus 
-    : (cloud.kycStatus || local.kycStatus || 'PENDING');
-  const isKycDone = kycStatus === 'DONE_BY_US' || kycStatus === 'PRE_VERIFIED' || local.isKycDone || cloud.isKycDone;
-
-  // Preserve real citizen name
-  const citizenName = (local.hasRealName && local.citizenName && local.citizenName !== 'هاوبەشی کارەبا')
-    ? local.citizenName
-    : (cloud.citizenName || local.citizenName || 'هاوبەشی کارەبا');
-  const hasRealName = Boolean(local.hasRealName || cloud.hasRealName || (citizenName && citizenName !== 'هاوبەشی کارەبا'));
-
-  // Preserve Phone number & Account number
-  const phoneNumber = (local.phoneNumber && local.phoneNumber !== 'نیە') ? local.phoneNumber : (cloud.phoneNumber || local.phoneNumber || 'نیە');
-  const accountNumber = (local.accountNumber && local.accountNumber !== 'نیە') ? local.accountNumber : (cloud.accountNumber || local.accountNumber || '');
-  const nationalId = local.nationalId || cloud.nationalId || '';
-
-  // Notes
-  const notes = local.notes || cloud.notes || '';
-
-  return {
-    ...cloud,
-    ...local,
-    status,
-    deliveredDate,
-    deliveredBy,
-    receiverName,
-    completionDate,
-    kycStatus,
-    isKycDone,
-    citizenName,
-    hasRealName,
-    phoneNumber,
-    accountNumber,
-    nationalId,
-    notes,
-    isSpecial: Boolean(local.isSpecial || cloud.isSpecial),
-    fileType: local.fileType || cloud.fileType || 'YELLOW_FOLDER'
-  };
-}
-
-/**
- * Reconciles local and cloud records safely, ensuring no record, delivery, or new file is lost.
- */
-export function smartMergeRecords(localList, cloudList) {
+export function combineCloudAndLocal(cloudRegular, cloudSpecial, localFallback) {
   const map = new Map();
 
   const getRecordKey = (r) => {
@@ -129,23 +70,46 @@ export function smartMergeRecords(localList, cloudList) {
     return null;
   };
 
-  // 1. Put all local records first
-  (localList || []).forEach(r => {
+  const getRecordTimestamp = (r) => {
+    if (!r) return 0;
+    if (r.updatedAt) {
+      const t = typeof r.updatedAt === 'number' ? r.updatedAt : Date.parse(r.updatedAt);
+      if (!isNaN(t) && t > 0) return t;
+    }
+    return 0;
+  };
+
+  // 1. Add all cloud regular records
+  (cloudRegular || []).forEach(r => {
     if (!r || r.isDeleted) return;
     const key = getRecordKey(r);
-    if (key) map.set(key, r);
+    if (key) map.set(key, { ...r, isSpecial: Boolean(r.isSpecial) });
   });
 
-  // 2. Merge with cloud records
-  (cloudList || []).forEach(r => {
+  // 2. Add all cloud special records
+  (cloudSpecial || []).forEach(r => {
     if (!r || r.isDeleted) return;
-    const key = getRecordKey(r);
-    if (key) {
-      const existing = map.get(key);
-      if (existing) {
-        map.set(key, mergeSingleRecord(existing, r));
-      } else {
-        map.set(key, r);
+    const key = getRecordKey({ ...r, isSpecial: true });
+    if (key) map.set(key, { ...r, isSpecial: true });
+  });
+
+  // 3. Reconcile with local records using Last-Write-Wins
+  (localFallback || []).forEach(localRec => {
+    if (!localRec || localRec.isDeleted) return;
+    const key = getRecordKey(localRec);
+    if (!key) return;
+
+    if (!map.has(key)) {
+      // Local record not in cloud yet - keep it
+      map.set(key, localRec);
+    } else {
+      const cloudRec = map.get(key);
+      const localTime = getRecordTimestamp(localRec);
+      const cloudTime = getRecordTimestamp(cloudRec);
+
+      // If local edit is newer than cloud snapshot, keep local edit!
+      if (localTime > cloudTime) {
+        map.set(key, localRec);
       }
     }
   });
@@ -161,29 +125,15 @@ export function subscribeToCloudRecords(onUpdateCallback) {
   let unsubSpecial = () => {};
 
   const notifyMerged = () => {
-    // 1. All cloud records (regular + special)
-    const cloudRecords = [
-      ...(latestCloudRegular || []).filter(r => r && !r.isDeleted),
-      ...(latestCloudSpecial || []).filter(r => r && !r.isDeleted).map(r => ({ ...r, isSpecial: true }))
-    ];
+    if (isLocalSaving) return;
 
-    // 2. All local records (regular + special)
-    const localRecords = [
-      ...getStoredRecords().filter(r => r && !r.isDeleted),
-      ...getStoredSpecialRecords().filter(r => r && !r.isDeleted).map(r => ({ ...r, isSpecial: true }))
-    ];
+    const localRecords = getStoredRecords();
+    const cleaned = combineCloudAndLocal(latestCloudRegular, latestCloudSpecial, localRecords);
 
-    // 3. Smart Reconcile / Merge
-    const cleaned = smartMergeRecords(localRecords, cloudRecords);
-
-    // 4. Save to local storage
+    // Save to local storage
     saveRecords(cleaned);
 
-    // 5. Update in-memory cloud mirrors
-    latestCloudRegular = cleaned.filter(r => !r.isSpecial);
-    latestCloudSpecial = cleaned.filter(r => Boolean(r.isSpecial));
-
-    // 6. Notify React components
+    // Notify React components
     onUpdateCallback(cleaned);
   };
 
@@ -243,6 +193,7 @@ export function subscribeToCloudRecords(onUpdateCallback) {
  */
 export async function saveRecordsToCloud(records) {
   try {
+    isLocalSaving = true;
     const cleaned = deduplicateRecords(records);
     const safeSpecials = cleaned.filter(r => r && r.isSpecial === true);
     const safeRegulars = cleaned.filter(r => !r.isSpecial);
@@ -294,6 +245,10 @@ export async function saveRecordsToCloud(records) {
     } catch (bErr) {}
   } catch (error) {
     console.error('Failed to save records to Firestore Cloud:', error);
+  } finally {
+    setTimeout(() => {
+      isLocalSaving = false;
+    }, 1500);
   }
 }
 
