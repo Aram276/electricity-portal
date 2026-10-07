@@ -1,16 +1,16 @@
 import { db } from '../firebase';
-import { 
-  doc, 
-  getDoc, 
-  setDoc, 
-  onSnapshot 
+import {
+  doc,
+  getDoc,
+  setDoc,
+  onSnapshot
 } from 'firebase/firestore';
 import { INITIAL_RECORDS } from '../data/initialData';
-import { 
-  getStoredRecords, 
-  saveRecords, 
-  deduplicateRecords, 
-  getStoredTrash, 
+import {
+  getStoredRecords,
+  saveRecords,
+  deduplicateRecords,
+  getStoredTrash,
   saveTrash,
   getStoredSpecialRecords,
   saveSpecialRecords
@@ -40,31 +40,153 @@ let latestCloudRegular = [];
 let latestCloudSpecial = [];
 
 /**
+ * Compact/Sanitize a record to dramatically reduce JSON size before storing in Firestore.
+ * Omits undefined, null, and empty string keys.
+ */
+function sanitizeRecordForCloud(record) {
+  if (!record || typeof record !== 'object') return null;
+  const clean = {};
+  for (const [key, val] of Object.entries(record)) {
+    if (val !== undefined && val !== null && val !== '') {
+      clean[key] = val;
+    }
+  }
+  return clean;
+}
+
+/**
+ * Smart merge a single record between local state and cloud state without losing user edits.
+ */
+function mergeSingleRecord(local, cloud) {
+  if (!local) return cloud;
+  if (!cloud) return local;
+
+  // Preserve DELIVERED state and details
+  const isDelivered = local.status === 'DELIVERED' || cloud.status === 'DELIVERED';
+  const isCompleted = isDelivered || local.status === 'COMPLETED' || cloud.status === 'COMPLETED';
+
+  const status = isDelivered 
+    ? 'DELIVERED' 
+    : (isCompleted ? 'COMPLETED' : (local.status || cloud.status || 'IN_PROGRESS'));
+
+  const deliveredDate = local.deliveredDate || cloud.deliveredDate || (isDelivered ? getKurdistanDateTime(false) : null);
+  const deliveredBy = local.deliveredBy || cloud.deliveredBy || '';
+  const receiverName = local.receiverName || cloud.receiverName || (isDelivered ? (local.citizenName || cloud.citizenName || 'هاوبەشی کارەبا') : '');
+  const completionDate = local.completionDate || cloud.completionDate || (isCompleted ? (local.completionDate || cloud.completionDate || getKurdistanDate()) : null);
+
+  // Preserve KYC status
+  const kycStatus = (local.kycStatus === 'DONE_BY_US' || local.kycStatus === 'PRE_VERIFIED') 
+    ? local.kycStatus 
+    : (cloud.kycStatus || local.kycStatus || 'PENDING');
+  const isKycDone = kycStatus === 'DONE_BY_US' || kycStatus === 'PRE_VERIFIED' || local.isKycDone || cloud.isKycDone;
+
+  // Preserve real citizen name
+  const citizenName = (local.hasRealName && local.citizenName && local.citizenName !== 'هاوبەشی کارەبا')
+    ? local.citizenName
+    : (cloud.citizenName || local.citizenName || 'هاوبەشی کارەبا');
+  const hasRealName = Boolean(local.hasRealName || cloud.hasRealName || (citizenName && citizenName !== 'هاوبەشی کارەبا'));
+
+  // Preserve Phone number & Account number
+  const phoneNumber = (local.phoneNumber && local.phoneNumber !== 'نیە') ? local.phoneNumber : (cloud.phoneNumber || local.phoneNumber || 'نیە');
+  const accountNumber = (local.accountNumber && local.accountNumber !== 'نیە') ? local.accountNumber : (cloud.accountNumber || local.accountNumber || '');
+  const nationalId = local.nationalId || cloud.nationalId || '';
+
+  // Notes
+  const notes = local.notes || cloud.notes || '';
+
+  return {
+    ...cloud,
+    ...local,
+    status,
+    deliveredDate,
+    deliveredBy,
+    receiverName,
+    completionDate,
+    kycStatus,
+    isKycDone,
+    citizenName,
+    hasRealName,
+    phoneNumber,
+    accountNumber,
+    nationalId,
+    notes,
+    isSpecial: Boolean(local.isSpecial || cloud.isSpecial),
+    fileType: local.fileType || cloud.fileType || 'YELLOW_FOLDER'
+  };
+}
+
+/**
+ * Reconciles local and cloud records safely, ensuring no record, delivery, or new file is lost.
+ */
+export function smartMergeRecords(localList, cloudList) {
+  const map = new Map();
+
+  const getRecordKey = (r) => {
+    if (!r) return null;
+    const isSpecial = Boolean(r.isSpecial);
+    const prefix = isSpecial ? 'sp_' : 'reg_';
+    const fileStr = String(r.fileNumber || '').trim();
+    if (fileStr) return prefix + 'file_' + fileStr;
+    const idStr = String(r.id || '').trim();
+    if (idStr) return prefix + 'id_' + idStr;
+    return null;
+  };
+
+  // 1. Put all local records first
+  (localList || []).forEach(r => {
+    if (!r || r.isDeleted) return;
+    const key = getRecordKey(r);
+    if (key) map.set(key, r);
+  });
+
+  // 2. Merge with cloud records
+  (cloudList || []).forEach(r => {
+    if (!r || r.isDeleted) return;
+    const key = getRecordKey(r);
+    if (key) {
+      const existing = map.get(key);
+      if (existing) {
+        map.set(key, mergeSingleRecord(existing, r));
+      } else {
+        map.set(key, r);
+      }
+    }
+  });
+
+  return deduplicateRecords(Array.from(map.values()));
+}
+
+/**
  * Listen to real-time changes for records from Firestore Cloud (both regular and special).
  */
 export function subscribeToCloudRecords(onUpdateCallback) {
-  let unsubRegular = () => {};
-  let unsubSpecial = () => {};
+  let unsubRegular = () => { };
+  let unsubSpecial = () => { };
 
   const notifyMerged = () => {
-    // 1. Regular records from cloud
-    const regularRecords = (latestCloudRegular || []).filter(r => r && !r.isSpecial && !r.isDeleted);
+    // 1. All cloud records (regular + special)
+    const cloudRecords = [
+      ...(latestCloudRegular || []).filter(r => r && !r.isDeleted),
+      ...(latestCloudSpecial || []).filter(r => r && !r.isDeleted).map(r => ({ ...r, isSpecial: true }))
+    ];
 
-    // 2. Special records from dedicated cloud doc, regular doc, and local storage safety
-    const specialFromRegular = (latestCloudRegular || []).filter(r => r && r.isSpecial === true && !r.isDeleted);
-    const specialFromDedicated = (latestCloudSpecial || []).filter(r => r && !r.isDeleted).map(r => ({ ...r, isSpecial: true }));
-    const localSpecials = getStoredSpecialRecords().filter(r => r && !r.isDeleted).map(r => ({ ...r, isSpecial: true }));
+    // 2. All local records (regular + special)
+    const localRecords = [
+      ...getStoredRecords().filter(r => r && !r.isDeleted),
+      ...getStoredSpecialRecords().filter(r => r && !r.isDeleted).map(r => ({ ...r, isSpecial: true }))
+    ];
 
-    // Merge specials by fileNumber / id so no special is ever lost
-    const specialMap = new Map();
-    [...localSpecials, ...specialFromRegular, ...specialFromDedicated].forEach(sp => {
-      const key = String(sp.fileNumber || sp.id || Math.random()).trim();
-      specialMap.set(key, sp);
-    });
+    // 3. Smart Reconcile / Merge
+    const cleaned = smartMergeRecords(localRecords, cloudRecords);
 
-    const allMerged = [...regularRecords, ...specialMap.values()];
-    const cleaned = deduplicateRecords(allMerged.length > 0 ? allMerged : getStoredRecords());
+    // 4. Save to local storage
     saveRecords(cleaned);
+
+    // 5. Update in-memory cloud mirrors
+    latestCloudRegular = cleaned.filter(r => !r.isSpecial);
+    latestCloudSpecial = cleaned.filter(r => Boolean(r.isSpecial));
+
+    // 6. Notify React components
     onUpdateCallback(cleaned);
   };
 
@@ -115,7 +237,7 @@ export function subscribeToCloudRecords(onUpdateCallback) {
   } catch (err) {
     console.error('Failed to subscribe to cloud records:', err);
     onUpdateCallback(getStoredRecords());
-    return () => {};
+    return () => { };
   }
 }
 
@@ -125,65 +247,54 @@ export function subscribeToCloudRecords(onUpdateCallback) {
 export async function saveRecordsToCloud(records) {
   try {
     const cleaned = deduplicateRecords(records);
-    const specials = cleaned.filter(r => r && r.isSpecial === true);
-
-    // Safety Guard: NEVER allow a small/truncated array to overwrite the full cloud database!
-    if (cleaned.length < 1000 && latestCloudRegular && latestCloudRegular.length >= 1000) {
-      console.warn(`🛡️ Data Safety Guard Blocked destructive write of ${cleaned.length} records over ${latestCloudRegular.length} cloud records.`);
-      // Merge with cloud records rather than deleting
-      const cloudMap = new Map();
-      latestCloudRegular.forEach(r => cloudMap.set(String(r.fileNumber || r.id).trim(), r));
-      cleaned.forEach(r => cloudMap.set(String(r.fileNumber || r.id).trim(), r));
-      records = Array.from(cloudMap.values());
-    }
-
-    const safeFinal = deduplicateRecords(records);
-    const safeSpecials = safeFinal.filter(r => r && r.isSpecial === true);
+    const safeSpecials = cleaned.filter(r => r && r.isSpecial === true);
+    const safeRegulars = cleaned.filter(r => !r.isSpecial);
 
     // Immediately sync local in-memory cache so subsequent reads and snapshots are instant
-    latestCloudRegular = safeFinal.filter(r => !r.isSpecial);
+    latestCloudRegular = safeRegulars;
     latestCloudSpecial = safeSpecials;
 
-    // Save locally
-    saveRecords(safeFinal);
+    // Save locally to storage
+    saveRecords(cleaned);
 
     // 1. Always save special records to dedicated special collection
     try {
+      const sanitizedSpecials = safeSpecials.map(sanitizeRecordForCloud).filter(Boolean);
       await setDoc(SPECIAL_DOC_REF, {
-        records: safeSpecials,
+        records: sanitizedSpecials,
         lastUpdated: new Date().toISOString(),
         updatedBy: 'Admin',
-        count: safeSpecials.length
+        count: sanitizedSpecials.length
       });
     } catch (sErr) {
       console.warn('Failed to save special records doc to cloud:', sErr);
     }
 
-    // 2. Save full records list to main document
-    const existing = getStoredRecords();
-    if (existing && existing.length > 0) {
-      localStorage.setItem('electricity_portal_records_safety_backup', JSON.stringify(existing));
-      localStorage.setItem('electricity_portal_backup_time', new Date().toISOString());
+    // 2. Save full records list to main document (compacted so size is well within limits)
+    try {
+      const sanitizedRecords = cleaned.map(sanitizeRecordForCloud).filter(Boolean);
+      await setDoc(DOC_REF, {
+        records: sanitizedRecords,
+        lastUpdated: new Date().toISOString(),
+        updatedBy: 'Admin',
+        count: sanitizedRecords.length
+      });
+    } catch (dErr) {
+      console.error('Failed to save main records doc to cloud:', dErr);
     }
-
-    await setDoc(DOC_REF, {
-      records: safeFinal,
-      lastUpdated: new Date().toISOString(),
-      updatedBy: 'Admin',
-      count: safeFinal.length
-    });
 
     // 3. Keep persistent cloud backup
     try {
-      if (safeFinal.length >= 1000) {
+      if (cleaned.length >= 1000) {
+        const sanitizedRecords = cleaned.map(sanitizeRecordForCloud).filter(Boolean);
         await setDoc(doc(db, 'portal_data', 'electricity_records_backup'), {
-          records: safeFinal,
+          records: sanitizedRecords,
           lastUpdated: new Date().toISOString(),
           updatedBy: 'AutoSafetyBackup',
-          count: safeFinal.length
+          count: sanitizedRecords.length
         });
       }
-    } catch (bErr) {}
+    } catch (bErr) { }
   } catch (error) {
     console.error('Failed to save records to Firestore Cloud:', error);
   }
@@ -214,7 +325,7 @@ export function subscribeToCloudTrash(onUpdateCallback) {
   } catch (err) {
     console.error('Failed to subscribe to cloud trash:', err);
     onUpdateCallback(getStoredTrash());
-    return () => {};
+    return () => { };
   }
 }
 
@@ -269,7 +380,7 @@ export function subscribeToFooterSettings(onUpdateCallback) {
   } catch (err) {
     console.error('Failed to subscribe to footer settings:', err);
     onUpdateCallback(DEFAULT_FOOTER);
-    return () => {};
+    return () => { };
   }
 }
 
@@ -311,7 +422,7 @@ export function subscribeToActivityLogs(onUpdateCallback) {
       if (Array.isArray(cached) && cached.length > 0) {
         onUpdateCallback(cached);
       }
-    } catch (e) {}
+    } catch (e) { }
 
     // In-app immediate update listener
     const handleLocalUpdate = (e) => {
@@ -353,7 +464,7 @@ export function subscribeToActivityLogs(onUpdateCallback) {
     };
   } catch (err) {
     console.error('Failed to subscribe to activity logs:', err);
-    return () => {};
+    return () => { };
   }
 }
 
@@ -380,7 +491,7 @@ export async function logActivity(type, title, details = {}) {
     let localLogs = [];
     try {
       localLogs = JSON.parse(localStorage.getItem('electricity_activity_logs') || '[]');
-    } catch (e) {}
+    } catch (e) { }
 
     // Deduplicate and combine logs
     const logMap = new Map();
@@ -452,7 +563,7 @@ export function subscribeToStaffAccounts(onUpdateCallback) {
     return unsubscribe;
   } catch (err) {
     console.error('Failed to subscribe to staff accounts:', err);
-    return () => {};
+    return () => { };
   }
 }
 
@@ -506,7 +617,7 @@ export function subscribeToWhatsAppTemplate(onUpdateCallback) {
     return unsubscribe;
   } catch (err) {
     console.error('Failed to subscribe to whatsapp template:', err);
-    return () => {};
+    return () => { };
   }
 }
 
