@@ -3,16 +3,12 @@ import Navbar from './components/Navbar';
 import CitizenSearch from './components/CitizenSearch';
 import Footer from './components/Footer';
 import { subscribeToCloudRecords } from './utils/cloudSync';
+import { getStoredRecords } from './utils/storage';
 import { INITIAL_RECORDS } from './data/initialData';
 
 export default function App() {
   const [records, setRecords] = useState(() => {
-    try {
-      const saved = localStorage.getItem('electricity_portal_records');
-      return saved ? JSON.parse(saved) : INITIAL_RECORDS;
-    } catch (e) {
-      return INITIAL_RECORDS;
-    }
+    return getStoredRecords();
   });
 
   const [isDarkMode, setIsDarkMode] = useState(() => {
