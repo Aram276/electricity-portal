@@ -104,20 +104,43 @@ function toLatinDigits(str) {
   return res;
 }
 
-// Ultra-Smart Kurdish fuzzy text normalizer
+// Ultra-Smart Kurdish & Arabic text normalizer (Fuzzy-tolerant, preserves H vs E)
 function normalizeKurdishFuzzy(str) {
   if (!str) return '';
   return toLatinDigits(str)
     .toLowerCase()
+    // Unify all Kurdish/Arabic variants of Heh: ھ (U+06BE) -> ه (U+0647)
+    .replace(/[\u06BE]/g, 'ه')
+    // Unify Kurdish/Arabic Yeh variants: ي, ى, ئ, ێ -> ی
+    .replace(/[يىئێی]/g, 'ی')
+    // Unify Kaf variants: ك -> ک
+    .replace(/[ك]/g, 'ک')
+    // Unify R / L variants: ڕ -> ر, ڵ -> ل
     .replace(/[ڕ]/g, 'ر')
     .replace(/[ڵ]/g, 'ل')
-    .replace(/[يىئێی]/g, 'ی')
-    .replace(/[ك]/g, 'ک')
-    .replace(/[ةه]/g, 'ە')
+    // Unify O / Waw variants: ۆ -> و
     .replace(/[ۆو]/g, 'و')
-    .replace(/[أإآا]/g, 'ا')
-    .replace(/[\u064B-\u065F\u0670\u0640]/g, '') // remove tashkeel & tatweel
+    // Unify Alef variants: أ, إ, آ, ٱ -> ا
+    .replace(/[أإآٱ]/g, 'ا')
+    // Arabic Taa Marbuta: ة -> ه
+    .replace(/[ة]/g, 'ه')
+    // Remove Tashkeel, Tatweel, and Harakat
+    .replace(/[\u064B-\u065F\u0670\u0640]/g, '')
+    // Remove Zero-Width Non-Joiner (ZWNJ), ZWJ, and invisible formatting chars
+    .replace(/[\u200B-\u200D\uFEFF\u00A0]/g, ' ')
+    // Normalize multiple spaces into single space
+    .replace(/\s+/g, ' ')
     .trim();
+}
+
+// Normalize Iraqi mobile phone number to core subscriber digits (stripping +964, 00964, 0)
+function normalizeIraqiPhone(str) {
+  if (!str || str === 'نیە' || str === '-') return '';
+  let digits = toLatinDigits(str).replace(/[^0-9]/g, '');
+  if (digits.startsWith('00964')) digits = digits.slice(5);
+  else if (digits.startsWith('964')) digits = digits.slice(3);
+  if (digits.startsWith('0')) digits = digits.slice(1);
+  return digits;
 }
 
 function getSpecialCategoryLabel(categoryKey, isAr) {
@@ -173,9 +196,9 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
   const missingIdCount = useMemo(() => (records || []).filter(isIdMissing).length, [records]);
   const missingAnyCount = useMemo(() => (records || []).filter(r => isPhoneMissing(r) || isIdMissing(r)).length, [records]);
 
-  // Perform Exact & Substring search (strictly matching Admin search)
+  // Perform Smart Ranked Search (Exact match first, fuzzy fallback, phone/id/name aware)
   const executeSearch = (searchQuery, currentMode) => {
-    const rawQuery = searchQuery.trim();
+    const rawQuery = (searchQuery || '').trim();
     
     // If no text query: in missing modes, display all records in that category
     if (!rawQuery) {
@@ -205,63 +228,117 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
     const fuzzyQ = normalizeKurdishFuzzy(rawQuery);
     const compactFuzzyQ = fuzzyQ.replace(/\s+/g, '');
     const cleanDigitsQ = latinQuery.replace(/[^0-9]/g, '');
-    const cleanPhoneNoZeroQ = cleanDigitsQ.replace(/^0+/, '');
+    const queryPhone = normalizeIraqiPhone(rawQuery);
+    const queryWords = fuzzyQ.split(' ').filter(Boolean);
 
-    const directMatches = (records || []).filter(r => {
+    const scoredMatches = [];
+    const safeRecords = Array.isArray(records) ? records : [];
+
+    for (const r of safeRecords) {
+      if (!r || r.isDeleted) continue;
+
       // Check missing constraints if mode is missing
-      if (currentMode === 'MISSING_PHONE' && !isPhoneMissing(r)) return false;
-      if (currentMode === 'MISSING_ID' && !isIdMissing(r)) return false;
-      if (currentMode === 'MISSING_ANY' && (!isPhoneMissing(r) && !isIdMissing(r))) return false;
+      if (currentMode === 'MISSING_PHONE' && !isPhoneMissing(r)) continue;
+      if (currentMode === 'MISSING_ID' && !isIdMissing(r)) continue;
+      if (currentMode === 'MISSING_ANY' && (!isPhoneMissing(r) && !isIdMissing(r))) continue;
 
-      const hasValidName = Boolean(r.citizenName && r.citizenName !== 'هاوبەشی کارەبا' && r.citizenName.trim() !== '');
-      const fuzzyName = normalizeKurdishFuzzy(r.citizenName || '');
-      const compactFuzzyName = fuzzyName.replace(/\s+/g, '');
       const fileStr = String(r.fileNumber || '').trim().toLowerCase();
-      const accStr = String(r.accountNumber || '').trim().toLowerCase();
-      const phoneDigits = String(r.phoneNumber || '').replace(/[^0-9]/g, '');
-      const phoneNoZero = phoneDigits.replace(/^0+/, '');
+      const accStr = String(r.accountNumber || '').trim();
+      const recPhone = normalizeIraqiPhone(r.phoneNumber);
+      const citizenName = String(r.citizenName || '').trim();
+      const receiverName = String(r.receiverName || '').trim();
+      const fuzzyName = normalizeKurdishFuzzy(citizenName);
+      const compactFuzzyName = fuzzyName.replace(/\s+/g, '');
+      const fuzzyReceiver = normalizeKurdishFuzzy(receiverName);
+      const compactReceiver = fuzzyReceiver.replace(/\s+/g, '');
 
-      // ── MODE: NAME ──
-      if (currentMode === 'NAME') {
-        if (!hasValidName) return false;
-        return fuzzyName.includes(fuzzyQ) || compactFuzzyName.includes(compactFuzzyQ);
-      }
+      let score = 0;
 
-      // ── MODE: FILE NUMBER ──
-      if (currentMode === 'FILE') {
-        return fileStr === cleanDigitsQ || fileStr === compactFuzzyQ || fileStr.includes(cleanDigitsQ);
-      }
-
-      // ── MODE: PHONE NUMBER ──
-      if (currentMode === 'PHONE') {
-        if (!cleanDigitsQ || r.phoneNumber === 'نیە') return false;
-        return phoneDigits.includes(cleanDigitsQ) || phoneNoZero.includes(cleanPhoneNoZeroQ);
+      // ── 1. EXACT FILE NUMBER (Highest Priority: 1000 points) ──
+      if (cleanDigitsQ && (fileStr === cleanDigitsQ || fileStr === compactFuzzyQ)) {
+        score = Math.max(score, 1000);
       }
 
-      // ── MODE: ID / ACCOUNT NUMBER ──
-      if (currentMode === 'ID') {
-        if (!cleanDigitsQ) return false;
-        return accStr.includes(cleanDigitsQ);
+      // ── 2. EXACT PHONE NUMBER (950 points) ──
+      if (queryPhone && queryPhone.length >= 7 && recPhone === queryPhone) {
+        score = Math.max(score, 950);
       }
 
-      // ── GENERAL OR MISSING MODES: search by name, file, phone, id ──
-      if (hasValidName && (fuzzyName.includes(fuzzyQ) || compactFuzzyName.includes(compactFuzzyQ))) {
-        return true;
-      }
-      if (cleanDigitsQ && (fileStr === cleanDigitsQ || fileStr.includes(cleanDigitsQ))) {
-        return true;
-      }
-      if (cleanDigitsQ && (phoneDigits.includes(cleanDigitsQ) || phoneNoZero.includes(cleanPhoneNoZeroQ))) {
-        return true;
-      }
-      if (cleanDigitsQ && accStr.includes(cleanDigitsQ)) {
-        return true;
+      // ── 3. EXACT ACCOUNT NUMBER (900 points) ──
+      if (cleanDigitsQ && cleanDigitsQ.length >= 6 && accStr === cleanDigitsQ) {
+        score = Math.max(score, 900);
       }
 
-      return false;
+      // ── 4. EXACT CITIZEN NAME (850 points) ──
+      if (fuzzyQ && (fuzzyName === fuzzyQ || compactFuzzyName === compactFuzzyQ)) {
+        score = Math.max(score, 850);
+      }
+
+      // ── 5. NAME ALL WORDS MATCH (750 points) ──
+      if (queryWords.length > 0 && queryWords.every(w => fuzzyName.includes(w))) {
+        score = Math.max(score, 750);
+      }
+
+      // ── 6. RECEIVER NAME MATCH (700 points) ──
+      if (queryWords.length > 0 && queryWords.every(w => fuzzyReceiver.includes(w))) {
+        score = Math.max(score, 700);
+      }
+
+      // ── 7. NAME STARTS WITH QUERY (650 points) ──
+      if (fuzzyQ && (fuzzyName.startsWith(fuzzyQ) || compactFuzzyName.startsWith(compactFuzzyQ))) {
+        score = Math.max(score, 650);
+      }
+
+      // ── 8. NAME SUBSTRING MATCH (500 points) ──
+      if (fuzzyQ && (fuzzyName.includes(fuzzyQ) || compactFuzzyName.includes(compactFuzzyQ))) {
+        score = Math.max(score, 500);
+      }
+
+      // ── 9. PARTIAL PHONE MATCH (only if queryPhone has at least 4 digits, 400 points) ──
+      if (queryPhone && queryPhone.length >= 4 && recPhone.includes(queryPhone)) {
+        score = Math.max(score, 400);
+      }
+
+      // ── 10. PARTIAL ACCOUNT NUMBER (only if digits >= 4, 350 points) ──
+      if (cleanDigitsQ && cleanDigitsQ.length >= 4 && accStr.includes(cleanDigitsQ)) {
+        score = Math.max(score, 350);
+      }
+
+      // ── 11. FILE NUMBER STARTS WITH (only if digits >= 1, 300 points) ──
+      if (cleanDigitsQ && fileStr.startsWith(cleanDigitsQ)) {
+        score = Math.max(score, 300);
+      }
+
+      // ── 12. MODE-SPECIFIC ENFORCEMENT ──
+      if (currentMode === 'NAME' && !(fuzzyName.includes(fuzzyQ) || compactFuzzyName.includes(compactFuzzyQ) || (queryWords.length > 0 && queryWords.every(w => fuzzyName.includes(w))))) {
+        continue;
+      }
+      if (currentMode === 'FILE' && !(fileStr === cleanDigitsQ || fileStr.includes(cleanDigitsQ))) {
+        continue;
+      }
+      if (currentMode === 'PHONE' && !(queryPhone && queryPhone.length >= 3 && recPhone.includes(queryPhone))) {
+        continue;
+      }
+      if (currentMode === 'ID' && !(cleanDigitsQ && cleanDigitsQ.length >= 3 && accStr.includes(cleanDigitsQ))) {
+        continue;
+      }
+
+      if (score > 0) {
+        scoredMatches.push({ record: r, score });
+      }
+    }
+
+    // Sort by highest score first, then by numerical fileNumber
+    scoredMatches.sort((a, b) => {
+      if (b.score !== a.score) {
+        return b.score - a.score;
+      }
+      const numA = parseInt(a.record.fileNumber, 10) || 0;
+      const numB = parseInt(b.record.fileNumber, 10) || 0;
+      return numA - numB;
     });
 
-    setSearchResults(directMatches);
+    setSearchResults(scoredMatches.map(m => m.record));
   };
 
   // Run instant search whenever query or searchMode changes
@@ -572,14 +649,14 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
             </button>
           </div>
 
-          {/* Search Form with Cyber Glow & Spinning Lightning Micro-interaction */}
+          {/* Search Form with Cyber Glow & Rock-Solid Layout */}
           <form onSubmit={(e) => { e.preventDefault(); executeSearch(query, searchMode); }} className="max-w-2xl mx-auto pt-1 sm:pt-2">
             <div className={`relative flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-white/95 dark:bg-[#090e1a]/95 p-2 rounded-2xl border-2 transition-all duration-300 shadow-xl backdrop-blur-md ${
               isSearchFocused
                 ? 'cyber-glow-active border-amber-500 ring-4 ring-amber-500/20 shadow-amber-500/30'
                 : 'border-amber-500/40 hover:border-amber-500/70 shadow-amber-500/5'
             }`}>
-              <div className="relative flex-1 flex items-center">
+              <div className="relative flex-1 flex items-center min-w-0">
                 {/* Dynamic Rotating Spark / Lightning Icon when typing */}
                 {query.trim().length > 0 ? (
                   <div className="absolute right-3.5 sm:right-4 flex items-center justify-center pointer-events-none">
@@ -604,29 +681,29 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
                   <button
                     type="button"
                     onClick={() => setQuery('')}
-                    className="absolute left-3 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg transition-colors"
+                    className="absolute left-3 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg transition-colors cursor-pointer"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 )}
               </div>
 
-              {/* Instant AI Searching Indicator Badge */}
-              {query.trim().length > 0 && (
-                <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-black shrink-0 animate-pulse">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-spin" />
-                  <span>{isAr ? 'البحث الذكي الفوري نشط ⚡' : 'گەڕانی زیرەکی بروسکەیی ⚡'}</span>
-                </div>
-              )}
-
               <button
                 type="submit"
-                className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-3.5 rounded-xl roonaki-btn-primary text-slate-950 font-black text-sm sm:text-base flex items-center justify-center gap-2 active:scale-98 shrink-0 shadow-md shadow-amber-500/25"
+                className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-3.5 rounded-xl roonaki-btn-primary text-slate-950 font-black text-sm sm:text-base flex items-center justify-center gap-2 active:scale-98 shrink-0 shadow-md shadow-amber-500/25 cursor-pointer"
               >
                 <Zap className="w-4 h-4 sm:w-5 sm:h-5 fill-slate-950" />
                 <span>{t.searchBtn}</span>
               </button>
             </div>
+
+            {/* Non-intrusive Active Search Badge (Placed below search bar so input NEVER shrinks or jumps) */}
+            {query.trim().length > 0 && (
+              <div className="flex items-center justify-center gap-1.5 pt-2 text-amber-600 dark:text-amber-400 text-xs font-black animate-fadeIn">
+                <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-spin" />
+                <span>{isAr ? 'البحث الذكي الفوري نشط ⚡' : 'گەڕانی زیرەکی بروسکەیی چالاکە ⚡'}</span>
+              </div>
+            )}
           </form>
 
           {/* Quick Examples & Guidance */}
@@ -781,11 +858,14 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
             const staggerDelay = `${Math.min(index, 20) * 45}ms`;
 
             return (
-              <HolographicTiltCard 
-                key={result.id || index} 
+              <div
+                key={result.id || index}
                 style={{ animationDelay: staggerDelay }}
-                className="animate-cascade rounded-2xl sm:rounded-[32px] roonaki-card overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 cursor-default"
+                className="animate-cascade"
               >
+                <HolographicTiltCard 
+                  className="rounded-2xl sm:rounded-[32px] roonaki-card overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 cursor-default"
+                >
                 
                 {/* Status Header Banner */}
                 <div className={`p-5 sm:p-8 border-b ${status.bgLight} ${status.borderClass}`}>
@@ -1032,7 +1112,8 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
                 </div>
 
               </HolographicTiltCard>
-            );
+            </div>
+          );
           })}
 
           {searchResults.length > displayLimit && (
