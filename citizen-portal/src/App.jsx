@@ -5,6 +5,7 @@ import Footer from './components/Footer';
 import ScrollNavigator from './components/ScrollNavigator';
 import PrintReceiptModal from './components/PrintReceiptModal';
 import CustomElectricCursor from './components/CustomElectricCursor';
+import AntigravityBackground from './components/AntigravityBackground';
 import { subscribeToCloudRecords } from './utils/cloudSync';
 import { getStoredRecords } from './utils/storage';
 import { INITIAL_RECORDS } from './data/initialData';
@@ -68,6 +69,9 @@ export default function App() {
         <div className="ambient-orb-2 absolute top-1/2 -left-40 w-96 sm:w-[600px] h-96 sm:h-[600px] bg-gradient-to-tr from-cyan-500/10 via-sky-500/5 to-transparent rounded-full blur-3xl" />
         <div className="ambient-orb-1 absolute -bottom-40 right-1/4 w-96 sm:w-[500px] h-96 sm:h-[500px] bg-gradient-to-t from-amber-500/10 via-orange-500/5 to-transparent rounded-full blur-3xl" />
       </div>
+
+      {/* 3D Antigravity Floating Particle Field */}
+      <AntigravityBackground isDarkMode={isDarkMode} />
 
       {/* Navigation - Clean Citizen View */}
       <div className="relative z-10">

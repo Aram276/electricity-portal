@@ -12,6 +12,7 @@ import RunakiSmartScanner from './components/RunakiSmartScanner';
 import Footer from './components/Footer';
 import ScrollNavigator from './components/ScrollNavigator';
 import CustomElectricCursor from './components/CustomElectricCursor';
+import AntigravityBackground from './components/AntigravityBackground';
 import { 
   getStoredRecords, 
   saveRecords, 
@@ -848,7 +849,10 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col font-kurdish antialiased bg-slate-50 dark:bg-[#080d1a] text-slate-900 dark:text-slate-100 transition-colors duration-300 overflow-x-hidden w-full max-w-[100vw]" dir="rtl">
+    <div className="relative min-h-screen flex flex-col font-kurdish antialiased bg-slate-50 dark:bg-[#080d1a] text-slate-900 dark:text-slate-100 transition-colors duration-300 overflow-x-hidden w-full max-w-[100vw]" dir="rtl">
+      
+      {/* 3D Antigravity Floating Particle Field */}
+      <AntigravityBackground isDarkMode={isDarkMode} />
       
       {/* Toast Notification */}
       {toast && (
