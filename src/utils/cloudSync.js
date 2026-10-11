@@ -55,8 +55,84 @@ function sanitizeRecordForCloud(record) {
   return clean;
 }
 
+const PERM_DELETED_STORAGE_KEY = 'electricity_portal_permanently_deleted_keys_v1';
+
+export function getPermanentlyDeletedKeys() {
+  try {
+    const raw = localStorage.getItem(PERM_DELETED_STORAGE_KEY);
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch (e) {
+    return new Set();
+  }
+}
+
+export function addPermanentlyDeletedRecords(records) {
+  try {
+    const set = getPermanentlyDeletedKeys();
+    const list = Array.isArray(records) ? records : [records];
+    list.forEach(r => {
+      if (!r) return;
+      const isSpecial = Boolean(r.isSpecial);
+      const prefix = isSpecial ? 'sp_' : 'reg_';
+      const fileStr = String(r.fileNumber || '').trim();
+      if (fileStr) {
+        set.add(prefix + 'file_' + fileStr);
+        set.add('reg_file_' + fileStr);
+        set.add('sp_file_' + fileStr);
+      }
+      const idStr = String(r.id || '').trim();
+      if (idStr) {
+        set.add(prefix + 'id_' + idStr);
+        set.add('reg_id_' + idStr);
+        set.add('sp_id_' + idStr);
+      }
+    });
+    localStorage.setItem(PERM_DELETED_STORAGE_KEY, JSON.stringify(Array.from(set)));
+  } catch (e) {}
+}
+
+export function getAllDeletedKeySet() {
+  const set = getPermanentlyDeletedKeys();
+  const trash = getStoredTrash();
+  (trash || []).forEach(t => {
+    if (!t) return;
+    const isSpecial = Boolean(t.isSpecial);
+    const prefix = isSpecial ? 'sp_' : 'reg_';
+    const fileStr = String(t.fileNumber || '').trim();
+    if (fileStr) {
+      set.add(prefix + 'file_' + fileStr);
+      set.add('reg_file_' + fileStr);
+      set.add('sp_file_' + fileStr);
+    }
+    const idStr = String(t.id || '').trim();
+    if (idStr) {
+      set.add(prefix + 'id_' + idStr);
+      set.add('reg_id_' + idStr);
+      set.add('sp_id_' + idStr);
+    }
+  });
+  return set;
+}
+
+export function isRecordInDeletedSet(r, deletedSet) {
+  if (!r) return true;
+  if (r.isDeleted) return true;
+  const isSpecial = Boolean(r.isSpecial);
+  const prefix = isSpecial ? 'sp_' : 'reg_';
+  const fileStr = String(r.fileNumber || '').trim();
+  const idStr = String(r.id || '').trim();
+  if (fileStr && (deletedSet.has(prefix + 'file_' + fileStr) || deletedSet.has('reg_file_' + fileStr) || deletedSet.has('sp_file_' + fileStr))) {
+    return true;
+  }
+  if (idStr && (deletedSet.has(prefix + 'id_' + idStr) || deletedSet.has('reg_id_' + idStr) || deletedSet.has('sp_id_' + idStr))) {
+    return true;
+  }
+  return false;
+}
+
 export function combineCloudAndLocal(cloudRegular, cloudSpecial, localFallback) {
   const map = new Map();
+  const deletedSet = getAllDeletedKeySet();
 
   const getRecordKey = (r) => {
     if (!r) return null;
@@ -80,14 +156,14 @@ export function combineCloudAndLocal(cloudRegular, cloudSpecial, localFallback) 
 
   // 1. Add all cloud regular records
   (cloudRegular || []).forEach(r => {
-    if (!r || r.isDeleted) return;
+    if (!r || isRecordInDeletedSet(r, deletedSet)) return;
     const key = getRecordKey(r);
     if (key) map.set(key, { ...r, isSpecial: Boolean(r.isSpecial) });
   });
 
   // 2. Add all cloud special records
   (cloudSpecial || []).forEach(r => {
-    if (!r || r.isDeleted) return;
+    if (!r || isRecordInDeletedSet(r, deletedSet)) return;
     const key = getRecordKey({ ...r, isSpecial: true });
     if (key) map.set(key, { ...r, isSpecial: true });
   });
@@ -95,7 +171,7 @@ export function combineCloudAndLocal(cloudRegular, cloudSpecial, localFallback) 
   // 3. Reconcile with local records using Last-Write-Wins
   let hasNewerLocal = false;
   (localFallback || []).forEach(localRec => {
-    if (!localRec || localRec.isDeleted) return;
+    if (!localRec || isRecordInDeletedSet(localRec, deletedSet)) return;
     const key = getRecordKey(localRec);
     if (!key) return;
 
@@ -116,7 +192,7 @@ export function combineCloudAndLocal(cloudRegular, cloudSpecial, localFallback) 
     }
   });
 
-  const finalRecords = deduplicateRecords(Array.from(map.values()));
+  const finalRecords = deduplicateRecords(Array.from(map.values())).filter(r => !isRecordInDeletedSet(r, deletedSet));
 
   // If local had newer edits not yet in cloud, sync in background
   if (hasNewerLocal && !isLocalSaving) {
@@ -203,7 +279,8 @@ export function subscribeToCloudRecords(onUpdateCallback) {
 export async function saveRecordsToCloud(records) {
   try {
     isLocalSaving = true;
-    const cleaned = deduplicateRecords(records);
+    const deletedSet = getAllDeletedKeySet();
+    const cleaned = deduplicateRecords(records).filter(r => !isRecordInDeletedSet(r, deletedSet));
     const safeSpecials = cleaned.filter(r => r && r.isSpecial === true);
     const safeRegulars = cleaned.filter(r => !r.isSpecial);
 

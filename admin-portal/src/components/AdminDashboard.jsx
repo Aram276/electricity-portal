@@ -98,6 +98,39 @@ function normalizeKurdishFuzzy(str) {
     .trim();
 }
 
+// 60FPS Smooth Animated Live Counter (0 -> target)
+function AnimatedCounter({ value, duration = 1000 }) {
+  const [displayCount, setDisplayCount] = useState(0);
+
+  useEffect(() => {
+    const end = typeof value === 'number' ? value : parseInt(value, 10) || 0;
+    if (end === 0) {
+      setDisplayCount(0);
+      return;
+    }
+    const startTime = performance.now();
+    let animId;
+
+    const update = (now) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const ease = 1 - Math.pow(1 - progress, 3);
+      setDisplayCount(Math.round(ease * end));
+
+      if (progress < 1) {
+        animId = requestAnimationFrame(update);
+      } else {
+        setDisplayCount(end);
+      }
+    };
+
+    animId = requestAnimationFrame(update);
+    return () => cancelAnimationFrame(animId);
+  }, [value, duration]);
+
+  return <span>{displayCount.toLocaleString('en-US')}</span>;
+}
+
 // 3-Dots Interactive Actions Popover Menu Component (کردارەکان ⁝)
 function RowActionsDropdown({
   record,
@@ -337,6 +370,7 @@ export default function AdminDashboard({
 }) {
   const [activeTab, setActiveTab] = useState('records');
   const [searchTerm, setSearchTerm] = useState('');
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const deferredSearchTerm = useDeferredValue(searchTerm); // Prevents UI typing lag
 
   // Listen to smart scanner search event
@@ -1234,7 +1268,7 @@ export default function AdminDashboard({
 
           </div>
 
-          {/* KPI Stats Cards (iOS Glass Tiles with Electric Glow) */}
+          {/* KPI Stats Cards (iOS Glass Tiles with Electric Glow & Animated Count-up) */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2.5 sm:gap-3.5">
             <div
               onClick={() => { setStatusFilter('ALL'); setDataFilter('ALL'); }}
@@ -1247,7 +1281,9 @@ export default function AdminDashboard({
                 <span className="text-[11px] sm:text-xs font-bold">کۆی گشتی</span>
                 <span className="p-1 rounded-xl bg-amber-500/10 text-amber-500"><Users className="w-3.5 h-3.5" /></span>
               </div>
-              <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono tracking-tight">{stats.total}</div>
+              <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono tracking-tight">
+                <AnimatedCounter value={stats.total} />
+              </div>
             </div>
 
             <div
@@ -1261,7 +1297,9 @@ export default function AdminDashboard({
                 <span className="text-[11px] sm:text-xs font-bold">تایبەت (VIP) ⭐</span>
                 <span className="p-1 rounded-xl bg-amber-500/10 text-amber-500"><Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" /></span>
               </div>
-              <div className="text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400 font-mono tracking-tight">{stats.specialCount}</div>
+              <div className="text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400 font-mono tracking-tight">
+                <AnimatedCounter value={stats.specialCount} />
+              </div>
             </div>
 
             <div
@@ -1275,7 +1313,9 @@ export default function AdminDashboard({
                 <span className="text-[11px] sm:text-xs font-bold">فایلی زەرد 📁</span>
                 <span className="p-1 rounded-xl bg-amber-500/10 text-amber-600"><Folder className="w-3.5 h-3.5" /></span>
               </div>
-              <div className="text-xl sm:text-2xl font-black text-amber-800 dark:text-amber-300 font-mono tracking-tight">{stats.yellowFolders}</div>
+              <div className="text-xl sm:text-2xl font-black text-amber-800 dark:text-amber-300 font-mono tracking-tight">
+                <AnimatedCounter value={stats.yellowFolders} />
+              </div>
             </div>
 
             <div
@@ -1289,7 +1329,9 @@ export default function AdminDashboard({
                 <span className="text-[11px] sm:text-xs font-bold">ئەوراق (کاغەز) 📄</span>
                 <span className="p-1 rounded-xl bg-slate-500/10 text-slate-500"><FileText className="w-3.5 h-3.5" /></span>
               </div>
-              <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono tracking-tight">{stats.papers}</div>
+              <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono tracking-tight">
+                <AnimatedCounter value={stats.papers} />
+              </div>
             </div>
 
             <div
@@ -1303,7 +1345,9 @@ export default function AdminDashboard({
                 <span className="text-[11px] sm:text-xs font-bold">وەرگیراوەتەوە</span>
                 <span className="p-1 rounded-xl bg-emerald-500/10 text-emerald-600"><CheckCircle2 className="w-3.5 h-3.5" /></span>
               </div>
-              <div className="text-xl sm:text-2xl font-black text-emerald-800 dark:text-emerald-300 font-mono tracking-tight">{stats.completed}</div>
+              <div className="text-xl sm:text-2xl font-black text-emerald-800 dark:text-emerald-300 font-mono tracking-tight">
+                <AnimatedCounter value={stats.completed} />
+              </div>
             </div>
 
             <div
@@ -1317,7 +1361,9 @@ export default function AdminDashboard({
                 <span className="text-[11px] sm:text-xs font-bold">پێنەدراوەتەوە</span>
                 <span className="p-1 rounded-xl bg-amber-500/10 text-amber-600"><Clock className="w-3.5 h-3.5" /></span>
               </div>
-              <div className="text-xl sm:text-2xl font-black text-amber-800 dark:text-amber-300 font-mono tracking-tight">{stats.inProgress}</div>
+              <div className="text-xl sm:text-2xl font-black text-amber-800 dark:text-amber-300 font-mono tracking-tight">
+                <AnimatedCounter value={stats.inProgress} />
+              </div>
             </div>
 
             <div
@@ -1331,23 +1377,33 @@ export default function AdminDashboard({
                 <span className="text-[11px] sm:text-xs font-bold">تەسلیم کراوە</span>
                 <span className="p-1 rounded-xl bg-blue-500/10 text-blue-600"><PackageCheck className="w-3.5 h-3.5" /></span>
               </div>
-              <div className="text-xl sm:text-2xl font-black text-blue-800 dark:text-blue-300 font-mono tracking-tight">{stats.delivered}</div>
+              <div className="text-xl sm:text-2xl font-black text-blue-800 dark:text-blue-300 font-mono tracking-tight">
+                <AnimatedCounter value={stats.delivered} />
+              </div>
             </div>
           </div>
 
-          {/* ── ADVANCED FILTER AND SEARCH BAR (iOS Glass Sheet) ── */}
+          {/* ── ADVANCED FILTER AND SEARCH BAR (iOS Glass Sheet with Cyber Glow) ── */}
           <div className="p-4 sm:p-5.5 rounded-[26px] ios-glass space-y-3.5 shadow-xl">
             <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
 
-              {/* Search input */}
-              <div className="relative flex-1">
-                <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-500" />
+              {/* Search input with Cyber Glow */}
+              <div className={`relative flex-1 rounded-2xl transition-all duration-300 ${
+                isSearchFocused ? 'cyber-glow-active ring-4 ring-amber-500/20' : ''
+              }`}>
+                {searchTerm.trim().length > 0 ? (
+                  <Zap className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-500 fill-amber-400 sparkle-spin drop-shadow-[0_0_8px_rgba(245,158,11,0.9)] pointer-events-none" />
+                ) : (
+                  <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-500 pointer-events-none" />
+                )}
                 <input
                   type="text"
                   value={searchTerm}
+                  onFocus={() => setIsSearchFocused(true)}
+                  onBlur={() => setIsSearchFocused(false)}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="گەڕانی زیرەک: ناو (وەک ڕێبین)، ژمارەی فایل، مۆبایل، ئەژمار (ID)، یان وەرگرەوە..."
-                  className="w-full pr-11 pl-20 py-2.5 sm:py-3.5 bg-white/70 dark:bg-slate-950/70 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 backdrop-blur-xl transition-all"
+                  className="w-full pr-11 pl-20 py-2.5 sm:py-3.5 bg-white/70 dark:bg-slate-950/70 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:outline-none focus:border-amber-500 backdrop-blur-xl transition-all"
                 />
                 <div className="absolute left-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
                   {searchTerm && (

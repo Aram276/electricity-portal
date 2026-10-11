@@ -30,6 +30,67 @@ import {
 import { formatKurdistanDateTime } from '../utils/dateUtils';
 import { getTranslation } from '../utils/translations';
 import RoonakiLogo from './RoonakiLogo';
+import confetti from 'canvas-confetti';
+import HolographicTiltCard from './HolographicTiltCard';
+
+// Royal Sparkle Confetti Micro-interaction
+function triggerSparkleConfetti(event) {
+  try {
+    let x = 0.5;
+    let y = 0.5;
+    if (event && event.clientX && event.clientY) {
+      x = event.clientX / window.innerWidth;
+      y = event.clientY / window.innerHeight;
+    }
+    // High-energy golden & neon sparkles
+    confetti({
+      particleCount: 32,
+      spread: 70,
+      origin: { x, y },
+      colors: ['#f59e0b', '#fbbf24', '#10b981', '#06b6d4', '#ffffff'],
+      ticks: 140,
+      gravity: 1.1,
+      scalar: 0.85,
+      shapes: ['circle', 'square']
+    });
+  } catch (err) {
+    // Graceful fallback
+  }
+}
+
+// 60FPS Smooth Animated Live Counter (0 -> target)
+function AnimatedCounter({ value, duration = 1200 }) {
+  const [displayCount, setDisplayCount] = useState(0);
+
+  useEffect(() => {
+    const end = typeof value === 'number' ? value : parseInt(value, 10) || 0;
+    if (end === 0) {
+      setDisplayCount(0);
+      return;
+    }
+    const startTime = performance.now();
+    let animId;
+
+    const update = (now) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // Smooth cubic-out easing curve
+      const ease = 1 - Math.pow(1 - progress, 3);
+      setDisplayCount(Math.round(ease * end));
+
+      if (progress < 1) {
+        animId = requestAnimationFrame(update);
+      } else {
+        setDisplayCount(end);
+      }
+    };
+
+    animId = requestAnimationFrame(update);
+    return () => cancelAnimationFrame(animId);
+  }, [value, duration]);
+
+  return <span>{displayCount.toLocaleString('en-US')}</span>;
+}
 
 // Convert Arabic & Persian / Kurdish numerals (٠-٩, ۰-۹) to standard Latin digits (0-9)
 function toLatinDigits(str) {
@@ -94,9 +155,15 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
   const [displayLimit, setDisplayLimit] = useState(25);
   const [hasSearched, setHasSearched] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   const t = getTranslation(language);
   const isAr = language === 'ar';
+
+  // Overall system counts for live animated counters
+  const totalRecordsAll = (records || []).length;
+  const totalCompletedAll = useMemo(() => (records || []).filter(r => r.status === 'COMPLETED' || r.status === 'DELIVERED').length, [records]);
+  const totalInProgressAll = useMemo(() => (records || []).filter(r => r.status === 'IN_PROGRESS' || r.status === 'NOT_CONTACTED').length, [records]);
 
   // Helper functions to identify missing records
   const isPhoneMissing = (r) => !r.phoneNumber || r.phoneNumber === 'نیە' || r.phoneNumber.trim() === '';
@@ -202,9 +269,11 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
     executeSearch(query, searchMode);
   }, [query, searchMode, records]);
 
-  const handleCopyFileNumber = (recordId, text) => {
+  const handleCopyFileNumber = (recordId, text, e) => {
+    if (!text || text === 'نیە' || text === '-') return;
     navigator.clipboard.writeText(text);
     setCopiedId(recordId);
+    triggerSparkleConfetti(e);
     setTimeout(() => setCopiedId(null), 2000);
   };
 
@@ -371,6 +440,45 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
             </p>
           </div>
 
+          {/* Animated Live Counters Strip (ژمارەژمێری زیندوو 0 -> 1330) */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 max-w-3xl mx-auto pt-2 pb-1">
+            <div className="p-3 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-amber-500/20 shadow-sm backdrop-blur-md transition-all hover:scale-102">
+              <div className="text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400">
+                {isAr ? '⚡ إجمالي الإضبارات' : '⚡ کۆی گشتی فایلەکان'}
+              </div>
+              <div className="text-xl sm:text-2xl font-black font-mono text-slate-900 dark:text-amber-400 mt-0.5">
+                <AnimatedCounter value={totalRecordsAll} duration={1400} />
+              </div>
+            </div>
+
+            <div className="p-3 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-emerald-500/20 shadow-sm backdrop-blur-md transition-all hover:scale-102">
+              <div className="text-[11px] sm:text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                {isAr ? '✅ جاهزة للاستلام' : '✅ وەرگیراوەتەوە (Done)'}
+              </div>
+              <div className="text-xl sm:text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">
+                <AnimatedCounter value={totalCompletedAll} duration={1400} />
+              </div>
+            </div>
+
+            <div className="p-3 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-amber-500/20 shadow-sm backdrop-blur-md transition-all hover:scale-102">
+              <div className="text-[11px] sm:text-xs font-semibold text-amber-600 dark:text-amber-400">
+                {isAr ? '⏳ قيد المتابعة الفنية' : '⏳ پێنەدراوەتەوە (لەلای ئێمەیە)'}
+              </div>
+              <div className="text-xl sm:text-2xl font-black font-mono text-amber-600 dark:text-amber-400 mt-0.5">
+                <AnimatedCounter value={totalInProgressAll} duration={1400} />
+              </div>
+            </div>
+
+            <div className="p-3 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-purple-500/20 shadow-sm backdrop-blur-md transition-all hover:scale-102">
+              <div className="text-[11px] sm:text-xs font-semibold text-purple-600 dark:text-purple-400">
+                {isAr ? '📋 بحاجة لمعلومات' : '📋 دۆسیە ناتەواوەکان'}
+              </div>
+              <div className="text-xl sm:text-2xl font-black font-mono text-purple-600 dark:text-purple-400 mt-0.5">
+                <AnimatedCounter value={missingAnyCount} duration={1400} />
+              </div>
+            </div>
+          </div>
+
           {/* Search Criteria Mode Buttons */}
           <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 pt-2">
             <button
@@ -464,19 +572,34 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
             </button>
           </div>
 
-          {/* Search Form with Instant Clear & Search */}
+          {/* Search Form with Cyber Glow & Spinning Lightning Micro-interaction */}
           <form onSubmit={(e) => { e.preventDefault(); executeSearch(query, searchMode); }} className="max-w-2xl mx-auto pt-1 sm:pt-2">
-            <div className="relative flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-white dark:bg-[#090e1a]/95 p-2 rounded-2xl border-2 border-amber-500/40 focus-within:border-amber-500 transition-all shadow-lg">
+            <div className={`relative flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-white/95 dark:bg-[#090e1a]/95 p-2 rounded-2xl border-2 transition-all duration-300 shadow-xl backdrop-blur-md ${
+              isSearchFocused
+                ? 'cyber-glow-active border-amber-500 ring-4 ring-amber-500/20 shadow-amber-500/30'
+                : 'border-amber-500/40 hover:border-amber-500/70 shadow-amber-500/5'
+            }`}>
               <div className="relative flex-1 flex items-center">
-                <Search className="absolute right-3.5 sm:right-4 w-5 h-5 text-amber-500" />
+                {/* Dynamic Rotating Spark / Lightning Icon when typing */}
+                {query.trim().length > 0 ? (
+                  <div className="absolute right-3.5 sm:right-4 flex items-center justify-center pointer-events-none">
+                    <Zap className="w-5 h-5 text-amber-500 fill-amber-400 sparkle-spin drop-shadow-[0_0_10px_rgba(245,158,11,0.95)]" />
+                  </div>
+                ) : (
+                  <Search className="absolute right-3.5 sm:right-4 w-5 h-5 text-amber-500" />
+                )}
+
                 <input
                   type="text"
                   value={query}
+                  onFocus={() => setIsSearchFocused(true)}
+                  onBlur={() => setIsSearchFocused(false)}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder={getPlaceholder()}
                   className="w-full pr-11 sm:pr-12 pl-10 sm:pl-10 py-3 sm:py-3.5 bg-transparent text-slate-900 dark:text-white placeholder-slate-400 text-xs sm:text-base font-semibold focus:outline-none"
                   dir="rtl"
                 />
+
                 {query && (
                   <button
                     type="button"
@@ -488,9 +611,17 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
                 )}
               </div>
 
+              {/* Instant AI Searching Indicator Badge */}
+              {query.trim().length > 0 && (
+                <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-black shrink-0 animate-pulse">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-spin" />
+                  <span>{isAr ? 'البحث الذكي الفوري نشط ⚡' : 'گەڕانی زیرەکی بروسکەیی ⚡'}</span>
+                </div>
+              )}
+
               <button
                 type="submit"
-                className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-3.5 rounded-xl roonaki-btn-primary text-slate-950 font-black text-sm sm:text-base flex items-center justify-center gap-2 active:scale-98 shrink-0"
+                className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-3.5 rounded-xl roonaki-btn-primary text-slate-950 font-black text-sm sm:text-base flex items-center justify-center gap-2 active:scale-98 shrink-0 shadow-md shadow-amber-500/25"
               >
                 <Zap className="w-4 h-4 sm:w-5 sm:h-5 fill-slate-950" />
                 <span>{t.searchBtn}</span>
@@ -613,7 +744,7 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
               <h3 className="font-black text-sm sm:text-base flex items-center gap-2">
                 <span>{isAr ? 'نتائج الاستعلام:' : 'ئەنجامی گەڕان:'}</span>
                 <span className="font-mono text-amber-600 dark:text-amber-400 font-black">
-                  {searchResults.length} {isAr ? 'معاملة مطابقة' : 'فایل دۆزرایەوە'}
+                  <AnimatedCounter value={searchResults.length} duration={700} /> {isAr ? 'معاملة مطابقة' : 'فایل دۆزرایەوە'}
                 </span>
               </h3>
               <p className="text-xs text-slate-600 dark:text-slate-400">
@@ -626,28 +757,35 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
             {completedCount > 0 && (
               <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30 flex items-center gap-1">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                <span>{completedCount} {isAr ? 'منجزة (Done)' : 'وەرگیراوەتەوە (Done)'}</span>
+                <span><AnimatedCounter value={completedCount} duration={700} /> {isAr ? 'منجزة (Done)' : 'وەرگیراوەتەوە (Done)'}</span>
               </span>
             )}
             {inProgressCount > 0 && (
               <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 dark:bg-amber-500/20 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30 flex items-center gap-1">
                 <Clock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                <span>{inProgressCount} {isAr ? 'قيد الإنجاز (Not Done)' : 'پێنەدراوەتەوە (Not Done)'}</span>
+                <span><AnimatedCounter value={inProgressCount} duration={700} /> {isAr ? 'قيد الإنجاز (Not Done)' : 'پێنەدراوەتەوە (Not Done)'}</span>
               </span>
             )}
           </div>
         </div>
       )}
 
-      {/* Render Each Matching File Result */}
+      {/* Render Each Matching File Result with Staggered Cascade Animation & 3D Lift */}
       {hasSearched && searchResults.length > 0 && (
         <div className="space-y-8 animate-fadeIn">
           {searchResults.slice(0, displayLimit).map((result, index) => {
             const status = getStatusDetails(result.status);
             const isCopied = copiedId === result.id;
+            const isCopiedPhone = copiedId === `phone-${result.id}`;
+            const isCopiedAcc = copiedId === `acc-${result.id}`;
+            const staggerDelay = `${Math.min(index, 20) * 45}ms`;
 
             return (
-              <div key={result.id || index} className="rounded-2xl sm:rounded-[32px] roonaki-card overflow-hidden shadow-2xl transition-all border border-slate-200 dark:border-slate-800">
+              <HolographicTiltCard 
+                key={result.id || index} 
+                style={{ animationDelay: staggerDelay }}
+                className="animate-cascade rounded-2xl sm:rounded-[32px] roonaki-card overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 cursor-default"
+              >
                 
                 {/* Status Header Banner */}
                 <div className={`p-5 sm:p-8 border-b ${status.bgLight} ${status.borderClass}`}>
@@ -740,8 +878,8 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
                           {result.fileNumber}
                         </span>
                         <button
-                          onClick={() => handleCopyFileNumber(result.id, result.fileNumber)}
-                          className="p-2 sm:p-2.5 rounded-xl bg-white hover:bg-slate-100 dark:bg-slate-900/90 dark:hover:bg-slate-800 text-amber-700 dark:text-amber-400 border border-amber-400 dark:border-amber-500/30 transition-colors shadow-sm"
+                          onClick={(e) => handleCopyFileNumber(result.id, result.fileNumber, e)}
+                          className="p-2 sm:p-2.5 rounded-xl bg-white hover:bg-slate-100 dark:bg-slate-900/90 dark:hover:bg-slate-800 text-amber-700 dark:text-amber-400 border border-amber-400 dark:border-amber-500/30 transition-all shadow-sm hover:scale-105 active:scale-95 cursor-pointer"
                           title={isAr ? 'نسخ رقم الإضبارة' : 'کۆپیکردنی ژمارەی فایل'}
                         >
                           {isCopied ? <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-4 h-4" />}
@@ -789,13 +927,25 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
                       <Hash className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                       <span>{t.accountNumber} (ID)</span>
                     </div>
-                    <div className="text-sm sm:text-base font-mono font-bold text-amber-700 dark:text-amber-300">
-                      {isIdMissing(result) ? (
-                        <span className="text-xs px-2 py-0.5 rounded bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-500/30 font-bold inline-block">
-                          🆔 {isAr ? 'بدون رقم حساب (ID)' : 'ئەژمار (ID) نیە'}
-                        </span>
-                      ) : (
-                        result.accountNumber
+                    <div className="flex items-center gap-2">
+                      <div className="text-sm sm:text-base font-mono font-bold text-amber-700 dark:text-amber-300">
+                        {isIdMissing(result) ? (
+                          <span className="text-xs px-2 py-0.5 rounded bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-500/30 font-bold inline-block">
+                            🆔 {isAr ? 'بدون رقم حساب (ID)' : 'ئەژمار (ID) نیە'}
+                          </span>
+                        ) : (
+                          result.accountNumber
+                        )}
+                      </div>
+                      {!isIdMissing(result) && (
+                        <button
+                          type="button"
+                          onClick={(e) => handleCopyFileNumber(`acc-${result.id}`, result.accountNumber, e)}
+                          className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-400 hover:text-amber-500 transition-colors"
+                          title={isAr ? 'نسخ رقم الحساب' : 'کۆپیکردنی ئەژمار'}
+                        >
+                          {isCopiedAcc ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                        </button>
                       )}
                     </div>
                   </div>
@@ -806,13 +956,25 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
                       <Phone className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                       <span>{t.phoneNumber}</span>
                     </div>
-                    <div className="text-sm sm:text-base font-mono text-slate-800 dark:text-slate-200 font-semibold">
-                      {isPhoneMissing(result) ? (
-                        <span className="text-xs px-2 py-0.5 rounded bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-500/30 font-bold inline-block">
-                          📵 {isAr ? 'بدون رقم هاتف' : 'ژمارەی مۆبایل نیە'}
-                        </span>
-                      ) : (
-                        result.phoneNumber
+                    <div className="flex items-center gap-2">
+                      <div className="text-sm sm:text-base font-mono text-slate-800 dark:text-slate-200 font-semibold">
+                        {isPhoneMissing(result) ? (
+                          <span className="text-xs px-2 py-0.5 rounded bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-500/30 font-bold inline-block">
+                            📵 {isAr ? 'بدون رقم هاتف' : 'ژمارەی مۆبایل نیە'}
+                          </span>
+                        ) : (
+                          result.phoneNumber
+                        )}
+                      </div>
+                      {!isPhoneMissing(result) && (
+                        <button
+                          type="button"
+                          onClick={(e) => handleCopyFileNumber(`phone-${result.id}`, result.phoneNumber, e)}
+                          className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-400 hover:text-amber-500 transition-colors"
+                          title={isAr ? 'نسخ رقم الهاتف' : 'کۆپیکردنی مۆبایل'}
+                        >
+                          {isCopiedPhone ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                        </button>
                       )}
                     </div>
                   </div>
@@ -869,7 +1031,7 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
                   )}
                 </div>
 
-              </div>
+              </HolographicTiltCard>
             );
           })}
 

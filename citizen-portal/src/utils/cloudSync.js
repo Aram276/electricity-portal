@@ -152,9 +152,8 @@ export function subscribeToCloudRecords(onUpdateCallback) {
         }
       }
 
-      // If cloud document does not exist yet, initialize it
+      // If cloud document does not exist yet, use local fallback
       const current = getStoredRecords();
-      saveRecordsToCloud(current);
       onUpdateCallback(current);
     }, (error) => {
       console.warn('Firestore real-time subscription error, using local storage:', error);

@@ -10,6 +10,8 @@ import AdminLoginModal from './components/AdminLoginModal';
 import AdminLoginView from './components/AdminLoginView';
 import RunakiSmartScanner from './components/RunakiSmartScanner';
 import Footer from './components/Footer';
+import ScrollNavigator from './components/ScrollNavigator';
+import CustomElectricCursor from './components/CustomElectricCursor';
 import { 
   getStoredRecords, 
   saveRecords, 
@@ -26,7 +28,8 @@ import {
   saveRecordsToCloud, 
   subscribeToCloudTrash, 
   saveTrashToCloud, 
-  logActivity 
+  logActivity,
+  addPermanentlyDeletedRecords
 } from './utils/cloudSync';
 import { getKurdistanDateTime, getKurdistanDate } from './utils/dateUtils';
 import { CheckCircle2, Info, Cloud } from 'lucide-react';
@@ -350,6 +353,10 @@ export default function App() {
     const target = records.find(r => r.id === id);
     if (!target) return;
 
+    const targetFileNum = String(target.fileNumber || '').trim();
+    const targetId = String(target.id || id).trim();
+    const isTargetSpecial = Boolean(target.isSpecial);
+
     const nowTime = getKurdistanDateTime(false);
     const nowTs = Date.now();
     const deletedItem = {
@@ -360,8 +367,25 @@ export default function App() {
       updatedAt: nowTs
     };
 
-    const updatedRecords = records.filter(r => r.id !== id);
-    const updatedTrash = [deletedItem, ...trashRecords.filter(t => t.id !== id)];
+    // Filter OUT by BOTH id AND fileNumber strictly
+    const updatedRecords = records.filter(r => {
+      if (String(r.id) === targetId) return false;
+      if (targetFileNum && String(r.fileNumber || '').trim() === targetFileNum && Boolean(r.isSpecial) === isTargetSpecial) {
+        return false;
+      }
+      return true;
+    });
+
+    const updatedTrash = [
+      deletedItem,
+      ...trashRecords.filter(t => {
+        if (String(t.id) === targetId) return false;
+        if (targetFileNum && String(t.fileNumber || '').trim() === targetFileNum && Boolean(t.isSpecial) === isTargetSpecial) {
+          return false;
+        }
+        return true;
+      })
+    ];
 
     setRecords(updatedRecords);
     setTrashRecords(updatedTrash);
@@ -376,11 +400,17 @@ export default function App() {
   // Bulk / Batch Move to Trash
   const handleBatchDelete = (ids) => {
     const staffName = getActiveStaffName();
-    const idSet = new Set(ids);
+    const idSet = new Set(ids.map(x => String(x)));
     const nowTime = getKurdistanDateTime(false);
     const nowTs = Date.now();
 
-    const deletedItems = records.filter(r => idSet.has(r.id)).map(r => ({
+    const targets = records.filter(r => idSet.has(String(r.id)));
+    const targetFileMap = new Set(targets.map(r => {
+      const f = String(r.fileNumber || '').trim();
+      return f ? `${r.isSpecial ? 'sp_' : 'reg_'}${f}` : null;
+    }).filter(Boolean));
+
+    const deletedItems = targets.map(r => ({
       ...r,
       isDeleted: true,
       deletedAt: nowTime,
@@ -388,8 +418,22 @@ export default function App() {
       updatedAt: nowTs
     }));
 
-    const updatedRecords = records.filter(r => !idSet.has(r.id));
-    const updatedTrash = [...deletedItems, ...trashRecords.filter(t => !idSet.has(t.id))];
+    const updatedRecords = records.filter(r => {
+      if (idSet.has(String(r.id))) return false;
+      const f = String(r.fileNumber || '').trim();
+      if (f && targetFileMap.has(`${r.isSpecial ? 'sp_' : 'reg_'}${f}`)) return false;
+      return true;
+    });
+
+    const updatedTrash = [
+      ...deletedItems,
+      ...trashRecords.filter(t => {
+        if (idSet.has(String(t.id))) return false;
+        const f = String(t.fileNumber || '').trim();
+        if (f && targetFileMap.has(`${t.isSpecial ? 'sp_' : 'reg_'}${f}`)) return false;
+        return true;
+      })
+    ];
 
     setRecords(updatedRecords);
     setTrashRecords(updatedTrash);
@@ -407,13 +451,24 @@ export default function App() {
     const target = trashRecords.find(t => t.id === id);
     if (!target) return;
 
+    const targetFileNum = String(target.fileNumber || '').trim();
+    const targetId = String(target.id || id).trim();
+    const isTargetSpecial = Boolean(target.isSpecial);
+
     const nowTs = Date.now();
     const restoredItem = { ...target, updatedAt: nowTs };
     delete restoredItem.isDeleted;
     delete restoredItem.deletedAt;
     delete restoredItem.deletedBy;
 
-    const updatedTrash = trashRecords.filter(t => t.id !== id);
+    const updatedTrash = trashRecords.filter(t => {
+      if (String(t.id) === targetId) return false;
+      if (targetFileNum && String(t.fileNumber || '').trim() === targetFileNum && Boolean(t.isSpecial) === isTargetSpecial) {
+        return false;
+      }
+      return true;
+    });
+
     const updatedRecords = deduplicateRecords([...records, restoredItem]);
 
     setRecords(updatedRecords);
@@ -429,10 +484,16 @@ export default function App() {
   // Bulk Restore from Trash
   const handleBatchRestore = (ids) => {
     const staffName = getActiveStaffName();
-    const idSet = new Set(ids);
+    const idSet = new Set(ids.map(x => String(x)));
     const nowTs = Date.now();
 
-    const restoredItems = trashRecords.filter(t => idSet.has(t.id)).map(item => {
+    const targets = trashRecords.filter(t => idSet.has(String(t.id)));
+    const targetFileMap = new Set(targets.map(t => {
+      const f = String(t.fileNumber || '').trim();
+      return f ? `${t.isSpecial ? 'sp_' : 'reg_'}${f}` : null;
+    }).filter(Boolean));
+
+    const restoredItems = targets.map(item => {
       const copy = { ...item, updatedAt: nowTs };
       delete copy.isDeleted;
       delete copy.deletedAt;
@@ -440,7 +501,13 @@ export default function App() {
       return copy;
     });
 
-    const updatedTrash = trashRecords.filter(t => !idSet.has(t.id));
+    const updatedTrash = trashRecords.filter(t => {
+      if (idSet.has(String(t.id))) return false;
+      const f = String(t.fileNumber || '').trim();
+      if (f && targetFileMap.has(`${t.isSpecial ? 'sp_' : 'reg_'}${f}`)) return false;
+      return true;
+    });
+
     const updatedRecords = deduplicateRecords([...records, ...restoredItems]);
 
     setRecords(updatedRecords);
@@ -457,10 +524,36 @@ export default function App() {
   const handlePermanentDelete = (id) => {
     const staffName = getActiveStaffName();
     const target = trashRecords.find(t => t.id === id);
-    const updatedTrash = trashRecords.filter(t => t.id !== id);
+    const targetFileNum = String(target?.fileNumber || '').trim();
+    const targetId = String(target?.id || id).trim();
+    const isTargetSpecial = Boolean(target?.isSpecial);
+
+    if (target) {
+      addPermanentlyDeletedRecords(target);
+    } else {
+      addPermanentlyDeletedRecords({ id, fileNumber: targetFileNum });
+    }
+
+    const updatedTrash = trashRecords.filter(t => {
+      if (String(t.id) === targetId) return false;
+      if (targetFileNum && String(t.fileNumber || '').trim() === targetFileNum && Boolean(t.isSpecial) === isTargetSpecial) {
+        return false;
+      }
+      return true;
+    });
+
+    const updatedRecords = records.filter(r => {
+      if (String(r.id) === targetId) return false;
+      if (targetFileNum && String(r.fileNumber || '').trim() === targetFileNum && Boolean(r.isSpecial) === isTargetSpecial) {
+        return false;
+      }
+      return true;
+    });
 
     setTrashRecords(updatedTrash);
+    setRecords(updatedRecords);
     saveTrashToCloud(updatedTrash);
+    saveRecordsToCloud(updatedRecords);
 
     showToast(`فایلی (${target?.fileNumber || id}) بە تەواوی لە سەلەی خۆڵ سڕایەوە`, 'info');
     logActivity('PERMANENT_DELETE', `سڕینەوەی یەکجارەکی: فایلی (${target?.fileNumber || id}) بە تەواوی لە سیستەم سڕایەوە (لەلایەن: ${staffName})`, { fileNumber: target?.fileNumber });
@@ -469,11 +562,33 @@ export default function App() {
   // Permanent Delete batch items
   const handleBatchPermanentDelete = (ids) => {
     const staffName = getActiveStaffName();
-    const idSet = new Set(ids);
-    const updatedTrash = trashRecords.filter(t => !idSet.has(t.id));
+    const idSet = new Set(ids.map(x => String(x)));
+    const targets = trashRecords.filter(t => idSet.has(String(t.id)));
+    const targetFileMap = new Set(targets.map(t => {
+      const f = String(t.fileNumber || '').trim();
+      return f ? `${t.isSpecial ? 'sp_' : 'reg_'}${f}` : null;
+    }).filter(Boolean));
+
+    addPermanentlyDeletedRecords(targets);
+
+    const updatedTrash = trashRecords.filter(t => {
+      if (idSet.has(String(t.id))) return false;
+      const f = String(t.fileNumber || '').trim();
+      if (f && targetFileMap.has(`${t.isSpecial ? 'sp_' : 'reg_'}${f}`)) return false;
+      return true;
+    });
+
+    const updatedRecords = records.filter(r => {
+      if (idSet.has(String(r.id))) return false;
+      const f = String(r.fileNumber || '').trim();
+      if (f && targetFileMap.has(`${r.isSpecial ? 'sp_' : 'reg_'}${f}`)) return false;
+      return true;
+    });
 
     setTrashRecords(updatedTrash);
+    setRecords(updatedRecords);
     saveTrashToCloud(updatedTrash);
+    saveRecordsToCloud(updatedRecords);
 
     showToast(`${ids.length} فایل بە یەکجاری لە سەلەی خۆڵ سڕانەوە`, 'info');
     logActivity('PERMANENT_DELETE', `سڕینەوەی یەکجارەکی بەکۆمەڵ: (${ids.length}) فایل بە تەواوی سڕانەوە (لەلایەن: ${staffName})`, { count: ids.length });
@@ -483,6 +598,8 @@ export default function App() {
   const handleEmptyTrash = () => {
     const staffName = getActiveStaffName();
     const count = trashRecords.length;
+    addPermanentlyDeletedRecords(trashRecords);
+
     setTrashRecords([]);
     saveTrashToCloud([]);
 
@@ -868,6 +985,12 @@ export default function App() {
         onClose={() => setPrintModalRecord(null)}
         record={printModalRecord}
       />
+
+      {/* Floating Scroll Navigator (Top / Bottom) */}
+      <ScrollNavigator />
+
+      {/* Luxury Custom Electric Cursor & Click Shockwave */}
+      <CustomElectricCursor />
 
     </div>
   );

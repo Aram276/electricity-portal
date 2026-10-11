@@ -98,6 +98,39 @@ function normalizeKurdishFuzzy(str) {
     .trim();
 }
 
+// 60FPS Smooth Animated Live Counter (0 -> target)
+function AnimatedCounter({ value, duration = 1000 }) {
+  const [displayCount, setDisplayCount] = useState(0);
+
+  useEffect(() => {
+    const end = typeof value === 'number' ? value : parseInt(value, 10) || 0;
+    if (end === 0) {
+      setDisplayCount(0);
+      return;
+    }
+    const startTime = performance.now();
+    let animId;
+
+    const update = (now) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const ease = 1 - Math.pow(1 - progress, 3);
+      setDisplayCount(Math.round(ease * end));
+
+      if (progress < 1) {
+        animId = requestAnimationFrame(update);
+      } else {
+        setDisplayCount(end);
+      }
+    };
+
+    animId = requestAnimationFrame(update);
+    return () => cancelAnimationFrame(animId);
+  }, [value, duration]);
+
+  return <span>{displayCount.toLocaleString('en-US')}</span>;
+}
+
 // 3-Dots Interactive Actions Popover Menu Component (کردارەکان ⁝)
 function RowActionsDropdown({
   record,
@@ -248,21 +281,6 @@ function RowActionsDropdown({
                 <span>دەستکاریکردنی فایل ✏️</span>
               </button>
             )}
-
-            {/* VIP Special File Toggle */}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onToggle(null);
-                if (onToggleSpecial) onToggleSpecial(record.id);
-              }}
-              className="w-full px-3 py-2 text-right text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 flex items-center gap-2.5 transition-colors cursor-pointer font-bold"
-            >
-              <Star className={`w-4 h-4 shrink-0 pointer-events-none ${record.isSpecial ? 'fill-amber-400 text-amber-400' : 'text-amber-500'}`} />
-              <span>{record.isSpecial ? 'لابردن لە فایلەکانی کاک سالار ✖' : 'دانان لە فایلەکانی کاک سالار ⭐'}</span>
-            </button>
           </div>
 
           <div className="py-1">
@@ -352,6 +370,7 @@ export default function AdminDashboard({
 }) {
   const [activeTab, setActiveTab] = useState('records');
   const [searchTerm, setSearchTerm] = useState('');
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const deferredSearchTerm = useDeferredValue(searchTerm); // Prevents UI typing lag
 
   // Listen to smart scanner search event
@@ -766,25 +785,35 @@ export default function AdminDashboard({
         </div>
       )}
 
-      {/* Top Admin Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900/95 border border-slate-200 dark:border-amber-500/30 p-4 sm:p-5 rounded-2xl sm:rounded-3xl backdrop-blur-xl shadow-lg transition-colors">
-        <div>
-          <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 text-xs font-bold mb-1">
-            <Zap className="w-4 h-4 fill-amber-500 shrink-0" />
-            <span>پەنێڵی بەڕێوەبردن | فرۆشیاری وزە ٢ - ژووری ١٩</span>
+      {/* Top Admin Header Bar (iOS Glass Hero Island) */}
+      <div className="relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-6 rounded-[28px] ios-glass border border-white/60 dark:border-white/10 shadow-2xl backdrop-blur-2xl transition-all">
+        {/* Decorative ambient flare */}
+        <div className="absolute -top-10 -right-10 w-72 h-36 bg-gradient-to-br from-amber-500/25 via-amber-400/10 to-transparent rounded-full blur-2xl pointer-events-none" />
+        <div className="absolute -bottom-10 -left-10 w-72 h-36 bg-gradient-to-tr from-sky-500/20 via-sky-400/5 to-transparent rounded-full blur-2xl pointer-events-none" />
+        
+        <div className="relative z-10 space-y-1">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/15 dark:bg-amber-400/15 text-amber-700 dark:text-amber-300 text-xs font-black border border-amber-500/40 backdrop-blur-md mb-1.5 shadow-md shadow-amber-500/10">
+            <Zap className="w-4 h-4 fill-amber-500 text-amber-500 shrink-0 electric-zap-pulse" />
+            <span>پەنێڵی بەڕێوەبردن | فرۆشیاری وزە ٢ • ژووری ١٩</span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
-            بەڕێوەبردنی فایلەکانی دائیرەی کارەبا ({records.length} دۆسیە)
+          <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3 flex-wrap">
+            <span>بەڕێوەبردنی فایلەکانی دائیرەی کارەبا</span>
+            <span className="text-sm font-black px-3.5 py-1 rounded-2xl bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 font-mono shadow-xs">
+              {records.length} دۆسیە
+            </span>
           </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            جیاکردنەوەی فایلی زەرد 📁 و ئەوراق 📄، پەڕەبەندی خێرا، و بەڕێوەبردنی گشتی
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
+            جیاکردنەوەی فایلی زەرد 📁 و ئەوراق 📄، پەڕەبەندی خێرا، پشکنینی OCR و بەڕێوەبردنی گشتی
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="relative z-10 flex items-center gap-2.5">
           {/* Active View Indicator Badge */}
-          <div className="px-3.5 py-2 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-black border border-slate-200 dark:border-slate-700 flex items-center gap-2 shadow-sm">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <div className="px-4 py-2.5 rounded-2xl ios-glass border border-slate-200/80 dark:border-white/10 text-slate-900 dark:text-white text-xs font-black flex items-center gap-2.5 shadow-md">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+            </span>
             <span>
               {activeTab === 'records' && 'گشت فایلەکان (خشتە)'}
               {activeTab === 'special' && '⭐ دۆسیە تایبەتەکان (VIP)'}
@@ -1158,15 +1187,17 @@ export default function AdminDashboard({
       {activeTab === 'records' && (
         <div className="space-y-6 animate-fadeIn">
 
-          {/* Action Bar */}
-          <div className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-emerald-50/80 dark:bg-gradient-to-r dark:from-emerald-950/40 dark:via-slate-900 dark:to-slate-900 border border-emerald-300 dark:border-emerald-500/30 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 transition-colors">
+          {/* Action Bar (iOS Glass Capsule) */}
+          <div className="p-4 sm:p-5 rounded-[26px] ios-glass-emerald border border-emerald-400/30 dark:border-emerald-500/30 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 transition-all shadow-lg shadow-emerald-950/5">
 
             <div className="space-y-1 text-center md:text-right">
-              <div className="text-emerald-800 dark:text-emerald-400 font-black text-xs sm:text-sm flex items-center justify-center md:justify-start gap-2">
-                <FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <div className="text-emerald-800 dark:text-emerald-300 font-black text-xs sm:text-sm flex items-center justify-center md:justify-start gap-2">
+                <span className="p-1 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                  <FileSpreadsheet className="w-4 h-4" />
+                </span>
                 <span>هاوردە و هەناردەی فایلی ئێکسڵ (Excel)</span>
               </div>
-              <p className="text-[11px] sm:text-xs text-slate-600 dark:text-slate-300">
+              <p className="text-[11px] sm:text-xs text-slate-600 dark:text-slate-300 font-medium">
                 فایلی ئێکسڵ لێرەوە ئەپڵۆد بکە (ڕەنگی زەرد بە شێوەی فایلی زەرد دەناسرێتەوە)
               </p>
             </div>
@@ -1175,16 +1206,16 @@ export default function AdminDashboard({
               <button
                 type="button"
                 onClick={() => onOpenScanner && onOpenScanner()}
-                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs sm:text-sm shadow-lg shadow-amber-500/25 transition-all active:scale-95 cursor-pointer border border-amber-400/60"
+                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-slate-950 font-black text-xs sm:text-sm shadow-lg shadow-amber-500/30 transition-all active:scale-95 cursor-pointer border border-amber-300/60 electric-btn"
               >
-                <Zap className="w-4 h-4 fill-slate-950 text-slate-950 shrink-0" />
+                <Zap className="w-4 h-4 fill-slate-950 text-slate-950 shrink-0 electric-zap-pulse" />
                 <span>⚡ سکانەری وەسڵ (Scanner)</span>
               </button>
 
               {allowImport && (
                 <button
                   onClick={onOpenExcelImport}
-                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm shadow-lg shadow-emerald-500/25 transition-all active:scale-95"
+                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs sm:text-sm shadow-lg shadow-emerald-600/30 transition-all active:scale-95 border border-emerald-400/30 electric-btn"
                 >
                   <UploadCloud className="w-4 h-4 shrink-0" />
                   <span>ئەپڵۆدی ئێکسڵ</span>
@@ -1196,7 +1227,7 @@ export default function AdminDashboard({
                 <button
                   onClick={() => handleExport(false)}
                   title="هەناردەکردنی تەنها ئەو فایلانەی هەڵتبژاردوون"
-                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm shadow-md shadow-emerald-600/25 transition-all active:scale-95"
+                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm shadow-md shadow-emerald-600/25 transition-all active:scale-95 border border-emerald-400/30"
                 >
                   <Download className="w-4 h-4 shrink-0" />
                   <span>هەناردەی هەڵبژێردراو ({selectedIds.length})</span>
@@ -1206,7 +1237,7 @@ export default function AdminDashboard({
                   <button
                     onClick={() => handleExport(false)}
                     title="هەناردەکردنی سەرجەم دۆسیەکانی داتابەیس بۆ ناو فایلی ئێکسڵ"
-                    className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-black text-xs sm:text-sm border border-slate-300 dark:border-slate-700 transition-colors shadow-sm"
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2.5 sm:py-3 rounded-2xl bg-white/80 hover:bg-white dark:bg-slate-900/80 dark:hover:bg-slate-800 text-slate-900 dark:text-white font-black text-xs sm:text-sm border border-slate-200/80 dark:border-white/10 backdrop-blur-xl transition-all shadow-xs"
                   >
                     <Download className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
                     <span>داگرتنی ئێکسڵ ({records.length})</span>
@@ -1216,7 +1247,7 @@ export default function AdminDashboard({
                     <button
                       onClick={() => handleExport(true)}
                       title="هەناردەکردنی تەنها ئەو فایلانەی فلتەرکراون لە خشتەکەدا"
-                      className="px-2.5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-900 dark:text-amber-300 text-xs font-bold transition-all"
+                      className="px-2.5 py-2.5 sm:py-3 rounded-2xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-900 dark:text-amber-300 text-xs font-bold transition-all backdrop-blur-lg"
                     >
                       فلتەرکراو ({filteredRecords.length})
                     </button>
@@ -1227,7 +1258,7 @@ export default function AdminDashboard({
               {allowCreate && (
                 <button
                   onClick={onOpenAddModal}
-                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs sm:text-sm shadow-md shadow-amber-500/20 transition-all active:scale-95"
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-4.5 py-2.5 sm:py-3 rounded-2xl ios-btn-gold text-xs sm:text-sm cursor-pointer electric-btn"
                 >
                   <Plus className="w-4 h-4 shrink-0" />
                   <span>فایلی نوێ</span>
@@ -1237,101 +1268,149 @@ export default function AdminDashboard({
 
           </div>
 
-          {/* KPI Stats Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-6 gap-2.5 sm:gap-3.5">
+          {/* KPI Stats Cards (iOS Glass Tiles with Electric Glow & Animated Count-up) */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2.5 sm:gap-3.5">
             <div
               onClick={() => { setStatusFilter('ALL'); setDataFilter('ALL'); }}
-              className={`p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border transition-all cursor-pointer ${statusFilter === 'ALL' && dataFilter === 'ALL' ? 'bg-amber-50 dark:bg-slate-800/90 border-amber-500 shadow-md' : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 hover:border-amber-400'
+              className={`p-3.5 rounded-[22px] border transition-all duration-300 cursor-pointer backdrop-blur-xl electric-card-hover ${statusFilter === 'ALL' && dataFilter === 'ALL' 
+                ? 'bg-amber-500/15 dark:bg-amber-500/15 border-amber-500 shadow-lg shadow-amber-500/20 ring-2 ring-amber-500/30 scale-[1.02]' 
+                : 'ios-glass border-slate-200/80 dark:border-white/10 hover:border-amber-400 shadow-sm'
                 }`}
             >
               <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-1.5">
                 <span className="text-[11px] sm:text-xs font-bold">کۆی گشتی</span>
-                <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 dark:text-amber-400" />
+                <span className="p-1 rounded-xl bg-amber-500/10 text-amber-500"><Users className="w-3.5 h-3.5" /></span>
               </div>
-              <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono">{stats.total}</div>
+              <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono tracking-tight">
+                <AnimatedCounter value={stats.total} />
+              </div>
             </div>
 
             <div
               onClick={() => setActiveTab('special')}
-              className={`p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border transition-all cursor-pointer ${activeTab === 'special' ? 'bg-amber-500/20 border-amber-500 shadow-md ring-2 ring-amber-500/30' : 'bg-white dark:bg-slate-900/60 border-amber-300/40 dark:border-amber-500/20 hover:border-amber-400'
+              className={`p-3.5 rounded-[22px] border transition-all duration-300 cursor-pointer backdrop-blur-xl electric-card-hover ${activeTab === 'special' 
+                ? 'bg-amber-500/20 border-amber-500 shadow-lg shadow-amber-500/25 ring-2 ring-amber-500/30 scale-[1.02]' 
+                : 'ios-glass border-amber-300/40 dark:border-amber-500/20 hover:border-amber-400 shadow-sm'
                 }`}
             >
               <div className="flex items-center justify-between text-amber-900 dark:text-amber-300 mb-1.5">
                 <span className="text-[11px] sm:text-xs font-bold">تایبەت (VIP) ⭐</span>
-                <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-amber-400 text-amber-400" />
+                <span className="p-1 rounded-xl bg-amber-500/10 text-amber-500"><Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" /></span>
               </div>
-              <div className="text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400 font-mono">{stats.specialCount}</div>
+              <div className="text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400 font-mono tracking-tight">
+                <AnimatedCounter value={stats.specialCount} />
+              </div>
             </div>
 
             <div
               onClick={() => setDataFilter(prev => prev === 'YELLOW_FOLDER' ? 'ALL' : 'YELLOW_FOLDER')}
-              className={`p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border transition-all cursor-pointer ${dataFilter === 'YELLOW_FOLDER' ? 'bg-amber-100/80 dark:bg-amber-950/60 border-amber-500 shadow-md ring-2 ring-amber-500/30' : 'bg-white dark:bg-slate-900/60 border-amber-200 dark:border-amber-500/20 hover:border-amber-400'
+              className={`p-3.5 rounded-[22px] border transition-all duration-300 cursor-pointer backdrop-blur-xl electric-card-hover ${dataFilter === 'YELLOW_FOLDER' 
+                ? 'bg-amber-100/90 dark:bg-amber-950/70 border-amber-500 shadow-lg shadow-amber-500/25 ring-2 ring-amber-500/30 scale-[1.02]' 
+                : 'ios-glass border-amber-200 dark:border-amber-500/20 hover:border-amber-400 shadow-sm'
                 }`}
             >
               <div className="flex items-center justify-between text-amber-900 dark:text-amber-300 mb-1.5">
                 <span className="text-[11px] sm:text-xs font-bold">فایلی زەرد 📁</span>
-                <Folder className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 dark:text-amber-400" />
+                <span className="p-1 rounded-xl bg-amber-500/10 text-amber-600"><Folder className="w-3.5 h-3.5" /></span>
               </div>
-              <div className="text-xl sm:text-2xl font-black text-amber-800 dark:text-amber-300 font-mono">{stats.yellowFolders}</div>
+              <div className="text-xl sm:text-2xl font-black text-amber-800 dark:text-amber-300 font-mono tracking-tight">
+                <AnimatedCounter value={stats.yellowFolders} />
+              </div>
             </div>
 
             <div
               onClick={() => setDataFilter(prev => prev === 'PAPER' ? 'ALL' : 'PAPER')}
-              className={`p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border transition-all cursor-pointer ${dataFilter === 'PAPER' ? 'bg-slate-200 dark:bg-slate-800 border-slate-500 shadow-md ring-2 ring-slate-400/30' : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 hover:border-slate-400'
+              className={`p-3.5 rounded-[22px] border transition-all duration-300 cursor-pointer backdrop-blur-xl electric-card-hover ${dataFilter === 'PAPER' 
+                ? 'bg-slate-200 dark:bg-slate-800 border-slate-500 shadow-lg shadow-slate-500/25 ring-2 ring-slate-400/30 scale-[1.02]' 
+                : 'ios-glass border-slate-200 dark:border-slate-800 hover:border-slate-400 shadow-sm'
                 }`}
             >
               <div className="flex items-center justify-between text-slate-700 dark:text-slate-300 mb-1.5">
                 <span className="text-[11px] sm:text-xs font-bold">ئەوراق (کاغەز) 📄</span>
-                <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-500 dark:text-slate-400" />
+                <span className="p-1 rounded-xl bg-slate-500/10 text-slate-500"><FileText className="w-3.5 h-3.5" /></span>
               </div>
-              <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono">{stats.papers}</div>
+              <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono tracking-tight">
+                <AnimatedCounter value={stats.papers} />
+              </div>
             </div>
 
             <div
               onClick={() => setStatusFilter(prev => prev === 'COMPLETED' ? 'ALL' : 'COMPLETED')}
-              className={`p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border transition-all cursor-pointer ${statusFilter === 'COMPLETED' ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 shadow-md ring-2 ring-emerald-500/30' : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 hover:border-emerald-500'
+              className={`p-3.5 rounded-[22px] border transition-all duration-300 cursor-pointer backdrop-blur-xl electric-card-hover ${statusFilter === 'COMPLETED' 
+                ? 'bg-emerald-500/15 border-emerald-500 shadow-lg shadow-emerald-500/25 ring-2 ring-emerald-500/30 scale-[1.02]' 
+                : 'ios-glass border-emerald-200/80 dark:border-emerald-500/20 hover:border-emerald-500 shadow-sm'
                 }`}
             >
               <div className="flex items-center justify-between text-emerald-700 dark:text-emerald-400 mb-1.5">
                 <span className="text-[11px] sm:text-xs font-bold">وەرگیراوەتەوە</span>
-                <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 dark:text-emerald-400" />
+                <span className="p-1 rounded-xl bg-emerald-500/10 text-emerald-600"><CheckCircle2 className="w-3.5 h-3.5" /></span>
               </div>
-              <div className="text-xl sm:text-2xl font-black text-emerald-800 dark:text-emerald-300 font-mono">{stats.completed}</div>
+              <div className="text-xl sm:text-2xl font-black text-emerald-800 dark:text-emerald-300 font-mono tracking-tight">
+                <AnimatedCounter value={stats.completed} />
+              </div>
             </div>
 
             <div
               onClick={() => setStatusFilter(prev => prev === 'IN_PROGRESS' ? 'ALL' : 'IN_PROGRESS')}
-              className={`p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border transition-all cursor-pointer ${statusFilter === 'IN_PROGRESS' ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-500 shadow-md ring-2 ring-amber-500/30' : 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 hover:border-amber-500'
+              className={`p-3.5 rounded-[22px] border transition-all duration-300 cursor-pointer backdrop-blur-xl electric-card-hover ${statusFilter === 'IN_PROGRESS' 
+                ? 'bg-amber-500/15 border-amber-500 shadow-lg shadow-amber-500/25 ring-2 ring-amber-500/30 scale-[1.02]' 
+                : 'ios-glass border-amber-200/80 dark:border-amber-500/20 hover:border-amber-500 shadow-sm'
                 }`}
             >
               <div className="flex items-center justify-between text-amber-700 dark:text-amber-400 mb-1.5">
                 <span className="text-[11px] sm:text-xs font-bold">پێنەدراوەتەوە</span>
-                <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 dark:text-amber-400" />
+                <span className="p-1 rounded-xl bg-amber-500/10 text-amber-600"><Clock className="w-3.5 h-3.5" /></span>
               </div>
-              <div className="text-xl sm:text-2xl font-black text-amber-800 dark:text-amber-300 font-mono">{stats.inProgress}</div>
+              <div className="text-xl sm:text-2xl font-black text-amber-800 dark:text-amber-300 font-mono tracking-tight">
+                <AnimatedCounter value={stats.inProgress} />
+              </div>
+            </div>
+
+            <div
+              onClick={() => setStatusFilter(prev => prev === 'DELIVERED' ? 'ALL' : 'DELIVERED')}
+              className={`p-3.5 rounded-[22px] border transition-all duration-300 cursor-pointer backdrop-blur-xl electric-card-hover ${statusFilter === 'DELIVERED' 
+                ? 'bg-blue-500/15 border-blue-500 shadow-lg shadow-blue-500/25 ring-2 ring-blue-500/30 scale-[1.02]' 
+                : 'ios-glass border-blue-200/80 dark:border-blue-500/20 hover:border-blue-500 shadow-sm'
+                }`}
+            >
+              <div className="flex items-center justify-between text-blue-700 dark:text-blue-400 mb-1.5">
+                <span className="text-[11px] sm:text-xs font-bold">تەسلیم کراوە</span>
+                <span className="p-1 rounded-xl bg-blue-500/10 text-blue-600"><PackageCheck className="w-3.5 h-3.5" /></span>
+              </div>
+              <div className="text-xl sm:text-2xl font-black text-blue-800 dark:text-blue-300 font-mono tracking-tight">
+                <AnimatedCounter value={stats.delivered} />
+              </div>
             </div>
           </div>
 
-          {/* ── ADVANCED FILTER AND SEARCH BAR ── */}
-          <div className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 space-y-3 shadow-md">
+          {/* ── ADVANCED FILTER AND SEARCH BAR (iOS Glass Sheet with Cyber Glow) ── */}
+          <div className="p-4 sm:p-5.5 rounded-[26px] ios-glass space-y-3.5 shadow-xl">
             <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
 
-              {/* Search input */}
-              <div className="relative flex-1">
-                <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-500" />
+              {/* Search input with Cyber Glow */}
+              <div className={`relative flex-1 rounded-2xl transition-all duration-300 ${
+                isSearchFocused ? 'cyber-glow-active ring-4 ring-amber-500/20' : ''
+              }`}>
+                {searchTerm.trim().length > 0 ? (
+                  <Zap className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-500 fill-amber-400 sparkle-spin drop-shadow-[0_0_8px_rgba(245,158,11,0.9)] pointer-events-none" />
+                ) : (
+                  <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-500 pointer-events-none" />
+                )}
                 <input
                   type="text"
                   value={searchTerm}
+                  onFocus={() => setIsSearchFocused(true)}
+                  onBlur={() => setIsSearchFocused(false)}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="گەڕانی زیرەک: ناو (وەک ڕێبین)، ژمارەی فایل، مۆبایل، ئەژمار (ID)، یان وەرگرەوە..."
-                  className="w-full pr-10 pl-20 py-2.5 sm:py-3 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:outline-none focus:border-amber-500"
+                  className="w-full pr-11 pl-20 py-2.5 sm:py-3.5 bg-white/70 dark:bg-slate-950/70 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:outline-none focus:border-amber-500 backdrop-blur-xl transition-all"
                 />
-                <div className="absolute left-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                <div className="absolute left-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
                   {searchTerm && (
                     <button
                       type="button"
                       onClick={() => setSearchTerm('')}
-                      className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg cursor-pointer"
+                      className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-xl cursor-pointer"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -1340,7 +1419,7 @@ export default function AdminDashboard({
                     type="button"
                     onClick={() => onOpenScanner && onOpenScanner()}
                     title="سکانکردنی وەسڵ بە کامێرا (Smart OCR Scanner)"
-                    className="p-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500 text-amber-600 hover:text-slate-950 dark:text-amber-300 dark:hover:text-slate-950 border border-amber-500/40 transition-all cursor-pointer active:scale-90"
+                    className="p-2 rounded-xl bg-amber-500/20 hover:bg-amber-500 text-amber-700 hover:text-slate-950 dark:text-amber-300 dark:hover:text-slate-950 border border-amber-500/30 transition-all cursor-pointer active:scale-90"
                   >
                     <Camera className="w-4 h-4" />
                   </button>
@@ -1352,7 +1431,7 @@ export default function AdminDashboard({
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="w-full lg:w-auto px-3 py-2.5 sm:py-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs sm:text-sm font-bold focus:outline-none focus:border-amber-500"
+                  className="w-full lg:w-auto px-3.5 py-2.5 sm:py-3.5 rounded-2xl bg-white/70 dark:bg-slate-950/70 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white text-xs sm:text-sm font-bold focus:outline-none focus:border-amber-500 backdrop-blur-xl transition-all cursor-pointer"
                 >
                   <option value="ALL">📋 هەموو دۆخەکان ({records.length})</option>
                   <option value="COMPLETED">🟢 وەرگیراوەتەوە - Done ({stats.completed})</option>
@@ -1366,9 +1445,9 @@ export default function AdminDashboard({
                 <select
                   value={dataFilter}
                   onChange={(e) => setDataFilter(e.target.value)}
-                  className={`w-full lg:w-auto px-3 py-2.5 sm:py-3 rounded-xl border font-bold text-xs sm:text-sm focus:outline-none transition-colors ${dataFilter !== 'ALL'
-                    ? 'bg-amber-50 dark:bg-amber-500/15 border-amber-500 text-amber-900 dark:text-amber-300'
-                    : 'bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:border-amber-500'
+                  className={`w-full lg:w-auto px-3.5 py-2.5 sm:py-3.5 rounded-2xl border font-bold text-xs sm:text-sm focus:outline-none backdrop-blur-xl transition-all cursor-pointer ${dataFilter !== 'ALL'
+                    ? 'bg-amber-500/20 border-amber-500 text-amber-950 dark:text-amber-300'
+                    : 'bg-white/70 dark:bg-slate-950/70 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white focus:border-amber-500'
                     }`}
                 >
                   <option value="ALL">🔍 فلتەری زانیارییەکان (گشت داتاکان)</option>
@@ -1619,65 +1698,77 @@ export default function AdminDashboard({
             </div>
           )}
 
-          {/* Records Table formatted like co2 file */}
-          <div className="rounded-2xl sm:rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xl backdrop-blur-xl transition-colors">
+          {/* Records Table (iOS Frosted Glass Container) */}
+          <div className="rounded-[28px] ios-glass overflow-hidden shadow-2xl transition-all border border-slate-200/80 dark:border-white/10">
             {/* ── DESKTOP & TABLET VIEW: Wide Data Table (hidden on mobile) ── */}
-            <div className="hidden md:block overflow-x-auto min-h-[360px]">
+            <div className="hidden md:block overflow-x-auto min-h-[380px]">
               <table className="w-full text-right text-xs border-collapse">
-                <thead className="bg-slate-100 dark:bg-slate-950/90 text-slate-700 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-800 text-xs">
+                <thead className="bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 text-amber-300 dark:text-amber-400 font-black border-b-2 border-amber-500/30 backdrop-blur-2xl text-xs sticky top-0 z-20 shadow-md">
                   <tr>
-                    {/* Star VIP Header */}
-                    <th className="p-2 text-center w-8">⭐</th>
-
                     {/* Select All Checkbox Header */}
-                    <th className="p-2 text-center w-8">
+                    <th className="p-3 text-center w-10">
                       <button
                         type="button"
                         onClick={handleToggleSelectAllPage}
                         title={isAllPageSelected ? "هەڵوەشاندنەوەی پەڕە" : "هەڵبژاردنی هەموو ئەم پەڕەیە"}
-                        className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-300"
+                        className="p-1.5 rounded-xl hover:bg-white/10 transition-all active:scale-90 text-amber-300 inline-flex items-center justify-center"
                       >
                         {isAllPageSelected ? (
-                          <CheckSquare className="w-4 h-4 text-amber-500" />
+                          <CheckSquare className="w-4 h-4 text-amber-400" />
                         ) : (
-                          <Square className="w-4 h-4 text-slate-400" />
+                          <Square className="w-4 h-4 text-slate-400 hover:text-amber-300" />
                         )}
                       </button>
                     </th>
 
-                    <th className="p-2 cursor-pointer text-center w-16" onClick={() => { setSortField('fileNumber'); setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc'); }}>
-                      فایل {sortField === 'fileNumber' && (sortOrder === 'asc' ? '▲' : '▼')}
+                    <th className="p-3 cursor-pointer text-center w-20 transition-colors hover:text-amber-200 select-none" onClick={() => { setSortField('fileNumber'); setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc'); }}>
+                      <span className="inline-flex items-center gap-1">
+                        <span>فایل</span>
+                        {sortField === 'fileNumber' && (
+                          <span className="text-amber-400 text-sm animate-bounce">{sortOrder === 'asc' ? '▲' : '▼'}</span>
+                        )}
+                      </span>
                     </th>
-                    <th className="p-2 text-center w-24">جۆری دۆسیە</th>
-                    <th className="p-2 cursor-pointer text-center w-24" onClick={() => { setSortField('accountNumber'); setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc'); }}>
-                      ئەژمار (ID) {sortField === 'accountNumber' && (sortOrder === 'asc' ? '▲' : '▼')}
+                    <th className="p-3 text-center w-28">جۆری دۆسیە</th>
+                    <th className="p-3 cursor-pointer text-center w-28 transition-colors hover:text-amber-200 select-none" onClick={() => { setSortField('accountNumber'); setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc'); }}>
+                      <span className="inline-flex items-center gap-1">
+                        <span>ئەژمار (ID)</span>
+                        {sortField === 'accountNumber' && (
+                          <span className="text-amber-400 text-sm animate-bounce">{sortOrder === 'asc' ? '▲' : '▼'}</span>
+                        )}
+                      </span>
                     </th>
-                    <th className="p-2 text-center w-28">مۆبایل</th>
-                    <th className="p-2 cursor-pointer text-right min-w-[110px]" onClick={() => { setSortField('citizenName'); setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc'); }}>
-                      ناوی هاووڵاتی {sortField === 'citizenName' && (sortOrder === 'asc' ? '▲' : '▼')}
+                    <th className="p-3 text-center w-32">مۆبایل</th>
+                    <th className="p-3 cursor-pointer text-right min-w-[130px] transition-colors hover:text-amber-200 select-none" onClick={() => { setSortField('citizenName'); setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc'); }}>
+                      <span className="inline-flex items-center gap-1">
+                        <span>ناوی هاووڵاتی</span>
+                        {sortField === 'citizenName' && (
+                          <span className="text-amber-400 text-sm animate-bounce">{sortOrder === 'asc' ? '▲' : '▼'}</span>
+                        )}
+                      </span>
                     </th>
-                    <th className="p-2 bg-amber-500/15 dark:bg-amber-500/20 text-amber-950 dark:text-amber-200 border-x border-amber-300 dark:border-amber-500/40 text-center font-black w-32">
-                      <div className="flex items-center justify-center gap-1">
-                        <ShieldCheck className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
-                        <span>بەتنی KYC 🪪</span>
+                    <th className="p-3 bg-amber-500/25 text-amber-200 border-x-2 border-amber-500/40 text-center font-black w-36 shadow-inner">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0 animate-pulse" />
+                        <span className="tracking-wide">بەتنی KYC 🪪</span>
                       </div>
                     </th>
-                    <th className="p-2 text-center w-32">دۆخی ئێستا</th>
-                    <th className="p-2 text-center w-20">بەروار</th>
-                    <th className="p-2 text-center w-24">وەرگرەوە</th>
-                    <th className="p-2 text-center w-36">کردارەکان</th>
+                    <th className="p-3 text-center w-36">دۆخی ئێستا</th>
+                    <th className="p-3 text-center w-24">بەرواری تەسلیم</th>
+                    <th className="p-3 text-center w-28">وەرگرەوە / کارمەند</th>
+                    <th className="p-3 text-center w-20">کردارەکان</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-slate-800 dark:text-slate-200">
                   {paginatedRecords.length === 0 ? (
                     <tr>
-                      <td colSpan="12" className="p-12 text-center text-slate-400">
-                        <AlertCircle className="w-8 h-8 mx-auto mb-2 text-slate-400" />
-                        <span>هیچ تۆمارێک بەم فلتەرانە نەدۆزرایەوە</span>
+                      <td colSpan="11" className="p-16 text-center text-slate-400">
+                        <AlertCircle className="w-10 h-10 mx-auto mb-3 text-amber-500/70 animate-pulse" />
+                        <span className="text-sm font-bold">هیچ تۆمارێک بەم فلتەرانە نەدۆزرایەوە</span>
                       </td>
                     </tr>
                   ) : (
-                    paginatedRecords.map((record) => {
+                    paginatedRecords.map((record, index) => {
                       const status = STATUS_CONFIG[record.status] || STATUS_CONFIG.IN_PROGRESS;
                       const isSelected = selectedIds.includes(record.id);
                       const isPhoneMissing = !record.phoneNumber || record.phoneNumber === 'نیە' || record.phoneNumber.trim() === '';
@@ -1690,65 +1781,51 @@ export default function AdminDashboard({
                       return (
                         <tr
                           key={record.id}
-                          className={`transition-colors ${openRowMenuId === record.id ? 'relative z-30' : ''} ${isSelected
-                            ? 'bg-amber-50/80 dark:bg-amber-500/10'
-                            : (isYellowFolder ? 'bg-amber-50/30 dark:bg-amber-500/5 hover:bg-amber-50/60' : 'hover:bg-slate-50/80 dark:hover:bg-slate-800/40')
-                            }`}
+                          className={`group transition-all duration-200 ${openRowMenuId === record.id ? 'relative z-30' : ''} ${isSelected
+                            ? 'bg-amber-100/70 dark:bg-amber-500/20 shadow-xs'
+                            : (index % 2 === 0
+                              ? (isYellowFolder ? 'bg-amber-50/25 dark:bg-amber-950/10 hover:bg-amber-100/50 dark:hover:bg-amber-500/15' : 'bg-transparent hover:bg-slate-100/80 dark:hover:bg-slate-800/50')
+                              : (isYellowFolder ? 'bg-amber-50/40 dark:bg-amber-950/20 hover:bg-amber-100/60 dark:hover:bg-amber-500/15' : 'bg-slate-50/40 dark:bg-slate-900/30 hover:bg-slate-100/80 dark:hover:bg-slate-800/50')
+                            )}`}
                         >
-
-                          {/* Star VIP Toggle */}
-                          <td className="p-2 text-center">
-                            <button
-                              type="button"
-                              onClick={() => handleToggleSpecial(record.id)}
-                              title={record.isSpecial ? "لابردن لە فایلەکانی کاک سالار" : "دانان لە فایلەکانی کاک سالار ⭐"}
-                              className="p-1 rounded-lg transition-transform active:scale-75 hover:bg-amber-500/10 cursor-pointer"
-                            >
-                              <Star className={`w-4 h-4 transition-all ${record.isSpecial
-                                  ? 'fill-amber-400 text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.6)]'
-                                  : 'text-slate-300 dark:text-slate-600 hover:text-amber-400'
-                                }`} />
-                            </button>
-                          </td>
-
                           {/* Row Checkbox */}
-                          <td className="p-2 text-center">
+                          <td className="p-2.5 text-center">
                             <button
                               type="button"
                               onClick={() => handleToggleSelectOne(record.id)}
-                              className="p-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
+                              className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-all active:scale-90 inline-flex items-center justify-center"
                             >
                               {isSelected ? (
-                                <CheckSquare className="w-4 h-4 text-amber-500" />
+                                <CheckSquare className="w-4 h-4 text-amber-500 drop-shadow-xs" />
                               ) : (
-                                <Square className="w-4 h-4 text-slate-400" />
+                                <Square className="w-4 h-4 text-slate-400 group-hover:text-amber-500/70" />
                               )}
                             </button>
                           </td>
 
                           {/* number file */}
-                          <td className="p-2 text-center">
-                            <div className="inline-flex items-center gap-1">
-                              <span className="font-mono font-black text-amber-700 dark:text-amber-300 text-xs px-1.5 py-0.5 bg-amber-100/70 dark:bg-amber-500/10 rounded border border-amber-300 dark:border-amber-500/30">
+                          <td className="p-2.5 text-center">
+                            <div className="inline-flex items-center gap-1.5 justify-center">
+                              <span className="font-mono font-black text-amber-900 dark:text-amber-200 text-xs px-2.5 py-1 rounded-xl bg-gradient-to-r from-amber-200/90 via-amber-100 to-amber-200/90 dark:from-amber-500/20 dark:via-amber-500/10 dark:to-amber-500/20 border border-amber-300/80 dark:border-amber-500/40 shadow-xs transition-transform group-hover:scale-105">
                                 {record.fileNumber}
                               </span>
                               {record.isSpecial && (
-                                <span className="text-[10px] text-amber-500 font-bold" title="فایلی کاک سالار ⭐">⭐</span>
+                                <span className="text-xs text-amber-500 font-bold animate-pulse" title="فایلی کاک سالار ⭐">⭐</span>
                               )}
                             </div>
                           </td>
 
                           {/* File Type Button Toggle (Yellow Folder vs Paper) */}
-                          <td className="p-2 text-center">
+                          <td className="p-2.5 text-center">
                             <button
                               type="button"
                               disabled={!allowEdit}
                               onClick={() => onToggleFileType && onToggleFileType(record.id)}
                               title={allowEdit ? "کلیک بکە بۆ گۆڕینی جۆری فایل (فایلی زەرد / ئەوراق)" : "تەنها خوێندنەوە"}
-                              className={`px-2 py-0.5 rounded-lg text-[11px] font-black border transition-all active:scale-95 shadow-xs inline-flex items-center gap-1 ${!allowEdit ? 'opacity-85 cursor-default' : 'cursor-pointer'
+                              className={`px-2.5 py-1 rounded-xl text-[11px] font-black border transition-all active:scale-95 hover:scale-105 shadow-xs inline-flex items-center gap-1.5 ${!allowEdit ? 'opacity-85 cursor-default' : 'cursor-pointer'
                                 } ${isYellowFolder
-                                  ? 'bg-amber-200/80 dark:bg-amber-500/25 text-amber-950 dark:text-amber-300 border-amber-400 dark:border-amber-500/50'
-                                  : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-700'
+                                  ? 'bg-gradient-to-r from-amber-200 via-amber-100 to-amber-200 dark:from-amber-500/30 dark:to-amber-600/20 text-amber-950 dark:text-amber-200 border-amber-400 dark:border-amber-500/50 shadow-amber-500/10'
+                                  : 'bg-gradient-to-r from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-800/80 text-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-700'
                                 }`}
                             >
                               <span>{isYellowFolder ? '📁 فایلی زەرد' : '📄 ئەوراق'}</span>
@@ -1756,34 +1833,36 @@ export default function AdminDashboard({
                           </td>
 
                           {/* ID */}
-                          <td className="p-2 text-center font-mono text-xs">
+                          <td className="p-2.5 text-center font-mono text-xs">
                             {isIdMissing ? (
-                              <span className="text-rose-600 dark:text-rose-400 text-[10px] px-1.5 py-0.5 rounded bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 font-bold">
+                              <span className="text-rose-600 dark:text-rose-400 text-[10px] px-2 py-0.5 rounded-lg bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 font-bold">
                                 نیە
                               </span>
                             ) : (
-                              <span className="text-slate-900 dark:text-white font-mono font-semibold">{record.accountNumber}</span>
+                              <span className="text-slate-900 dark:text-white font-mono font-bold tracking-wider px-2 py-0.5 rounded-lg bg-slate-100/80 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60">
+                                {record.accountNumber}
+                              </span>
                             )}
                           </td>
 
                           {/* Phone & WhatsApp */}
-                          <td className="p-2 text-center font-mono text-xs">
+                          <td className="p-2.5 text-center font-mono text-xs">
                             {isPhoneMissing ? (
-                              <span className="text-rose-600 dark:text-rose-400 px-1.5 py-0.5 rounded bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-[10px] font-bold">
+                              <span className="text-rose-600 dark:text-rose-400 px-2 py-0.5 rounded-lg bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-[10px] font-bold">
                                 نیە
                               </span>
                             ) : (
-                              <div className="flex items-center justify-center gap-1 flex-wrap">
-                                <span className="text-slate-700 dark:text-slate-300 text-xs font-semibold">{record.phoneNumber}</span>
+                              <div className="inline-flex items-center justify-center gap-1.5">
+                                <span className="text-slate-800 dark:text-slate-200 text-xs font-bold tracking-tight">{record.phoneNumber}</span>
                                 {generateWhatsAppUrl(record) && (
                                   <a
                                     href={generateWhatsAppUrl(record)}
                                     target="_blank"
                                     rel="noreferrer"
                                     title="ناردنی نامەی فەرمی بە واتسئاپ بۆ هاووڵاتی"
-                                    className="p-1 rounded bg-emerald-500/15 hover:bg-emerald-500/30 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 inline-flex items-center transition-all active:scale-95"
+                                    className="p-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500 text-emerald-600 hover:text-white dark:text-emerald-400 dark:hover:text-white border border-emerald-500/30 inline-flex items-center transition-all active:scale-90 hover:scale-110 shadow-xs hover:shadow-emerald-500/30"
                                   >
-                                    <MessageSquare className="w-3 h-3" />
+                                    <MessageSquare className="w-3.5 h-3.5" />
                                   </a>
                                 )}
                               </div>
@@ -1791,9 +1870,9 @@ export default function AdminDashboard({
                           </td>
 
                           {/* Name */}
-                          <td className="p-2 text-right">
+                          <td className="p-2.5 text-right">
                             {(record.citizenName && record.citizenName !== 'هاوبەشی کارەبا' && record.citizenName.trim() !== '') ? (
-                              <span className="font-bold text-slate-900 dark:text-white text-xs block truncate max-w-[130px]" title={record.citizenName}>
+                              <span className="font-black text-slate-900 dark:text-white text-xs block truncate max-w-[140px] group-hover:text-amber-600 dark:group-hover:text-amber-300 transition-colors" title={record.citizenName}>
                                 {record.citizenName}
                               </span>
                             ) : (
@@ -1802,7 +1881,7 @@ export default function AdminDashboard({
                           </td>
 
                           {/* KYC Status Dropdown */}
-                          <td className="p-2 bg-amber-500/5 dark:bg-amber-500/5 border-x border-amber-200/60 dark:border-amber-500/20 text-center">
+                          <td className="p-2.5 bg-amber-500/5 dark:bg-amber-500/5 border-x border-amber-200/70 dark:border-amber-500/20 text-center">
                             {(() => {
                               const kycState = getRecordKYC(record);
                               return (
@@ -1817,12 +1896,12 @@ export default function AdminDashboard({
                                     }
                                   }}
                                   title={allowEdit ? "بەتنی دیاریکردنی دۆخی کەیوایسی (KYC)" : "تەنها خوێندنەوە"}
-                                  className={`w-full px-1.5 py-1 rounded-lg text-xs font-black border-2 transition-all focus:outline-none shadow-xs text-center ${!allowEdit ? 'cursor-default opacity-85' : 'cursor-pointer'
+                                  className={`w-full px-2 py-1.5 rounded-xl text-xs font-black border-2 transition-all focus:outline-none shadow-xs text-center hover:scale-[1.02] ${!allowEdit ? 'cursor-default opacity-85' : 'cursor-pointer'
                                     } ${kycState === 'DONE_BY_US'
-                                      ? 'bg-emerald-100 dark:bg-emerald-500/25 text-emerald-950 dark:text-emerald-200 border-emerald-500'
+                                      ? 'bg-emerald-100 dark:bg-emerald-500/25 text-emerald-950 dark:text-emerald-200 border-emerald-500 shadow-emerald-500/10'
                                       : kycState === 'PRE_VERIFIED'
-                                        ? 'bg-sky-100 dark:bg-sky-500/25 text-sky-950 dark:text-sky-200 border-sky-500'
-                                        : 'bg-amber-100 dark:bg-amber-500/25 text-amber-950 dark:text-amber-200 border-amber-500'
+                                        ? 'bg-sky-100 dark:bg-sky-500/25 text-sky-950 dark:text-sky-200 border-sky-500 shadow-sky-500/10'
+                                        : 'bg-amber-100 dark:bg-amber-500/25 text-amber-950 dark:text-amber-200 border-amber-500 shadow-amber-500/10'
                                     }`}
                                 >
                                   <option value="DONE_BY_US" className="bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-300 font-bold">
@@ -1840,12 +1919,12 @@ export default function AdminDashboard({
                           </td>
 
                           {/* Status selector */}
-                          <td className="p-2 text-center">
+                          <td className="p-2.5 text-center">
                             <select
                               value={record.status}
                               disabled={!allowEdit}
                               onChange={(e) => onUpdateStatus(record.id, e.target.value)}
-                              className={`w-full px-1.5 py-1 rounded-lg text-xs font-bold border ${status.badgeClass} bg-white dark:bg-slate-900 focus:outline-none shadow-xs text-center ${!allowEdit ? 'cursor-default opacity-85' : 'cursor-pointer'
+                              className={`w-full px-2 py-1.5 rounded-xl text-xs font-bold border-2 ${status.badgeClass} bg-white dark:bg-slate-900 focus:outline-none shadow-xs text-center hover:scale-[1.02] transition-transform ${!allowEdit ? 'cursor-default opacity-85' : 'cursor-pointer'
                                 }`}
                             >
                               <option value="COMPLETED" className="bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-300 font-bold">
@@ -1861,24 +1940,25 @@ export default function AdminDashboard({
                           </td>
 
                           {/* date */}
-                          <td className="p-2 text-center text-xs">
+                          <td className="p-2.5 text-center text-xs">
                             {record.deliveredDate ? (
-                              <span className="text-blue-700 dark:text-blue-400 font-bold font-mono text-[11px] px-1.5 py-0.5 bg-blue-50 dark:bg-blue-950/40 rounded border border-blue-200 dark:border-blue-500/30">
-                                {record.deliveredDate}
+                              <span className="inline-flex items-center gap-1 text-blue-700 dark:text-blue-300 font-bold font-mono text-[11px] px-2 py-0.5 bg-blue-50 dark:bg-blue-950/50 rounded-lg border border-blue-200 dark:border-blue-500/30">
+                                <span>🗓️</span>
+                                <span>{record.deliveredDate}</span>
                               </span>
                             ) : (
-                              <span className="text-slate-400 text-xs">-</span>
+                              <span className="text-slate-400 text-xs font-mono">-</span>
                             )}
                           </td>
 
                           {/* name of recive & staff handler */}
-                          <td className="p-2 text-center text-xs">
+                          <td className="p-2.5 text-center text-xs">
                             {record.receiverName ? (
-                              <span className="font-bold text-slate-900 dark:text-white text-xs truncate block max-w-[95px] mx-auto" title={record.receiverName}>
+                              <span className="font-black text-slate-900 dark:text-white text-xs truncate block max-w-[105px] mx-auto px-1.5 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800" title={record.receiverName}>
                                 {record.receiverName}
                               </span>
                             ) : (record.deliveredBy || record.handledBy) ? (
-                              <span className="text-amber-800 dark:text-amber-300 text-[10px] font-bold px-1 py-0.5 rounded bg-amber-100 dark:bg-amber-500/20 truncate block max-w-[95px] mx-auto" title={record.deliveredBy || record.handledBy}>
+                              <span className="text-amber-900 dark:text-amber-300 text-[11px] font-bold px-2 py-0.5 rounded-lg bg-amber-100/80 dark:bg-amber-500/20 border border-amber-300/60 dark:border-amber-500/30 truncate block max-w-[105px] mx-auto" title={record.deliveredBy || record.handledBy}>
                                 👤 {record.deliveredBy || record.handledBy}
                               </span>
                             ) : (
@@ -1887,7 +1967,7 @@ export default function AdminDashboard({
                           </td>
 
                           {/* Actions Column (3-Dots Popover Menu ⁝) */}
-                          <td className={`p-2 text-center relative ${openRowMenuId === 'desktop-' + record.id ? 'z-50' : ''}`}>
+                          <td className={`p-2.5 text-center relative ${openRowMenuId === 'desktop-' + record.id ? 'z-50' : ''}`}>
                             <RowActionsDropdown
                               record={record}
                               isOpen={openRowMenuId === 'desktop-' + record.id}

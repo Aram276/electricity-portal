@@ -12,11 +12,30 @@ export function getStoredSpecialRecords() {
   try {
     const data = localStorage.getItem(SPECIAL_STORAGE_KEY);
     const parsed = data ? JSON.parse(data) : [];
-    const initialSpecials = INITIAL_RECORDS.filter(r => r && r.isSpecial === true);
+    const trash = getStoredTrash();
+    const trashFiles = new Set(trash.map(t => String(t.fileNumber || '').trim()).filter(Boolean));
+    const trashIds = new Set(trash.map(t => String(t.id || '').trim()).filter(Boolean));
+
+    const initialSpecials = INITIAL_RECORDS.filter(r => {
+      if (!r || r.isSpecial !== true || r.isDeleted) return false;
+      const f = String(r.fileNumber || '').trim();
+      const id = String(r.id || '').trim();
+      if (f && trashFiles.has(f)) return false;
+      if (id && trashIds.has(id)) return false;
+      return true;
+    });
+
     const map = new Map();
     initialSpecials.forEach(r => map.set(String(r.fileNumber || r.id).trim(), r));
     if (Array.isArray(parsed)) {
-      parsed.forEach(r => map.set(String(r.fileNumber || r.id).trim(), r));
+      parsed.forEach(r => {
+        if (!r || r.isDeleted) return;
+        const f = String(r.fileNumber || '').trim();
+        const id = String(r.id || '').trim();
+        if (f && trashFiles.has(f)) return false;
+        if (id && trashIds.has(id)) return false;
+        map.set(String(r.fileNumber || r.id).trim(), r);
+      });
     }
     return Array.from(map.values());
   } catch (e) {
@@ -38,10 +57,14 @@ export function saveSpecialRecords(specialRecords) {
 
 /**
  * Deduplicate records array by id and fileNumber, ensuring both regular records and special records
- * coexist cleanly, and recovering missing initial regular records without zombie special resurrections.
+ * coexist cleanly, and never resurfacing records that are currently in trash.
  */
 export function deduplicateRecords(records) {
   if (!Array.isArray(records)) records = [];
+
+  const trash = getStoredTrash();
+  const trashFiles = new Set(trash.map(t => String(t.fileNumber || '').trim()).filter(Boolean));
+  const trashIds = new Set(trash.map(t => String(t.id || '').trim()).filter(Boolean));
 
   const regularMap = new Map(); // fileStr -> record
   const specialMap = new Map(); // fileStr -> record
@@ -49,9 +72,13 @@ export function deduplicateRecords(records) {
 
   for (const raw of records) {
     if (!raw || raw.isDeleted) continue;
+    const fileStr = String(raw.fileNumber || '').trim();
+    const idStr = String(raw.id || '').trim();
+    if (fileStr && trashFiles.has(fileStr)) continue;
+    if (idStr && trashIds.has(idStr)) continue;
+
     const r = { ...raw };
     const isSpecial = Boolean(r.isSpecial);
-    const fileStr = String(r.fileNumber || '').trim();
 
     if (isSpecial) {
       if (!r.id || r.id.startsWith('rec-')) {
