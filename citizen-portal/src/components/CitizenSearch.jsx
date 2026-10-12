@@ -699,16 +699,16 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
 
           {/* Search Form with Cyber Glow & Rock-Solid Layout */}
           <form onSubmit={handleSearchSubmit} className="max-w-2xl mx-auto pt-1 sm:pt-2">
-            <div className={`relative flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 bg-white/95 dark:bg-[#090e1a]/95 p-2 rounded-2xl border-2 transition-all duration-300 shadow-xl backdrop-blur-md ${
+            <div className={`relative flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 bg-white/95 dark:bg-[#090e1a]/95 p-2 rounded-2xl border-2 transition-colors duration-200 shadow-xl backdrop-blur-md ${
               isSearchFocused
-                ? 'cyber-glow-active border-amber-500 ring-4 ring-amber-500/20 shadow-amber-500/30'
+                ? 'border-amber-500 ring-2 ring-amber-500/30 shadow-[0_0_22px_rgba(245,158,11,0.25)]'
                 : 'border-amber-500/40 hover:border-amber-500/70 shadow-amber-500/5'
             }`}>
               <div className="relative flex-1 flex items-center min-w-0">
                 {/* Dynamic Rotating Spark / Lightning Icon when typing */}
                 {query.trim().length > 0 ? (
                   <div className="absolute right-3.5 sm:right-4 flex items-center justify-center pointer-events-none">
-                    <Zap className="w-5 h-5 text-amber-500 fill-amber-400 sparkle-spin drop-shadow-[0_0_10px_rgba(245,158,11,0.95)]" />
+                    <Zap className="w-5 h-5 text-amber-500 fill-amber-400 sparkle-spin drop-shadow-[0_0_6px_rgba(245,158,11,0.8)]" />
                   </div>
                 ) : (
                   <Search className="absolute right-3.5 sm:right-4 w-5 h-5 text-amber-500 pointer-events-none" />
@@ -716,7 +716,7 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
 
                 <input
                   ref={inputRef}
-                  type="search"
+                  type="text"
                   inputMode="search"
                   enterKeyHint="search"
                   value={query}

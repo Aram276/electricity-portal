@@ -1388,11 +1388,11 @@ export default function AdminDashboard({
             <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
 
               {/* Search input with Cyber Glow */}
-              <div className={`relative flex-1 rounded-2xl transition-all duration-300 ${
-                isSearchFocused ? 'cyber-glow-active ring-4 ring-amber-500/20' : ''
+              <div className={`relative flex-1 rounded-2xl transition-colors duration-200 ${
+                isSearchFocused ? 'ring-2 ring-amber-500/40 shadow-[0_0_20px_rgba(245,158,11,0.25)]' : ''
               }`}>
                 {searchTerm.trim().length > 0 ? (
-                  <Zap className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-500 fill-amber-400 sparkle-spin drop-shadow-[0_0_8px_rgba(245,158,11,0.9)] pointer-events-none" />
+                  <Zap className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-500 fill-amber-400 sparkle-spin drop-shadow-[0_0_6px_rgba(245,158,11,0.8)] pointer-events-none" />
                 ) : (
                   <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-500 pointer-events-none" />
                 )}
