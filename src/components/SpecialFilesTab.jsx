@@ -209,17 +209,11 @@ export default function SpecialFilesTab({
   // Handle Form Submission (Adding New Special File)
   const handleCreateSpecialRecord = (e) => {
     e.preventDefault();
-    const cleanFileNum = (formData.fileNumber || '').trim() || nextSpecialNumber;
+    const cleanFileNum = toLatinDigits(formData.fileNumber || '').trim() || nextSpecialNumber;
     const cleanName = (formData.citizenName || '').trim();
-    const cleanAccount = (formData.accountNumber || '').trim();
-    const cleanPhone = (formData.phoneNumber || '').trim();
+    const cleanAccount = toLatinDigits(formData.accountNumber || '').trim();
+    const cleanPhone = toLatinDigits(formData.phoneNumber || '').trim();
     const cleanNote = (formData.specialNote || '').trim();
-
-    if (!cleanFileNum && !cleanName && !cleanAccount && !cleanPhone) {
-      alert('تکایە لانیکەم زانیاری سەرەکی (ژمارەی فایل، ناو، یان ژمارەی ئەژمار) بنووسە');
-      if (fileInputRef.current) fileInputRef.current.focus();
-      return;
-    }
 
     const staffName = activeStaff?.name || activeStaff?.username || 'فەرمانبەری ژووری ١٩';
     const nowTime = getKurdistanDateTime(false);
@@ -244,7 +238,8 @@ export default function SpecialFilesTab({
       deliveredBy: formData.status === 'DELIVERED' ? staffName : null,
       deliveredDate: formData.status === 'DELIVERED' ? nowTime : null,
       kycStatus: formData.kycStatus || 'DONE_BY_US',
-      isKycDone: true
+      isKycDone: true,
+      updatedAt: Date.now()
     };
 
     if (onSaveRecord) {

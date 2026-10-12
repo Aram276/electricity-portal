@@ -19,7 +19,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { STATUS_CONFIG, DEPARTMENTS, TRANSACTION_TYPES, KYC_CONFIG, getRecordKYC } from '../constants/status';
-import { getKurdistanDate } from '../utils/dateUtils';
+import { getKurdistanDate, toLatinDigits } from '../utils/dateUtils';
 
 export default function RecordModal({ isOpen, onClose, onSave, editingRecord, initialData, records = [] }) {
   const currentRecord = editingRecord || initialData;
@@ -173,17 +173,24 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, in
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    const cleanFileNum = toLatinDigits(formData.fileNumber || '').trim();
+    const cleanAccount = toLatinDigits(formData.accountNumber || '').trim();
+    const cleanPhone = toLatinDigits(formData.phoneNumber || '').trim();
     const rawName = (formData.citizenName || '').trim();
     const hasRealName = Boolean(rawName && rawName !== 'هاوبەشی کارەبا' && !rawName.startsWith('مانگی '));
     const isDone = formData.kycStatus === 'DONE_BY_US' || formData.kycStatus === 'PRE_VERIFIED';
 
     onSave({
       ...formData,
+      fileNumber: cleanFileNum || String(Date.now()).slice(-4),
+      accountNumber: cleanAccount || 'نیە',
+      phoneNumber: cleanPhone || 'نیە',
       citizenName: hasRealName ? rawName : 'هاوبەشی کارەبا',
       hasRealName: hasRealName,
       kycStatus: formData.kycStatus,
       kycType: formData.kycStatus,
-      isKycDone: isDone
+      isKycDone: isDone,
+      updatedAt: Date.now()
     }, currentRecord ? currentRecord.id : null);
     onClose();
   };
@@ -343,7 +350,7 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, in
                 type="text"
                 required
                 value={formData.fileNumber}
-                onChange={(e) => setFormData({ ...formData, fileNumber: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, fileNumber: toLatinDigits(e.target.value) })}
                 placeholder="نموونە: 124"
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-mono text-sm focus:outline-none focus:border-amber-500 font-bold"
               />
@@ -358,7 +365,7 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, in
               <input
                 type="text"
                 value={formData.accountNumber}
-                onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, accountNumber: toLatinDigits(e.target.value) })}
                 placeholder="نموونە: 63450291130 (گەر نیە بە بەتاڵی جێبهێڵە)"
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-mono text-sm focus:outline-none focus:border-amber-500 font-bold"
               />
@@ -388,7 +395,7 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, in
               <input
                 type="text"
                 value={formData.phoneNumber}
-                onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, phoneNumber: toLatinDigits(e.target.value) })}
                 placeholder="0750xxxxxxx (گەر نیە بە بەتاڵی جێبهێڵە)"
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-mono text-sm focus:outline-none focus:border-amber-500"
               />

@@ -15,6 +15,10 @@ export default function HolographicTiltCard({ children, className = '', style = 
   });
 
   const handleMouseMove = useCallback((e) => {
+    // Disable on touch screens (iPhone/mobile) to prevent sticky tilt & visual glitches
+    if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(pointer: coarse)').matches) {
+      return;
+    }
     if (!cardRef.current) return;
     const rect = cardRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -61,12 +65,14 @@ export default function HolographicTiltCard({ children, className = '', style = 
       onMouseLeave={handleMouseLeave}
       style={{
         ...style,
-        transform: `perspective(1200px) rotateX(${tilt.rotateX}deg) rotateY(${tilt.rotateY}deg) scale3d(${tilt.scale}, ${tilt.scale}, ${tilt.scale})`,
+        transform: tilt.isHovered 
+          ? `perspective(1200px) rotateX(${tilt.rotateX}deg) rotateY(${tilt.rotateY}deg) scale3d(${tilt.scale}, ${tilt.scale}, ${tilt.scale})`
+          : 'none',
         transition: tilt.isHovered 
           ? 'transform 0.08s ease-out, box-shadow 0.25s ease-out' 
           : 'transform 0.65s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.65s cubic-bezier(0.2, 0.8, 0.2, 1)',
         transformStyle: 'preserve-3d',
-        willChange: 'transform'
+        willChange: tilt.isHovered ? 'transform' : 'auto'
       }}
       className={`relative overflow-hidden ${className}`}
       {...props}

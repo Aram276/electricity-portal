@@ -91,6 +91,46 @@ export function addPermanentlyDeletedRecords(records) {
   } catch (e) {}
 }
 
+/**
+ * Remove record tombstones from permanently deleted keys and trash when a record is created or saved.
+ */
+export function unmarkAsDeleted(fileNumber, id, isSpecial = false) {
+  try {
+    const fStr = String(fileNumber || '').trim();
+    const idStr = String(id || '').trim();
+    const set = getPermanentlyDeletedKeys();
+    let changed = false;
+    if (fStr) {
+      if (set.delete('sp_file_' + fStr)) changed = true;
+      if (set.delete('reg_file_' + fStr)) changed = true;
+      if (set.delete('file_' + fStr)) changed = true;
+    }
+    if (idStr) {
+      if (set.delete('sp_id_' + idStr)) changed = true;
+      if (set.delete('reg_id_' + idStr)) changed = true;
+      if (set.delete('id_' + idStr)) changed = true;
+    }
+    if (changed) {
+      localStorage.setItem(PERM_DELETED_STORAGE_KEY, JSON.stringify(Array.from(set)));
+    }
+  } catch (e) {}
+
+  try {
+    const fStr = String(fileNumber || '').trim();
+    const idStr = String(id || '').trim();
+    const trash = getStoredTrash();
+    const updatedTrash = trash.filter(t => {
+      if (idStr && String(t.id || '').trim() === idStr) return false;
+      if (fStr && String(t.fileNumber || '').trim() === fStr && Boolean(t.isSpecial) === Boolean(isSpecial)) return false;
+      return true;
+    });
+    if (updatedTrash.length !== trash.length) {
+      saveTrash(updatedTrash);
+      saveTrashToCloud(updatedTrash);
+    }
+  } catch (e) {}
+}
+
 export function getAllDeletedKeySet() {
   const set = getPermanentlyDeletedKeys();
   const trash = getStoredTrash();
@@ -279,17 +319,45 @@ export function subscribeToCloudRecords(onUpdateCallback) {
 export async function saveRecordsToCloud(records) {
   try {
     isLocalSaving = true;
-    const deletedSet = getAllDeletedKeySet();
-    const cleaned = deduplicateRecords(records).filter(r => !isRecordInDeletedSet(r, deletedSet));
+    // Active records passed to saveRecordsToCloud are explicitly alive and must not be filtered out
+    const cleaned = deduplicateRecords(records).filter(r => r && !r.isDeleted);
     const safeSpecials = cleaned.filter(r => r && r.isSpecial === true);
     const safeRegulars = cleaned.filter(r => !r.isSpecial);
+
+    // Unmark all active records from permanently deleted tombstones so they are never filtered out
+    try {
+      const permDeletedSet = getPermanentlyDeletedKeys();
+      let permChanged = false;
+      cleaned.forEach(r => {
+        const f = String(r.fileNumber || '').trim();
+        const id = String(r.id || '').trim();
+        if (f) {
+          if (permDeletedSet.delete('sp_file_' + f)) permChanged = true;
+          if (permDeletedSet.delete('reg_file_' + f)) permChanged = true;
+          if (permDeletedSet.delete('file_' + f)) permChanged = true;
+        }
+        if (id) {
+          if (permDeletedSet.delete('sp_id_' + id)) permChanged = true;
+          if (permDeletedSet.delete('reg_id_' + id)) permChanged = true;
+          if (permDeletedSet.delete('id_' + id)) permChanged = true;
+        }
+      });
+      if (permChanged) {
+        localStorage.setItem(PERM_DELETED_STORAGE_KEY, JSON.stringify(Array.from(permDeletedSet)));
+      }
+    } catch (e) {}
 
     // Immediately sync local in-memory cache so subsequent reads and snapshots are instant
     latestCloudRegular = safeRegulars;
     latestCloudSpecial = safeSpecials;
 
-    // Save locally to storage
+    // Save locally to storage immediately
     saveRecords(cleaned);
+
+    // Dispatch update event for synchronous UI response across components
+    try {
+      window.dispatchEvent(new CustomEvent('electricity_records_updated', { detail: cleaned }));
+    } catch (e) {}
 
     // 1. Always save special records to dedicated special collection
     try {

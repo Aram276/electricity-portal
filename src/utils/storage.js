@@ -1,5 +1,5 @@
 import { INITIAL_RECORDS } from '../data/initialData';
-import { getKurdistanDateTime } from './dateUtils';
+import { getKurdistanDateTime, toLatinDigits } from './dateUtils';
 
 const STORAGE_KEY = 'electricity_portal_records_v2_real';
 const SPECIAL_STORAGE_KEY = 'electricity_portal_special_records_v1';
@@ -57,14 +57,10 @@ export function saveSpecialRecords(specialRecords) {
 
 /**
  * Deduplicate records array by id and fileNumber, ensuring both regular records and special records
- * coexist cleanly, and never resurfacing records that are currently in trash.
+ * coexist cleanly, never dropping active files and preserving the latest updates.
  */
 export function deduplicateRecords(records) {
   if (!Array.isArray(records)) records = [];
-
-  const trash = getStoredTrash();
-  const trashFiles = new Set(trash.map(t => String(t.fileNumber || '').trim()).filter(Boolean));
-  const trashIds = new Set(trash.map(t => String(t.id || '').trim()).filter(Boolean));
 
   const regularMap = new Map(); // fileStr -> record
   const specialMap = new Map(); // fileStr -> record
@@ -72,20 +68,37 @@ export function deduplicateRecords(records) {
 
   for (const raw of records) {
     if (!raw || raw.isDeleted) continue;
-    const fileStr = String(raw.fileNumber || '').trim();
-    const idStr = String(raw.id || '').trim();
-    if (fileStr && trashFiles.has(fileStr)) continue;
-    if (idStr && trashIds.has(idStr)) continue;
-
-    const r = { ...raw };
+    const fileStr = toLatinDigits(String(raw.fileNumber || '')).trim();
+    const r = { ...raw, fileNumber: fileStr || raw.fileNumber };
     const isSpecial = Boolean(r.isSpecial);
+
+    const getRecTime = (item) => {
+      if (!item) return 0;
+      if (typeof item.updatedAt === 'number') return item.updatedAt;
+      if (item.updatedAt) {
+        const parsed = Date.parse(item.updatedAt);
+        if (!isNaN(parsed)) return parsed;
+      }
+      return 0;
+    };
 
     if (isSpecial) {
       if (!r.id || r.id.startsWith('rec-')) {
         r.id = 'sp-' + (r.id ? r.id : (Date.now() + '-' + Math.random().toString(36).slice(2, 7)));
       }
       if (fileStr) {
-        specialMap.set(fileStr, r);
+        if (!specialMap.has(fileStr)) {
+          specialMap.set(fileStr, r);
+        } else {
+          const existing = specialMap.get(fileStr);
+          const tExist = getRecTime(existing);
+          const tNew = getRecTime(r);
+          if (tNew > tExist) {
+            specialMap.set(fileStr, { ...existing, ...r });
+          } else if (tExist > tNew) {
+            specialMap.set(fileStr, { ...r, ...existing });
+          }
+        }
       } else {
         specialMap.set('no_file_sp_' + (r.id || Math.random()), r);
       }
@@ -94,7 +107,18 @@ export function deduplicateRecords(records) {
         r.id = 'rec-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
       }
       if (fileStr) {
-        regularMap.set(fileStr, r);
+        if (!regularMap.has(fileStr)) {
+          regularMap.set(fileStr, r);
+        } else {
+          const existing = regularMap.get(fileStr);
+          const tExist = getRecTime(existing);
+          const tNew = getRecTime(r);
+          if (tNew > tExist) {
+            regularMap.set(fileStr, { ...existing, ...r });
+          } else if (tExist > tNew) {
+            regularMap.set(fileStr, { ...r, ...existing });
+          }
+        }
       } else {
         regularMap.set('no_file_reg_' + (r.id || Math.random()), r);
       }

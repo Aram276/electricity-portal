@@ -23,7 +23,7 @@ import {
   Star
 } from 'lucide-react';
 import { STATUS_CONFIG, KYC_CONFIG, getRecordKYC } from '../constants/status';
-import { getKurdistanDate } from '../utils/dateUtils';
+import { getKurdistanDate, toLatinDigits } from '../utils/dateUtils';
 
 export default function DailyIntake({ records = [], onSaveRecord, onDeleteRecord }) {
   const todayStr = getKurdistanDate();
@@ -133,16 +133,10 @@ export default function DailyIntake({ records = [], onSaveRecord, onDeleteRecord
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const cleanAccount = (formData.accountNumber || '').trim();
-    const cleanPhone = (formData.phoneNumber || '').trim();
+    const cleanAccount = toLatinDigits(formData.accountNumber || '').trim();
+    const cleanPhone = toLatinDigits(formData.phoneNumber || '').trim();
     const cleanName = (formData.citizenName || '').trim();
-    const cleanFileNum = (formData.fileNumber || '').trim() || nextFileNumber;
-
-    if (!cleanAccount && !cleanPhone && !cleanName) {
-      alert('تکایە لانیکەم یەکێک لەمانە بنووسە: ژمارەی ئەژمار (ID)، ژمارەی مۆبایل، یان ناوی هاووڵاتی');
-      if (accountInputRef.current) accountInputRef.current.focus();
-      return;
-    }
+    const cleanFileNum = toLatinDigits(formData.fileNumber || '').trim() || nextFileNumber;
 
     const hasRealName = Boolean(cleanName && cleanName !== 'هاوبەشی کارەبا');
     const isDone = formData.status === 'COMPLETED';
@@ -152,7 +146,7 @@ export default function DailyIntake({ records = [], onSaveRecord, onDeleteRecord
       id: 'rec-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
       fileNumber: cleanFileNum,
       fileType: formData.fileType || 'YELLOW_FOLDER',
-      accountNumber: cleanAccount,
+      accountNumber: cleanAccount || 'نیە',
       citizenName: hasRealName ? cleanName : 'هاوبەشی کارەبا',
       hasRealName: hasRealName,
       phoneNumber: cleanPhone || 'نیە',
@@ -171,7 +165,9 @@ export default function DailyIntake({ records = [], onSaveRecord, onDeleteRecord
       isKycDone: isKyc,
       isSpecial: Boolean(formData.isSpecial),
       specialDate: formData.isSpecial ? todayStr : null,
-      specialNote: formData.specialNote || ''
+      specialNote: formData.specialNote || '',
+      createdAt: todayStr,
+      updatedAt: Date.now()
     };
 
     if (onSaveRecord) {
@@ -363,7 +359,7 @@ export default function DailyIntake({ records = [], onSaveRecord, onDeleteRecord
                   type="text"
                   required
                   value={formData.fileNumber}
-                  onChange={(e) => setFormData({ ...formData, fileNumber: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, fileNumber: toLatinDigits(e.target.value) })}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-amber-700 dark:text-amber-300 font-mono font-bold text-base focus:outline-none focus:border-amber-500"
                 />
               </div>
@@ -380,7 +376,7 @@ export default function DailyIntake({ records = [], onSaveRecord, onDeleteRecord
                   autoFocus
                   placeholder="بۆ نموونە: 63450291130"
                   value={formData.accountNumber}
-                  onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, accountNumber: toLatinDigits(e.target.value) })}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border-2 border-slate-300 dark:border-slate-700 focus:border-amber-500 text-slate-900 dark:text-white font-mono text-sm focus:outline-none"
                 />
               </div>
@@ -395,7 +391,7 @@ export default function DailyIntake({ records = [], onSaveRecord, onDeleteRecord
                   type="text"
                   placeholder="0750xxxxxxx"
                   value={formData.phoneNumber}
-                  onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, phoneNumber: toLatinDigits(e.target.value) })}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-mono text-sm focus:outline-none focus:border-amber-500"
                 />
               </div>

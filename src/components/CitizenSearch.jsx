@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Search, 
   Zap, 
@@ -179,6 +179,8 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
   const [hasSearched, setHasSearched] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const inputRef = useRef(null);
+  const resultsRef = useRef(null);
 
   const t = getTranslation(language);
   const isAr = language === 'ar';
@@ -339,6 +341,23 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
     });
 
     setSearchResults(scoredMatches.map(m => m.record));
+  };
+
+  // Dedicated Search Submit Handler (Mobile & iPhone optimized)
+  const handleSearchSubmit = (e) => {
+    if (e && typeof e.preventDefault === 'function') e.preventDefault();
+    // Dismiss iOS on-screen keyboard
+    inputRef.current?.blur();
+    executeSearch(query, searchMode);
+
+    // Smoothly scroll down to results on mobile if a search was performed
+    if (query.trim().length > 0) {
+      setTimeout(() => {
+        if (resultsRef.current) {
+          resultsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    }
   };
 
   // Run instant search whenever query or searchMode changes
@@ -650,8 +669,8 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
           </div>
 
           {/* Search Form with Cyber Glow & Rock-Solid Layout */}
-          <form onSubmit={(e) => { e.preventDefault(); executeSearch(query, searchMode); }} className="max-w-2xl mx-auto pt-1 sm:pt-2">
-            <div className={`relative flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-white/95 dark:bg-[#090e1a]/95 p-2 rounded-2xl border-2 transition-all duration-300 shadow-xl backdrop-blur-md ${
+          <form onSubmit={handleSearchSubmit} className="max-w-2xl mx-auto pt-1 sm:pt-2">
+            <div className={`relative flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 bg-white/95 dark:bg-[#090e1a]/95 p-2 rounded-2xl border-2 transition-all duration-300 shadow-xl backdrop-blur-md ${
               isSearchFocused
                 ? 'cyber-glow-active border-amber-500 ring-4 ring-amber-500/20 shadow-amber-500/30'
                 : 'border-amber-500/40 hover:border-amber-500/70 shadow-amber-500/5'
@@ -663,25 +682,38 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
                     <Zap className="w-5 h-5 text-amber-500 fill-amber-400 sparkle-spin drop-shadow-[0_0_10px_rgba(245,158,11,0.95)]" />
                   </div>
                 ) : (
-                  <Search className="absolute right-3.5 sm:right-4 w-5 h-5 text-amber-500" />
+                  <Search className="absolute right-3.5 sm:right-4 w-5 h-5 text-amber-500 pointer-events-none" />
                 )}
 
                 <input
-                  type="text"
+                  ref={inputRef}
+                  type="search"
+                  inputMode="search"
+                  enterKeyHint="search"
                   value={query}
                   onFocus={() => setIsSearchFocused(true)}
                   onBlur={() => setIsSearchFocused(false)}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder={getPlaceholder()}
-                  className="w-full pr-11 sm:pr-12 pl-10 sm:pl-10 py-3 sm:py-3.5 bg-transparent text-slate-900 dark:text-white placeholder-slate-400 text-xs sm:text-base font-semibold focus:outline-none"
+                  style={{ fontSize: '16px', touchAction: 'manipulation' }}
+                  className="w-full pr-11 sm:pr-12 pl-10 sm:pl-10 py-3 sm:py-3.5 bg-transparent text-slate-900 dark:text-white placeholder-slate-400 text-[16px] sm:text-base font-semibold focus:outline-none"
                   dir="rtl"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck="false"
                 />
 
                 {query && (
                   <button
                     type="button"
-                    onClick={() => setQuery('')}
-                    className="absolute left-3 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg transition-colors cursor-pointer"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setQuery('');
+                      inputRef.current?.focus();
+                    }}
+                    style={{ touchAction: 'manipulation' }}
+                    className="absolute left-3 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg transition-colors cursor-pointer select-none"
+                    aria-label="Clear query"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -690,9 +722,11 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
 
               <button
                 type="submit"
-                className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-3.5 rounded-xl roonaki-btn-primary text-slate-950 font-black text-sm sm:text-base flex items-center justify-center gap-2 active:scale-98 shrink-0 shadow-md shadow-amber-500/25 cursor-pointer"
+                onClick={handleSearchSubmit}
+                style={{ touchAction: 'manipulation' }}
+                className="w-full sm:w-auto min-h-[48px] px-6 sm:px-8 py-3.5 rounded-xl roonaki-btn-primary text-slate-950 font-black text-base flex items-center justify-center gap-2 active:scale-95 shrink-0 shadow-md shadow-amber-500/25 cursor-pointer select-none"
               >
-                <Zap className="w-4 h-4 sm:w-5 sm:h-5 fill-slate-950" />
+                <Zap className="w-5 h-5 fill-slate-950" />
                 <span>{t.searchBtn}</span>
               </button>
             </div>
@@ -812,7 +846,7 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
 
       {/* Results Header Banner (when 1 or more files are found) */}
       {hasSearched && searchResults.length > 0 && (
-        <div className="p-4 sm:p-5 rounded-2xl border-2 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-3 animate-fadeIn bg-white dark:bg-slate-900 border-amber-500/40 text-slate-900 dark:text-white">
+        <div ref={resultsRef} className="p-4 sm:p-5 rounded-2xl border-2 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-3 animate-fadeIn bg-white dark:bg-slate-900 border-amber-500/40 text-slate-900 dark:text-white">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border bg-amber-500/15 border-amber-500/30 text-amber-600 dark:text-amber-400">
               <Layers className="w-5 h-5" />
@@ -1132,7 +1166,7 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
 
       {/* Not Found State */}
       {hasSearched && searchResults.length === 0 && (
-        <div className="rounded-2xl sm:rounded-[32px] roonaki-card border-amber-400 dark:border-amber-500/40 p-6 sm:p-10 text-center space-y-4 shadow-xl animate-fadeIn">
+        <div ref={resultsRef} className="rounded-2xl sm:rounded-[32px] roonaki-card border-amber-400 dark:border-amber-500/40 p-6 sm:p-10 text-center space-y-4 shadow-xl animate-fadeIn">
           <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-amber-100 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto">
             <AlertCircle className="w-7 h-7 sm:w-8 sm:h-8" />
           </div>

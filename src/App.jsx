@@ -30,9 +30,10 @@ import {
   subscribeToCloudTrash, 
   saveTrashToCloud, 
   logActivity,
-  addPermanentlyDeletedRecords
+  addPermanentlyDeletedRecords,
+  unmarkAsDeleted
 } from './utils/cloudSync';
-import { getKurdistanDateTime, getKurdistanDate } from './utils/dateUtils';
+import { getKurdistanDateTime, getKurdistanDate, toLatinDigits } from './utils/dateUtils';
 import { CheckCircle2, Info, Cloud } from 'lucide-react';
 
 export default function App() {
@@ -131,9 +132,18 @@ export default function App() {
       }
     });
 
+    // Immediate local update listener
+    const handleRecordsSync = (e) => {
+      if (e?.detail && Array.isArray(e.detail) && e.detail.length > 0) {
+        setRecords(deduplicateRecords(e.detail));
+      }
+    };
+    window.addEventListener('electricity_records_updated', handleRecordsSync);
+
     return () => {
       window.removeEventListener('hashchange', checkUrlRoute);
       window.removeEventListener('popstate', checkUrlRoute);
+      window.removeEventListener('electricity_records_updated', handleRecordsSync);
       if (typeof unsubscribe === 'function') unsubscribe();
       if (typeof unsubTrash === 'function') unsubTrash();
     };
@@ -267,15 +277,39 @@ export default function App() {
     const hasRealName = Boolean(rawName && rawName !== 'هاوبەشی کارەبا' && !rawName.startsWith('مانگی '));
     const isDelivered = formData.status === 'DELIVERED';
     const nowTs = Date.now();
+    const cleanFileNum = toLatinDigits(formData.fileNumber || '').trim();
+    const cleanAccount = toLatinDigits(formData.accountNumber || '').trim();
+    const cleanPhone = toLatinDigits(formData.phoneNumber || '').trim();
 
     const processedData = {
       ...formData,
+      fileNumber: cleanFileNum || String(Date.now()).slice(-4),
+      accountNumber: cleanAccount || 'نیە',
+      phoneNumber: cleanPhone || 'نیە',
       citizenName: hasRealName ? rawName : 'هاوبەشی کارەبا',
       hasRealName: hasRealName,
       handledBy: formData.handledBy || staffName,
       updatedAt: nowTs,
       ...(isDelivered ? { deliveredBy: formData.deliveredBy || formData.handledBy || staffName } : {})
     };
+
+    const targetFileNum = processedData.fileNumber;
+    const targetId = recordId || processedData.id;
+    const isSpecial = Boolean(processedData.isSpecial);
+
+    // UNMARK FROM TOMBSTONES AND REMOVE FROM TRASH IF PRESENT!
+    unmarkAsDeleted(targetFileNum, targetId, isSpecial);
+    setTrashRecords(prevTrash => {
+      const filtered = prevTrash.filter(t => {
+        if (targetId && String(t.id || '').trim() === String(targetId).trim()) return false;
+        if (targetFileNum && String(t.fileNumber || '').trim() === targetFileNum && Boolean(t.isSpecial) === isSpecial) return false;
+        return true;
+      });
+      if (filtered.length !== prevTrash.length) {
+        saveTrashToCloud(filtered);
+      }
+      return filtered;
+    });
 
     if (recordId) {
       updated = records.map(r => r.id === recordId ? { ...r, ...processedData } : r);
@@ -286,9 +320,6 @@ export default function App() {
         processedData
       );
     } else {
-      const isSpecial = Boolean(processedData.isSpecial);
-      const targetFileNum = String(processedData.fileNumber || '').trim();
-      
       // CRITICAL: NEVER match a special record with a regular record!
       const existingIdx = targetFileNum 
         ? records.findIndex(r => String(r.fileNumber || '').trim() === targetFileNum && Boolean(r.isSpecial) === isSpecial)

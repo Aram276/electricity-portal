@@ -119,8 +119,14 @@ export default function AntigravityBackground({ isDarkMode = true }) {
     };
 
     const handleResize = () => {
-      width = canvas.width = window.innerWidth;
-      height = canvas.height = window.innerHeight;
+      const newW = window.innerWidth;
+      const newH = window.innerHeight;
+      // On mobile Safari (iPhone), address bar scrolling causes small vertical resize events.
+      // Only resize the canvas when width changes or vertical change is significant to avoid flickering.
+      if (Math.abs(canvas.width - newW) > 10 || Math.abs(canvas.height - newH) > 120) {
+        width = canvas.width = newW;
+        height = canvas.height = newH;
+      }
     };
 
     window.addEventListener('mousemove', handleMouseMove, { passive: true });
