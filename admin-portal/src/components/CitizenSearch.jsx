@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useDeferredValue } from 'react';
 import { 
   Search, 
   Zap, 
@@ -173,6 +173,7 @@ function getSpecialCategoryLabel(categoryKey, isAr) {
 
 export default function CitizenSearch({ records, onOpenPrintModal, language = 'ku' }) {
   const [query, setQuery] = useState('');
+  const deferredQuery = useDeferredValue(query);
   const [searchMode, setSearchMode] = useState('ALL'); // 'ALL' | 'NAME' | 'FILE' | 'PHONE' | 'ID' | 'MISSING_PHONE' | 'MISSING_ID' | 'MISSING_ANY'
   const [searchResults, setSearchResults] = useState([]);
   const [displayLimit, setDisplayLimit] = useState(25);
@@ -190,32 +191,62 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
   const totalCompletedAll = useMemo(() => (records || []).filter(r => r.status === 'COMPLETED' || r.status === 'DELIVERED').length, [records]);
   const totalInProgressAll = useMemo(() => (records || []).filter(r => r.status === 'IN_PROGRESS' || r.status === 'NOT_CONTACTED').length, [records]);
 
-  // Helper functions to identify missing records
-  const isPhoneMissing = (r) => !r.phoneNumber || r.phoneNumber === 'نیە' || r.phoneNumber.trim() === '';
-  const isIdMissing = (r) => !r.accountNumber || r.accountNumber === 'نیە' || r.accountNumber.trim() === '' || r.accountNumber === '-';
+  // Pre-index records for blazing fast 60FPS search without repeated regex calculations
+  const indexedRecords = useMemo(() => {
+    const list = Array.isArray(records) ? records : [];
+    return list.map(r => {
+      const fileStr = String(r.fileNumber || '').trim().toLowerCase();
+      const accStr = String(r.accountNumber || '').trim();
+      const recPhone = normalizeIraqiPhone(r.phoneNumber);
+      const citizenName = String(r.citizenName || '').trim();
+      const receiverName = String(r.receiverName || '').trim();
+      const fuzzyName = normalizeKurdishFuzzy(citizenName);
+      const compactFuzzyName = fuzzyName.replace(/\s+/g, '');
+      const fuzzyReceiver = normalizeKurdishFuzzy(receiverName);
+      const compactReceiver = fuzzyReceiver.replace(/\s+/g, '');
+      const isPNull = !r.phoneNumber || r.phoneNumber === 'نیە' || r.phoneNumber.trim() === '';
+      const isINull = !r.accountNumber || r.accountNumber === 'نیە' || r.accountNumber.trim() === '' || r.accountNumber === '-';
 
-  const missingPhoneCount = useMemo(() => (records || []).filter(isPhoneMissing).length, [records]);
-  const missingIdCount = useMemo(() => (records || []).filter(isIdMissing).length, [records]);
-  const missingAnyCount = useMemo(() => (records || []).filter(r => isPhoneMissing(r) || isIdMissing(r)).length, [records]);
+      return {
+        record: r,
+        isDeleted: Boolean(r.isDeleted),
+        fileStr,
+        accStr,
+        recPhone,
+        citizenName,
+        receiverName,
+        fuzzyName,
+        compactFuzzyName,
+        fuzzyReceiver,
+        compactReceiver,
+        isPhoneMissing: isPNull,
+        isIdMissing: isINull
+      };
+    });
+  }, [records]);
 
-  // Perform Smart Ranked Search (Exact match first, fuzzy fallback, phone/id/name aware)
+  const missingPhoneCount = useMemo(() => indexedRecords.filter(r => !r.isDeleted && r.isPhoneMissing).length, [indexedRecords]);
+  const missingIdCount = useMemo(() => indexedRecords.filter(r => !r.isDeleted && r.isIdMissing).length, [indexedRecords]);
+  const missingAnyCount = useMemo(() => indexedRecords.filter(r => !r.isDeleted && (r.isPhoneMissing || r.isIdMissing)).length, [indexedRecords]);
+
+  // Perform Smart Ranked Search (Super-optimized in-memory scan, <1ms)
   const executeSearch = (searchQuery, currentMode) => {
     const rawQuery = (searchQuery || '').trim();
     
     // If no text query: in missing modes, display all records in that category
     if (!rawQuery) {
       if (currentMode === 'MISSING_PHONE') {
-        setSearchResults((records || []).filter(isPhoneMissing));
+        setSearchResults(indexedRecords.filter(r => !r.isDeleted && r.isPhoneMissing).map(r => r.record));
         setHasSearched(true);
         return;
       }
       if (currentMode === 'MISSING_ID') {
-        setSearchResults((records || []).filter(isIdMissing));
+        setSearchResults(indexedRecords.filter(r => !r.isDeleted && r.isIdMissing).map(r => r.record));
         setHasSearched(true);
         return;
       }
       if (currentMode === 'MISSING_ANY') {
-        setSearchResults((records || []).filter(r => isPhoneMissing(r) || isIdMissing(r)));
+        setSearchResults(indexedRecords.filter(r => !r.isDeleted && (r.isPhoneMissing || r.isIdMissing)).map(r => r.record));
         setHasSearched(true);
         return;
       }
@@ -234,99 +265,89 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
     const queryWords = fuzzyQ.split(' ').filter(Boolean);
 
     const scoredMatches = [];
-    const safeRecords = Array.isArray(records) ? records : [];
 
-    for (const r of safeRecords) {
+    for (let i = 0; i < indexedRecords.length; i++) {
+      const r = indexedRecords[i];
       if (!r || r.isDeleted) continue;
 
       // Check missing constraints if mode is missing
-      if (currentMode === 'MISSING_PHONE' && !isPhoneMissing(r)) continue;
-      if (currentMode === 'MISSING_ID' && !isIdMissing(r)) continue;
-      if (currentMode === 'MISSING_ANY' && (!isPhoneMissing(r) && !isIdMissing(r))) continue;
-
-      const fileStr = String(r.fileNumber || '').trim().toLowerCase();
-      const accStr = String(r.accountNumber || '').trim();
-      const recPhone = normalizeIraqiPhone(r.phoneNumber);
-      const citizenName = String(r.citizenName || '').trim();
-      const receiverName = String(r.receiverName || '').trim();
-      const fuzzyName = normalizeKurdishFuzzy(citizenName);
-      const compactFuzzyName = fuzzyName.replace(/\s+/g, '');
-      const fuzzyReceiver = normalizeKurdishFuzzy(receiverName);
-      const compactReceiver = fuzzyReceiver.replace(/\s+/g, '');
+      if (currentMode === 'MISSING_PHONE' && !r.isPhoneMissing) continue;
+      if (currentMode === 'MISSING_ID' && !r.isIdMissing) continue;
+      if (currentMode === 'MISSING_ANY' && (!r.isPhoneMissing && !r.isIdMissing)) continue;
 
       let score = 0;
 
       // ── 1. EXACT FILE NUMBER (Highest Priority: 1000 points) ──
-      if (cleanDigitsQ && (fileStr === cleanDigitsQ || fileStr === compactFuzzyQ)) {
+      if (cleanDigitsQ && (r.fileStr === cleanDigitsQ || r.fileStr === compactFuzzyQ)) {
         score = Math.max(score, 1000);
       }
 
       // ── 2. EXACT PHONE NUMBER (950 points) ──
-      if (queryPhone && queryPhone.length >= 7 && recPhone === queryPhone) {
+      if (queryPhone && queryPhone.length >= 7 && r.recPhone === queryPhone) {
         score = Math.max(score, 950);
       }
 
       // ── 3. EXACT ACCOUNT NUMBER (900 points) ──
-      if (cleanDigitsQ && cleanDigitsQ.length >= 6 && accStr === cleanDigitsQ) {
+      if (cleanDigitsQ && cleanDigitsQ.length >= 6 && r.accStr === cleanDigitsQ) {
         score = Math.max(score, 900);
       }
 
       // ── 4. EXACT CITIZEN NAME (850 points) ──
-      if (fuzzyQ && (fuzzyName === fuzzyQ || compactFuzzyName === compactFuzzyQ)) {
+      if (fuzzyQ && (r.fuzzyName === fuzzyQ || r.compactFuzzyName === compactFuzzyQ)) {
         score = Math.max(score, 850);
       }
 
       // ── 5. NAME ALL WORDS MATCH (750 points) ──
-      if (queryWords.length > 0 && queryWords.every(w => fuzzyName.includes(w))) {
+      if (queryWords.length > 0 && queryWords.every(w => r.fuzzyName.includes(w))) {
         score = Math.max(score, 750);
       }
 
       // ── 6. RECEIVER NAME MATCH (700 points) ──
-      if (queryWords.length > 0 && queryWords.every(w => fuzzyReceiver.includes(w))) {
+      if (queryWords.length > 0 && queryWords.every(w => r.fuzzyReceiver.includes(w))) {
         score = Math.max(score, 700);
       }
 
       // ── 7. NAME STARTS WITH QUERY (650 points) ──
-      if (fuzzyQ && (fuzzyName.startsWith(fuzzyQ) || compactFuzzyName.startsWith(compactFuzzyQ))) {
+      if (fuzzyQ && (r.fuzzyName.startsWith(fuzzyQ) || r.compactFuzzyName.startsWith(compactFuzzyQ))) {
         score = Math.max(score, 650);
       }
 
       // ── 8. NAME SUBSTRING MATCH (500 points) ──
-      if (fuzzyQ && (fuzzyName.includes(fuzzyQ) || compactFuzzyName.includes(compactFuzzyQ))) {
+      if (fuzzyQ && (r.fuzzyName.includes(fuzzyQ) || r.compactFuzzyName.includes(compactFuzzyQ))) {
         score = Math.max(score, 500);
       }
 
       // ── 9. PARTIAL PHONE MATCH (only if queryPhone has at least 4 digits, 400 points) ──
-      if (queryPhone && queryPhone.length >= 4 && recPhone.includes(queryPhone)) {
+      if (queryPhone && queryPhone.length >= 4 && r.recPhone.includes(queryPhone)) {
         score = Math.max(score, 400);
       }
 
       // ── 10. PARTIAL ACCOUNT NUMBER (only if digits >= 4, 350 points) ──
-      if (cleanDigitsQ && cleanDigitsQ.length >= 4 && accStr.includes(cleanDigitsQ)) {
+      if (cleanDigitsQ && cleanDigitsQ.length >= 4 && r.accStr.includes(cleanDigitsQ)) {
         score = Math.max(score, 350);
       }
 
       // ── 11. FILE NUMBER STARTS WITH (only if digits >= 1, 300 points) ──
-      if (cleanDigitsQ && fileStr.startsWith(cleanDigitsQ)) {
+      if (cleanDigitsQ && r.fileStr.startsWith(cleanDigitsQ)) {
         score = Math.max(score, 300);
       }
 
       // ── 12. MODE-SPECIFIC ENFORCEMENT ──
-      if (currentMode === 'NAME' && !(fuzzyName.includes(fuzzyQ) || compactFuzzyName.includes(compactFuzzyQ) || (queryWords.length > 0 && queryWords.every(w => fuzzyName.includes(w))))) {
+      if (currentMode === 'NAME' && !(r.fuzzyName.includes(fuzzyQ) || r.compactFuzzyName.includes(compactFuzzyQ) || (queryWords.length > 0 && queryWords.every(w => r.fuzzyName.includes(w))))) {
         continue;
       }
-      if (currentMode === 'FILE' && !(fileStr === cleanDigitsQ || fileStr.includes(cleanDigitsQ))) {
+      if (currentMode === 'FILE' && !(r.fileStr === cleanDigitsQ || r.fileStr.includes(cleanDigitsQ))) {
         continue;
       }
-      if (currentMode === 'PHONE' && !(queryPhone && queryPhone.length >= 3 && recPhone.includes(queryPhone))) {
+      if (currentMode === 'PHONE' && !(queryPhone && queryPhone.length >= 3 && r.recPhone.includes(queryPhone))) {
         continue;
       }
-      if (currentMode === 'ID' && !(cleanDigitsQ && cleanDigitsQ.length >= 3 && accStr.includes(cleanDigitsQ))) {
+      if (currentMode === 'ID' && !(cleanDigitsQ && cleanDigitsQ.length >= 3 && r.accStr.includes(cleanDigitsQ))) {
         continue;
       }
 
       if (score > 0) {
-        scoredMatches.push({ record: r, score });
+        scoredMatches.push({ record: r.record, score });
       }
     }
 
@@ -343,9 +364,12 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
     setSearchResults(scoredMatches.map(m => m.record));
   };
 
-  // Dedicated Search Submit Handler (Mobile & iPhone optimized)
+  // Dedicated Search Submit Handler (Mobile & iPhone optimized, fast and lag-free)
   const handleSearchSubmit = (e) => {
-    if (e && typeof e.preventDefault === 'function') e.preventDefault();
+    if (e) {
+      if (typeof e.preventDefault === 'function') e.preventDefault();
+      if (typeof e.stopPropagation === 'function') e.stopPropagation();
+    }
     // Dismiss iOS on-screen keyboard
     inputRef.current?.blur();
     executeSearch(query, searchMode);
@@ -354,16 +378,21 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
     if (query.trim().length > 0) {
       setTimeout(() => {
         if (resultsRef.current) {
-          resultsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          const rect = resultsRef.current.getBoundingClientRect();
+          const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+          window.scrollTo({
+            top: rect.top + scrollTop - 70,
+            behavior: 'smooth'
+          });
         }
-      }, 100);
+      }, 120);
     }
   };
 
-  // Run instant search whenever query or searchMode changes
+  // Run instant search whenever deferredQuery or searchMode changes (smooth 60fps, zero typing lag)
   useEffect(() => {
-    executeSearch(query, searchMode);
-  }, [query, searchMode, records]);
+    executeSearch(deferredQuery, searchMode);
+  }, [deferredQuery, searchMode, indexedRecords]);
 
   const handleCopyFileNumber = (recordId, text, e) => {
     if (!text || text === 'نیە' || text === '-') return;
@@ -722,7 +751,6 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
 
               <button
                 type="submit"
-                onClick={handleSearchSubmit}
                 style={{ touchAction: 'manipulation' }}
                 className="w-full sm:w-auto min-h-[48px] px-6 sm:px-8 py-3.5 rounded-xl roonaki-btn-primary text-slate-950 font-black text-base flex items-center justify-center gap-2 active:scale-95 shrink-0 shadow-md shadow-amber-500/25 cursor-pointer select-none"
               >
