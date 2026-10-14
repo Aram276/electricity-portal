@@ -145,12 +145,12 @@ export const getLocalTimestamp = getKurdistanDateTime;
  * Convert Arabic & Persian / Kurdish numerals (٠-٩, ۰-۹) to standard Latin digits (0-9)
  */
 export function toLatinDigits(str) {
-  if (!str) return '';
+  if (!str && str !== 0) return '';
   const eastern = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
   const persian = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
   let res = String(str);
   for (let i = 0; i < 10; i++) {
-    res = res.replaceAll(eastern[i], String(i)).replaceAll(persian[i], String(i));
+    res = res.replace(new RegExp(eastern[i], 'g'), String(i)).replace(new RegExp(persian[i], 'g'), String(i));
   }
   return res;
 }
