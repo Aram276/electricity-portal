@@ -21,14 +21,49 @@ import { getKurdistanDateTime } from '../utils/dateUtils';
 
 // Numerals converter
 function toLatinDigits(str) {
-  if (!str) return '';
+  if (!str && str !== 0) return '';
   const eastern = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
   const persian = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
   let res = String(str);
   for (let i = 0; i < 10; i++) {
-    res = res.replaceAll(eastern[i], String(i)).replaceAll(persian[i], String(i));
+    res = res.replace(new RegExp(eastern[i], 'g'), String(i)).replace(new RegExp(persian[i], 'g'), String(i));
   }
   return res;
+}
+
+function matchFlexiblePhone(recordPhone, searchPhoneQuery) {
+  if (!recordPhone || !searchPhoneQuery) return false;
+  const rawRec = toLatinDigits(String(recordPhone));
+  const rawQ = toLatinDigits(String(searchPhoneQuery));
+  const recDigits = rawRec.replace(/[^0-9]/g, '');
+  const qDigits = rawQ.replace(/[^0-9]/g, '');
+  if (!recDigits || !qDigits || qDigits.length < 2) return false;
+  if (recDigits.includes(qDigits)) return true;
+  if (qDigits.includes(recDigits) && recDigits.length >= 7) return true;
+  const normalizeIraqi = (str) => {
+    let s = str;
+    if (s.startsWith('00964')) s = s.slice(5);
+    else if (s.startsWith('964')) s = s.slice(3);
+    if (s.startsWith('0')) s = s.slice(1);
+    return s;
+  };
+  const recCore = normalizeIraqi(recDigits);
+  const qCore = normalizeIraqi(qDigits);
+  if (recCore && qCore) {
+    if (recCore.includes(qCore)) return true;
+    if (qCore.includes(recCore) && recCore.length >= 7) return true;
+  }
+  const recNoZero = recDigits.replace(/^0+/, '');
+  const qNoZero = qDigits.replace(/^0+/, '');
+  if (recNoZero && qNoZero) {
+    if (recNoZero.includes(qNoZero)) return true;
+    if (qNoZero.includes(recNoZero) && recNoZero.length >= 7) return true;
+  }
+  if (qDigits.length >= 3) {
+    if (recDigits.endsWith(qDigits) || recCore.endsWith(qDigits) || recNoZero.endsWith(qDigits)) return true;
+    if (qCore.length >= 3 && (recCore.endsWith(qCore) || recDigits.endsWith(qCore))) return true;
+  }
+  return false;
 }
 
 // Ultra-Smart Kurdish fuzzy text normalizer
@@ -81,17 +116,16 @@ export default function FastCheckoutModal({ isOpen, onClose, records = [], onDel
 
     const matches = (records || []).filter(r => {
       const fNum = String(r.fileNumber || '').trim();
-      const acc = String(r.accountNumber || '').trim();
-      const phone = String(r.phoneNumber || '').replace(/[^0-9]/g, '');
+      const acc = toLatinDigits(String(r.accountNumber || '')).trim();
       const fuzzyName = normalizeKurdishFuzzy(r.citizenName || '');
       const compactName = fuzzyName.replace(/\s+/g, '');
 
       // Exact file match
       if (cleanDigitsQ && fNum === cleanDigitsQ) return true;
+      // Phone match (Flexible Iraqi match: 0750, 750, or core 4941883)
+      if (matchFlexiblePhone(r.phoneNumber, raw)) return true;
       // Account match
       if (cleanDigitsQ && acc.includes(cleanDigitsQ)) return true;
-      // Phone match
-      if (cleanDigitsQ && phone.includes(cleanDigitsQ)) return true;
       // File number partial
       if (cleanDigitsQ && fNum.includes(cleanDigitsQ)) return true;
       // Name match

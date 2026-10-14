@@ -72,12 +72,12 @@ import {
 
 // Convert Arabic & Persian / Kurdish numerals (٠-٩, ۰-۹) to standard Latin digits (0-9)
 function toLatinDigits(str) {
-  if (!str) return '';
+  if (!str && str !== 0) return '';
   const eastern = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
   const persian = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
   let res = String(str);
   for (let i = 0; i < 10; i++) {
-    res = res.replaceAll(eastern[i], String(i)).replaceAll(persian[i], String(i));
+    res = res.replace(new RegExp(eastern[i], 'g'), String(i)).replace(new RegExp(persian[i], 'g'), String(i));
   }
   return res;
 }
@@ -96,6 +96,71 @@ function normalizeKurdishFuzzy(str) {
     .replace(/[أإآا]/g, 'ا')
     .replace(/[\u064B-\u065F\u0670\u0640]/g, '')
     .trim();
+}
+
+/**
+ * Ultra-Flexible Iraqi Phone Matcher
+ * Matches regardless of:
+ * - Leading 0 (e.g. searching "07504941883" matches "7504941883" and vice-versa)
+ * - Country code (00964, +964, 964)
+ * - Suffix / Core subscriber number (e.g. searching "4941883" matches "07504941883")
+ * - Kurdish / Arabic numerals (٠٧٥٠...)
+ * - Spaces, dashes, separators
+ */
+function matchFlexiblePhone(recordPhone, searchPhoneQuery) {
+  if (!recordPhone || !searchPhoneQuery) return false;
+  
+  const rawRec = toLatinDigits(String(recordPhone));
+  const rawQ = toLatinDigits(String(searchPhoneQuery));
+  
+  const recDigits = rawRec.replace(/[^0-9]/g, '');
+  const qDigits = rawQ.replace(/[^0-9]/g, '');
+  
+  if (!recDigits || !qDigits) return false;
+  
+  // Need at least 2 digits to check phone match
+  if (qDigits.length < 2) return false;
+
+  // 1. Direct substring match (e.g. "4941883" inside "07504941883" or "7504941883")
+  if (recDigits.includes(qDigits)) return true;
+  if (qDigits.includes(recDigits) && recDigits.length >= 7) return true;
+
+  // 2. Strip Iraqi prefixes: 00964, 964, or leading 0
+  const normalizeIraqi = (str) => {
+    let s = str;
+    if (s.startsWith('00964')) s = s.slice(5);
+    else if (s.startsWith('964')) s = s.slice(3);
+    if (s.startsWith('0')) s = s.slice(1);
+    return s;
+  };
+
+  const recCore = normalizeIraqi(recDigits);
+  const qCore = normalizeIraqi(qDigits);
+
+  if (recCore && qCore) {
+    if (recCore.includes(qCore)) return true;
+    if (qCore.includes(recCore) && recCore.length >= 7) return true;
+  }
+
+  // 3. Match without leading zeros (e.g. "0750..." with "750...")
+  const recNoZero = recDigits.replace(/^0+/, '');
+  const qNoZero = qDigits.replace(/^0+/, '');
+  if (recNoZero && qNoZero) {
+    if (recNoZero.includes(qNoZero)) return true;
+    if (qNoZero.includes(recNoZero) && recNoZero.length >= 7) return true;
+  }
+
+  // 4. Suffix matching (e.g. user typed last 4, 5, 6, 7 digits like "4941883")
+  if (qDigits.length >= 3) {
+    if (recDigits.endsWith(qDigits) || recCore.endsWith(qDigits) || recNoZero.endsWith(qDigits)) {
+      return true;
+    }
+    if (qCore.length >= 3 && (recCore.endsWith(qCore) || recDigits.endsWith(qCore))) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 // 60FPS Smooth Animated Live Counter (0 -> target)
@@ -598,14 +663,13 @@ export default function AdminDashboard({
         const fuzzyName = normalizeKurdishFuzzy(record.citizenName || '');
         const compactName = fuzzyName.replace(/\s+/g, '');
         const fileStr = String(record.fileNumber || '').trim().toLowerCase();
-        const accStr = String(record.accountNumber || '').trim();
-        const phoneDigits = String(record.phoneNumber || '').replace(/[^0-9]/g, '');
+        const accStr = toLatinDigits(String(record.accountNumber || '')).trim();
         const fuzzyReceiver = normalizeKurdishFuzzy(record.receiverName || '');
 
         const matchName = fuzzyName.includes(fuzzyQ) || compactName.includes(compactFuzzyQ);
-        const matchFile = fileStr === cleanDigitsQ || fileStr === compactFuzzyQ || (cleanDigitsQ.length >= 1 && fileStr.includes(cleanDigitsQ));
+        const matchFile = cleanDigitsQ && (fileStr === cleanDigitsQ || fileStr === compactFuzzyQ || fileStr.includes(cleanDigitsQ));
         const matchAcc = cleanDigitsQ && accStr.includes(cleanDigitsQ);
-        const matchPhone = cleanDigitsQ && phoneDigits.includes(cleanDigitsQ);
+        const matchPhone = matchFlexiblePhone(record.phoneNumber, rawSearch);
         const matchReceiver = fuzzyReceiver.includes(fuzzyQ);
 
         if (!matchName && !matchFile && !matchAcc && !matchPhone && !matchReceiver) {
@@ -652,7 +716,55 @@ export default function AdminDashboard({
       return true;
     });
 
-    // Sorting
+    // Sorting: when searching, give highest priority to exact or close matches
+    if (rawSearch) {
+      const qDigits = cleanDigitsQ;
+      const qCore = qDigits.replace(/^(00964|964|0)+/, '');
+
+      return filtered.sort((a, b) => {
+        const getScore = (rec) => {
+          let score = 0;
+          const recFile = String(rec.fileNumber || '').trim();
+          const recPhone = toLatinDigits(String(rec.phoneNumber || '')).replace(/[^0-9]/g, '');
+          const recCore = recPhone.replace(/^(00964|964|0)+/, '');
+          const recAcc = toLatinDigits(String(rec.accountNumber || '')).trim();
+          const recName = normalizeKurdishFuzzy(rec.citizenName || '');
+
+          // Exact file match
+          if (qDigits && recFile === qDigits) score += 1000;
+          // Exact phone match (e.g. 07504941883 === 07504941883 or 7504941883 === 7504941883)
+          if (qCore && (recCore === qCore || recPhone === qDigits)) score += 950;
+          // Phone ends with query (e.g. user typed 4941883)
+          else if (qDigits.length >= 4 && (recCore.endsWith(qDigits) || recPhone.endsWith(qDigits))) score += 800;
+          // Exact account number match
+          if (qDigits && recAcc === qDigits) score += 700;
+          // Exact name match
+          if (fuzzyQ && recName === fuzzyQ) score += 600;
+          else if (fuzzyQ && recName.startsWith(fuzzyQ)) score += 400;
+
+          return score;
+        };
+
+        const scoreA = getScore(a);
+        const scoreB = getScore(b);
+
+        if (scoreB !== scoreA) {
+          return scoreB - scoreA; // Highest relevance first
+        }
+
+        // Secondary fallback to regular sortField
+        let valA = a[sortField] || '';
+        let valB = b[sortField] || '';
+        const numA = parseInt(valA, 10);
+        const numB = parseInt(valB, 10);
+        if (!isNaN(numA) && !isNaN(numB)) {
+          return sortOrder === 'asc' ? numA - numB : numB - numA;
+        }
+        return sortOrder === 'asc' ? String(valA).localeCompare(String(valB)) : String(valB).localeCompare(String(valA));
+      });
+    }
+
+    // Default Sorting (when not searching)
     return filtered.sort((a, b) => {
       let valA = a[sortField] || '';
       let valB = b[sortField] || '';

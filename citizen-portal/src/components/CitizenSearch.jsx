@@ -304,9 +304,13 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
           score = Math.max(score, 1000);
         }
 
-        // ── 2. EXACT PHONE NUMBER (950 points) ──
-        if (queryPhone && queryPhone.length >= 7 && r.recPhone === queryPhone) {
-          score = Math.max(score, 950);
+        // ── 2. EXACT PHONE NUMBER OR EXACT SUBSCRIBER NUMBER (950 / 930 points) ──
+        if (queryPhone && queryPhone.length >= 7) {
+          if (r.recPhone === queryPhone) {
+            score = Math.max(score, 950);
+          } else if (r.recPhone.endsWith(queryPhone)) {
+            score = Math.max(score, 930);
+          }
         }
 
         // ── 3. EXACT ACCOUNT NUMBER (900 points) ──
@@ -339,9 +343,9 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
           score = Math.max(score, 500);
         }
 
-        // ── 9. PARTIAL PHONE MATCH (only if queryPhone has at least 4 digits, 400 points) ──
-        if (queryPhone && queryPhone.length >= 4 && r.recPhone.includes(queryPhone)) {
-          score = Math.max(score, 400);
+        // ── 9. PARTIAL PHONE MATCH (only if queryPhone has at least 3 digits, 450 points) ──
+        if (queryPhone && queryPhone.length >= 3 && (r.recPhone.includes(queryPhone) || r.recPhone.endsWith(queryPhone))) {
+          score = Math.max(score, 450);
         }
 
         // ── 10. PARTIAL ACCOUNT NUMBER (only if digits >= 4, 350 points) ──
@@ -361,7 +365,7 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
         if (currentMode === 'FILE' && !(r.fileStr === cleanDigitsQ || r.fileStr.includes(cleanDigitsQ))) {
           continue;
         }
-        if (currentMode === 'PHONE' && !(queryPhone && queryPhone.length >= 3 && r.recPhone.includes(queryPhone))) {
+        if (currentMode === 'PHONE' && !(queryPhone && queryPhone.length >= 3 && (r.recPhone.includes(queryPhone) || r.recPhone.endsWith(queryPhone)))) {
           continue;
         }
         if (currentMode === 'ID' && !(cleanDigitsQ && cleanDigitsQ.length >= 3 && r.accStr.includes(cleanDigitsQ))) {

@@ -39,14 +39,49 @@ import { generateWhatsAppUrl } from '../utils/whatsappHelper';
 
 // Normalizers for fuzzy search
 function toLatinDigits(str) {
-  if (!str) return '';
+  if (!str && str !== 0) return '';
   const eastern = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
   const persian = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
   let res = String(str);
   for (let i = 0; i < 10; i++) {
-    res = res.replaceAll(eastern[i], String(i)).replaceAll(persian[i], String(i));
+    res = res.replace(new RegExp(eastern[i], 'g'), String(i)).replace(new RegExp(persian[i], 'g'), String(i));
   }
   return res;
+}
+
+function matchFlexiblePhone(recordPhone, searchPhoneQuery) {
+  if (!recordPhone || !searchPhoneQuery) return false;
+  const rawRec = toLatinDigits(String(recordPhone));
+  const rawQ = toLatinDigits(String(searchPhoneQuery));
+  const recDigits = rawRec.replace(/[^0-9]/g, '');
+  const qDigits = rawQ.replace(/[^0-9]/g, '');
+  if (!recDigits || !qDigits || qDigits.length < 2) return false;
+  if (recDigits.includes(qDigits)) return true;
+  if (qDigits.includes(recDigits) && recDigits.length >= 7) return true;
+  const normalizeIraqi = (str) => {
+    let s = str;
+    if (s.startsWith('00964')) s = s.slice(5);
+    else if (s.startsWith('964')) s = s.slice(3);
+    if (s.startsWith('0')) s = s.slice(1);
+    return s;
+  };
+  const recCore = normalizeIraqi(recDigits);
+  const qCore = normalizeIraqi(qDigits);
+  if (recCore && qCore) {
+    if (recCore.includes(qCore)) return true;
+    if (qCore.includes(recCore) && recCore.length >= 7) return true;
+  }
+  const recNoZero = recDigits.replace(/^0+/, '');
+  const qNoZero = qDigits.replace(/^0+/, '');
+  if (recNoZero && qNoZero) {
+    if (recNoZero.includes(qNoZero)) return true;
+    if (qNoZero.includes(recNoZero) && recNoZero.length >= 7) return true;
+  }
+  if (qDigits.length >= 3) {
+    if (recDigits.endsWith(qDigits) || recCore.endsWith(qDigits) || recNoZero.endsWith(qDigits)) return true;
+    if (qCore.length >= 3 && (recCore.endsWith(qCore) || recDigits.endsWith(qCore))) return true;
+  }
+  return false;
 }
 
 function normalizeKurdishFuzzy(str) {
@@ -302,14 +337,13 @@ export default function SpecialFilesTab({
       if (rawSearch) {
         const fuzzyName = normalizeKurdishFuzzy(r.citizenName || '');
         const fileStr = String(r.fileNumber || '').trim().toLowerCase();
-        const accStr = String(r.accountNumber || '').trim();
-        const phoneDigits = String(r.phoneNumber || '').replace(/[^0-9]/g, '');
+        const accStr = toLatinDigits(String(r.accountNumber || '')).trim();
         const fuzzyNote = normalizeKurdishFuzzy(r.specialNote || r.notes || '');
 
         const matchName = fuzzyName.includes(fuzzyQ);
-        const matchFile = fileStr.includes(cleanDigitsQ) || fileStr.includes(fuzzyQ);
+        const matchFile = cleanDigitsQ && (fileStr === cleanDigitsQ || fileStr.includes(cleanDigitsQ) || fileStr.includes(fuzzyQ));
         const matchAcc = cleanDigitsQ && accStr.includes(cleanDigitsQ);
-        const matchPhone = cleanDigitsQ && phoneDigits.includes(cleanDigitsQ);
+        const matchPhone = matchFlexiblePhone(r.phoneNumber, rawSearch);
         const matchNote = fuzzyNote.includes(fuzzyQ);
 
         if (!matchName && !matchFile && !matchAcc && !matchPhone && !matchNote) {

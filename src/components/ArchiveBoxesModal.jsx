@@ -27,6 +27,52 @@ import { STATUS_CONFIG, getRecordKYC } from '../constants/status';
 import { exportToExcel } from '../utils/excelHelper';
 import runakiLogo from '../assets/runaki-logo.png';
 
+function toLatinDigits(str) {
+  if (!str && str !== 0) return '';
+  const eastern = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+  const persian = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+  let res = String(str);
+  for (let i = 0; i < 10; i++) {
+    res = res.replace(new RegExp(eastern[i], 'g'), String(i)).replace(new RegExp(persian[i], 'g'), String(i));
+  }
+  return res;
+}
+
+function matchFlexiblePhone(recordPhone, searchPhoneQuery) {
+  if (!recordPhone || !searchPhoneQuery) return false;
+  const rawRec = toLatinDigits(String(recordPhone));
+  const rawQ = toLatinDigits(String(searchPhoneQuery));
+  const recDigits = rawRec.replace(/[^0-9]/g, '');
+  const qDigits = rawQ.replace(/[^0-9]/g, '');
+  if (!recDigits || !qDigits || qDigits.length < 2) return false;
+  if (recDigits.includes(qDigits)) return true;
+  if (qDigits.includes(recDigits) && recDigits.length >= 7) return true;
+  const normalizeIraqi = (str) => {
+    let s = str;
+    if (s.startsWith('00964')) s = s.slice(5);
+    else if (s.startsWith('964')) s = s.slice(3);
+    if (s.startsWith('0')) s = s.slice(1);
+    return s;
+  };
+  const recCore = normalizeIraqi(recDigits);
+  const qCore = normalizeIraqi(qDigits);
+  if (recCore && qCore) {
+    if (recCore.includes(qCore)) return true;
+    if (qCore.includes(recCore) && recCore.length >= 7) return true;
+  }
+  const recNoZero = recDigits.replace(/^0+/, '');
+  const qNoZero = qDigits.replace(/^0+/, '');
+  if (recNoZero && qNoZero) {
+    if (recNoZero.includes(qNoZero)) return true;
+    if (qNoZero.includes(recNoZero) && recNoZero.length >= 7) return true;
+  }
+  if (qDigits.length >= 3) {
+    if (recDigits.endsWith(qDigits) || recCore.endsWith(qDigits) || recNoZero.endsWith(qDigits)) return true;
+    if (qCore.length >= 3 && (recCore.endsWith(qCore) || recDigits.endsWith(qCore))) return true;
+  }
+  return false;
+}
+
 export default function ArchiveBoxesModal({ isOpen, onClose, records = [] }) {
   // Mode: 'AUTO' (لە ناو داتابەیس) | 'MANUAL' (دەستی - خۆم بینووسم)
   const [sourceMode, setSourceMode] = useState('AUTO');
@@ -140,7 +186,7 @@ export default function ArchiveBoxesModal({ isOpen, onClose, records = [] }) {
             String(r.fileNumber).includes(q) || 
             String(r.citizenName || '').toLowerCase().includes(q) || 
             String(r.accountNumber || '').includes(q) || 
-            String(r.phoneNumber || '').includes(q);
+            matchFlexiblePhone(r.phoneNumber, q);
           const matchType = filterFileType === 'ALL' || 
             (filterFileType === 'YELLOW_FOLDER' && r.fileType === 'YELLOW_FOLDER') ||
             (filterFileType === 'PAPER' && r.fileType !== 'YELLOW_FOLDER');
