@@ -1,37 +1,163 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import CitizenSearch from './components/CitizenSearch';
+import AdminDashboard from './components/AdminDashboard';
+import ExcelModal from './components/ExcelModal';
+import RecordModal from './components/RecordModal';
+import DeliveryModal from './components/DeliveryModal';
+import PrintReceiptModal from './components/PrintReceiptModal';
+import AdminLoginModal from './components/AdminLoginModal';
+import AdminLoginView from './components/AdminLoginView';
+import RunakiSmartScanner from './components/RunakiSmartScanner';
 import Footer from './components/Footer';
 import ScrollNavigator from './components/ScrollNavigator';
-import PrintReceiptModal from './components/PrintReceiptModal';
 import CustomElectricCursor from './components/CustomElectricCursor';
 import AntigravityBackground from './components/AntigravityBackground';
 import ErrorBoundary from './components/ErrorBoundary';
-import { subscribeToCloudRecords } from './utils/cloudSync';
-import { getStoredRecords } from './utils/storage';
-import { INITIAL_RECORDS } from './data/initialData';
+import { 
+  getStoredRecords, 
+  saveRecords, 
+  resetToDemoRecords, 
+  markAsDelivered, 
+  isAdminAuthenticated, 
+  setAdminAuthenticated,
+  deduplicateRecords,
+  getStoredTrash,
+  saveTrash,
+  isValidRealFile
+} from './utils/storage';
+import { 
+  subscribeToCloudRecords, 
+  saveRecordsToCloud, 
+  subscribeToCloudTrash, 
+  saveTrashToCloud, 
+  logActivity,
+  addPermanentlyDeletedRecords,
+  unmarkAsDeleted
+} from './utils/cloudSync';
+import { getKurdistanDateTime, getKurdistanDate, toLatinDigits } from './utils/dateUtils';
+import { CheckCircle2, Info, Cloud } from 'lucide-react';
 
 export default function App() {
-  const [records, setRecords] = useState(() => {
-    return getStoredRecords();
+  const [records, setRecords] = useState(() => deduplicateRecords(getStoredRecords()));
+  const [trashRecords, setTrashRecords] = useState(() => getStoredTrash());
+  const [currentView, setCurrentView] = useState(() => {
+    try {
+      const path = window.location.pathname.toLowerCase();
+      const hash = window.location.hash.toLowerCase();
+      const search = window.location.search.toLowerCase();
+      
+      // Only show citizen if explicitly specified in the URL
+      if (path.includes('citizen') || hash.includes('citizen') || search.includes('citizen')) {
+        return 'citizen';
+      }
+    } catch (e) {}
+    // Unconditional default to Admin
+    return 'admin';
   });
-  const [printModalRecord, setPrintModalRecord] = useState(null);
-
+  const [isAdmin, setIsAdmin] = useState(() => {
+    try {
+      const loggedOut = localStorage.getItem('electricity_portal_admin_logged_out') === 'true';
+      if (loggedOut) return false;
+      const savedStaff = localStorage.getItem('electricity_active_staff');
+      const hasSession = sessionStorage.getItem('electricity_portal_admin_session') === 'true' || localStorage.getItem('electricity_portal_admin_session') === 'true';
+      return Boolean(savedStaff || hasSession);
+    } catch (e) {
+      return false;
+    }
+  });
+  const [activeStaff, setActiveStaff] = useState(() => {
+    try {
+      const loggedOut = localStorage.getItem('electricity_portal_admin_logged_out') === 'true';
+      if (loggedOut) return null;
+      const saved = JSON.parse(localStorage.getItem('electricity_active_staff') || 'null');
+      if (saved) return saved;
+    } catch (e) {}
+    return null;
+  });
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('electricity_portal_theme');
     return saved !== 'light'; // default dark
   });
 
+  // Modals state
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [isExcelOpen, setIsExcelOpen] = useState(false);
+  const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
+  const [editingRecord, setEditingRecord] = useState(null);
+  const [deliveryModalRecord, setDeliveryModalRecord] = useState(null);
+  const [printModalRecord, setPrintModalRecord] = useState(null);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+
+  // Toast notification
+  const [toast, setToast] = useState(null);
+  const [isAdminPath, setIsAdminPath] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Check URL path on mount & hashchange
   useEffect(() => {
+    const checkUrlRoute = () => {
+      const path = window.location.pathname.toLowerCase();
+      const hash = window.location.hash.toLowerCase();
+      const search = window.location.search.toLowerCase();
+      
+      const isCitizenExplicit = 
+        path.includes('citizen') || 
+        hash.includes('citizen') || 
+        search.includes('citizen');
+
+      if (isCitizenExplicit) {
+        setCurrentView('citizen');
+        setIsAdminPath(false);
+      } else {
+        // ALWAYS default to admin
+        setCurrentView('admin');
+        setIsAdminPath(true);
+      }
+    };
+
+    checkUrlRoute();
+    window.addEventListener('hashchange', checkUrlRoute);
+    window.addEventListener('popstate', checkUrlRoute);
+
+    // Secret Key Combination: Ctrl + Shift + A or Alt + A
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        setCurrentView(prev => prev === 'admin' ? 'citizen' : 'admin');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
     // Live Cloud Subscription to Firebase Firestore
     const unsubscribe = subscribeToCloudRecords((cloudRecords) => {
       if (cloudRecords && cloudRecords.length > 0) {
-        setRecords(cloudRecords);
+        setRecords(deduplicateRecords(cloudRecords));
       }
     });
 
+    // Live Cloud Subscription to Trash
+    const unsubTrash = subscribeToCloudTrash((cloudTrash) => {
+      if (Array.isArray(cloudTrash)) {
+        setTrashRecords(cloudTrash);
+      }
+    });
+
+    // Immediate local update listener
+    const handleRecordsSync = (e) => {
+      if (e?.detail && Array.isArray(e.detail) && e.detail.length > 0) {
+        setRecords(deduplicateRecords(e.detail));
+      }
+    };
+    window.addEventListener('electricity_records_updated', handleRecordsSync);
+
     return () => {
+      window.removeEventListener('hashchange', checkUrlRoute);
+      window.removeEventListener('popstate', checkUrlRoute);
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('electricity_records_updated', handleRecordsSync);
       if (typeof unsubscribe === 'function') unsubscribe();
+      if (typeof unsubTrash === 'function') unsubTrash();
     };
   }, []);
 
@@ -49,60 +175,861 @@ export default function App() {
     }
   }, [isDarkMode]);
 
-  const [language, setLanguage] = useState(() => {
-    return localStorage.getItem('electricity_portal_lang') || 'ku';
-  });
-
   const toggleTheme = () => {
     setIsDarkMode(prev => !prev);
   };
 
-  const handleLanguageChange = (newLang) => {
-    setLanguage(newLang);
-    localStorage.setItem('electricity_portal_lang', newLang);
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => {
+      setToast(null);
+    }, 4000);
+  };
+
+  // Handle Staff login success
+  const handleLoginSuccess = (staffUser) => {
+    setIsAdmin(true);
+    setAdminAuthenticated(true);
+    try {
+      localStorage.removeItem('electricity_portal_admin_logged_out');
+    } catch (e) {}
+    if (staffUser) {
+      setActiveStaff(staffUser);
+      localStorage.setItem('electricity_active_staff', JSON.stringify(staffUser));
+    }
+    setCurrentView('admin');
+    showToast(`بەخێربێیت ${staffUser?.name || 'فەرمانبەر'}! چوونەژوورەوەت سەرکەوتوویی بوو`, 'success');
+  };
+
+  // Handle Staff logout
+  const handleAdminLogout = () => {
+    setIsAdmin(false);
+    setActiveStaff(null);
+    setAdminAuthenticated(false);
+    try {
+      localStorage.setItem('electricity_portal_admin_logged_out', 'true');
+      localStorage.removeItem('electricity_active_staff');
+      sessionStorage.removeItem('electricity_portal_admin_session');
+      localStorage.removeItem('electricity_portal_admin_session');
+    } catch (e) {}
+    setCurrentView('admin');
+    showToast('دەرچوون لە ئەژمێری فەرمانبەر بە سەرکەوتوویی ئەنجامدرا', 'info');
+  };
+
+  // Smart Excel Import handler
+  const handleImportSuccess = (newRecords, mode) => {
+    let updated;
+    if (mode === 'replace') {
+      updated = deduplicateRecords(newRecords);
+      showToast(`${newRecords.length} دۆسیە بە سەرکەوتوویی لە جێگەی هەموو داتاکان دانران`, 'success');
+    } else {
+      // Smart Merge: Deduplicate strictly by fileNumber and ID, NEVER drop files just because phone number is identical!
+      const existingFileMap = new Map();
+      records.forEach(r => {
+        if (r.fileNumber) existingFileMap.set(String(r.fileNumber).trim(), r);
+      });
+
+      let addedCount = 0;
+      let updatedCount = 0;
+      const combined = [...records];
+
+      newRecords.forEach(newRec => {
+        const fileKey = String(newRec.fileNumber || '').trim();
+        const existing = fileKey ? existingFileMap.get(fileKey) : null;
+
+        if (existing) {
+          // Merge/update existing file without creating a duplicated row
+          const idx = combined.findIndex(r => r.id === existing.id);
+          if (idx !== -1) {
+            combined[idx] = {
+              ...combined[idx],
+              citizenName: (newRec.hasRealName && newRec.citizenName !== 'هاوبەشی کارەبا') ? newRec.citizenName : combined[idx].citizenName,
+              hasRealName: (newRec.hasRealName || combined[idx].hasRealName),
+              accountNumber: newRec.accountNumber || combined[idx].accountNumber || '',
+              phoneNumber: (newRec.phoneNumber && newRec.phoneNumber !== 'نیە') ? newRec.phoneNumber : (combined[idx].phoneNumber || 'نیە'),
+              status: (newRec.status !== 'IN_PROGRESS' || combined[idx].status === 'IN_PROGRESS') ? newRec.status : combined[idx].status,
+              kycStatus: (newRec.kycStatus && newRec.kycStatus !== 'PENDING') ? newRec.kycStatus : (combined[idx].kycStatus || 'PENDING'),
+              deliveredDate: newRec.deliveredDate || combined[idx].deliveredDate,
+              receiverName: newRec.receiverName || combined[idx].receiverName,
+              fileType: newRec.fileType || combined[idx].fileType
+            };
+            updatedCount++;
+          }
+        } else {
+          // Brand new distinct file! Add it to the database
+          combined.push(newRec);
+          if (fileKey) existingFileMap.set(fileKey, newRec);
+          addedCount++;
+        }
+      });
+
+      updated = deduplicateRecords(combined);
+      showToast(`${addedCount} فایلی نوێ زیادکران، ${updatedCount} فایل زانیارییەکانیان نوێکرانەوە بەبێ دووبارەبوونەوە`, 'success');
+      logActivity('EXCEL_IMPORT', `هاوردەکردنی ئێکسڵ: ${newRecords.length} دۆسیە هاوردە کران`, { count: newRecords.length });
+    }
+
+    setRecords(updated);
+    saveRecordsToCloud(updated);
+  };
+
+  const getActiveStaffName = () => {
+    try {
+      const active = JSON.parse(localStorage.getItem('electricity_active_staff') || 'null');
+      return active?.name || 'ئارام';
+    } catch (e) {
+      return 'ئارام';
+    }
+  };
+
+  // Add / Edit record with Smart-Merge and Guaranteed Unique IDs
+  const handleSaveRecord = (formData, recordId) => {
+    const staffName = getActiveStaffName();
+    let updated;
+    const rawName = (formData.citizenName || '').trim();
+    const hasRealName = Boolean(rawName && rawName !== 'هاوبەشی کارەبا' && !rawName.startsWith('مانگی '));
+    const isDelivered = formData.status === 'DELIVERED';
+    const nowTs = Date.now();
+    const cleanFileNum = toLatinDigits(formData.fileNumber || '').trim();
+    const cleanAccount = toLatinDigits(formData.accountNumber || '').trim();
+    const cleanPhone = toLatinDigits(formData.phoneNumber || '').trim();
+
+    const processedData = {
+      ...formData,
+      fileNumber: cleanFileNum || String(Date.now()).slice(-4),
+      accountNumber: cleanAccount || 'نیە',
+      phoneNumber: cleanPhone || 'نیە',
+      citizenName: hasRealName ? rawName : 'هاوبەشی کارەبا',
+      hasRealName: hasRealName,
+      handledBy: formData.handledBy || staffName,
+      updatedAt: nowTs,
+      ...(isDelivered ? { deliveredBy: formData.deliveredBy || formData.handledBy || staffName } : {})
+    };
+
+    const targetFileNum = processedData.fileNumber;
+    const targetId = recordId || processedData.id;
+    const isSpecial = Boolean(processedData.isSpecial);
+
+    // UNMARK FROM TOMBSTONES AND REMOVE FROM TRASH IF PRESENT!
+    unmarkAsDeleted(targetFileNum, targetId, isSpecial);
+    setTrashRecords(prevTrash => {
+      const filtered = prevTrash.filter(t => {
+        if (targetId && String(t.id || '').trim() === String(targetId).trim()) return false;
+        if (targetFileNum && String(t.fileNumber || '').trim() === targetFileNum && Boolean(t.isSpecial) === isSpecial) return false;
+        return true;
+      });
+      if (filtered.length !== prevTrash.length) {
+        saveTrashToCloud(filtered);
+      }
+      return filtered;
+    });
+
+    if (recordId) {
+      updated = records.map(r => r.id === recordId ? { ...r, ...processedData } : r);
+      showToast('زانیارییەکانی دۆسیەکە بە سەرکەوتوویی نوێکرایەوە', 'success');
+      logActivity(
+        isDelivered ? 'DELIVERY' : 'STATUS_CHANGE',
+        `دەستکاریکردنی فایلی (${processedData.fileNumber}) [${processedData.citizenName}] (لەلایەن: ${staffName})`,
+        processedData
+      );
+    } else {
+      // CRITICAL: NEVER match a special record with a regular record, and NEVER match placeholder numbers!
+      const isRealFile = isValidRealFile(targetFileNum);
+      const existingIdx = (isRealFile && targetFileNum) 
+        ? records.findIndex(r => isValidRealFile(r.fileNumber) && String(r.fileNumber || '').trim() === targetFileNum && Boolean(r.isSpecial) === isSpecial)
+        : -1;
+
+      if (existingIdx !== -1) {
+        // Smart Merge within SAME category
+        updated = [...records];
+        updated[existingIdx] = {
+          ...updated[existingIdx],
+          ...processedData,
+          id: updated[existingIdx].id
+        };
+        showToast(`فایلی (${targetFileNum}) لەم بەشەدا پێشتر هەبوو، زانیارییەکانی نوێکرانەوە`, 'success');
+      } else {
+        const uniqueId = formData.id && !records.some(r => r.id === formData.id)
+          ? formData.id 
+          : ((isSpecial ? 'sp-' : 'rec-') + Date.now() + '-' + Math.random().toString(36).slice(2, 7));
+
+        const newRec = {
+          id: uniqueId,
+          ...processedData
+        };
+        updated = [newRec, ...records];
+        showToast(isSpecial ? 'فایلی کاک سالار بە سەرکەوتوویی تۆمار کرا ⭐' : 'مامەڵەی نوێ لە سێرڤەری گشتی بە سەرکەوتوویی تۆمار کرا', 'success');
+      }
+
+      logActivity('CREATE', `تۆمارکردنی فایلی نوێی (${processedData.fileNumber}) بە ناوی [${processedData.citizenName}] (لەلایەن: ${staffName})`, processedData);
+    }
+
+    const cleaned = deduplicateRecords(updated);
+    setRecords(cleaned);
+    saveRecordsToCloud(cleaned);
+  };
+
+  // Bulk Edit custom fields on multiple records
+  const handleBatchEditRecords = (ids, updates) => {
+    const staffName = getActiveStaffName();
+    const idSet = new Set(ids);
+    const nowTs = Date.now();
+    const updated = records.map(r => {
+      if (idSet.has(r.id)) {
+        return {
+          ...r,
+          ...updates,
+          handledBy: updates.handledBy || r.handledBy || staffName,
+          updatedAt: nowTs
+        };
+      }
+      return r;
+    });
+
+    const cleaned = deduplicateRecords(updated);
+    setRecords(cleaned);
+    saveRecordsToCloud(cleaned);
+    showToast(`دەستکاریکردنی بەکۆمەڵ بۆ ${ids.length} فایل بە سەرکەوتوویی ئەنجامدرا`, 'success');
+    logActivity('STATUS_CHANGE', `دەستکاریکردنی بەکۆمەڵی (${ids.length}) فایل (لەلایەن: ${staffName})`, { count: ids.length, updates });
+  };
+
+  // Move record to Trash (Soft Delete)
+  const handleDeleteRecord = (id) => {
+    const staffName = getActiveStaffName();
+    const target = records.find(r => r.id === id);
+    if (!target) return;
+
+    const targetFileNum = isValidRealFile(target.fileNumber) ? String(target.fileNumber).trim() : null;
+    const targetId = String(target.id || id).trim();
+    const isTargetSpecial = Boolean(target.isSpecial);
+
+    const nowTime = getKurdistanDateTime(false);
+    const nowTs = Date.now();
+    const deletedItem = {
+      ...target,
+      isDeleted: true,
+      deletedAt: nowTime,
+      deletedBy: staffName,
+      updatedAt: nowTs
+    };
+
+    // Filter OUT by BOTH id AND fileNumber strictly (fileNumber ONLY if valid real number)
+    const updatedRecords = records.filter(r => {
+      if (String(r.id) === targetId) return false;
+      if (targetFileNum && isValidRealFile(r.fileNumber) && String(r.fileNumber || '').trim() === targetFileNum && Boolean(r.isSpecial) === isTargetSpecial) {
+        return false;
+      }
+      return true;
+    });
+
+    const updatedTrash = [
+      deletedItem,
+      ...trashRecords.filter(t => {
+        if (String(t.id) === targetId) return false;
+        if (targetFileNum && isValidRealFile(t.fileNumber) && String(t.fileNumber || '').trim() === targetFileNum && Boolean(t.isSpecial) === isTargetSpecial) {
+          return false;
+        }
+        return true;
+      })
+    ];
+
+    setRecords(updatedRecords);
+    setTrashRecords(updatedTrash);
+
+    saveRecordsToCloud(updatedRecords);
+    saveTrashToCloud(updatedTrash);
+
+    showToast(`فایلی (${target.fileNumber}) گوێزرایەوە بۆ سەلەی خۆڵ 🗑️`, 'info');
+    logActivity('TRASH_MOVE', `گواستنەوەی فایلی (${target?.fileNumber || id}) [${target?.citizenName || ''}] بۆ سەلەی خۆڵ (لەلایەن: ${staffName})`, { fileNumber: target?.fileNumber });
+  };
+
+  // Bulk / Batch Move to Trash
+  const handleBatchDelete = (ids) => {
+    const staffName = getActiveStaffName();
+    const idSet = new Set(ids.map(x => String(x)));
+    const nowTime = getKurdistanDateTime(false);
+    const nowTs = Date.now();
+
+    const targets = records.filter(r => idSet.has(String(r.id)));
+    const targetFileMap = new Set(targets.map(r => {
+      const f = isValidRealFile(r.fileNumber) ? String(r.fileNumber).trim() : null;
+      return f ? `${r.isSpecial ? 'sp_' : 'reg_'}${f}` : null;
+    }).filter(Boolean));
+
+    const deletedItems = targets.map(r => ({
+      ...r,
+      isDeleted: true,
+      deletedAt: nowTime,
+      deletedBy: staffName,
+      updatedAt: nowTs
+    }));
+
+    const updatedRecords = records.filter(r => {
+      if (idSet.has(String(r.id))) return false;
+      const f = isValidRealFile(r.fileNumber) ? String(r.fileNumber).trim() : null;
+      if (f && targetFileMap.has(`${r.isSpecial ? 'sp_' : 'reg_'}${f}`)) return false;
+      return true;
+    });
+
+    const updatedTrash = [
+      ...deletedItems,
+      ...trashRecords.filter(t => {
+        if (idSet.has(String(t.id))) return false;
+        const f = isValidRealFile(t.fileNumber) ? String(t.fileNumber).trim() : null;
+        if (f && targetFileMap.has(`${t.isSpecial ? 'sp_' : 'reg_'}${f}`)) return false;
+        return true;
+      })
+    ];
+
+    setRecords(updatedRecords);
+    setTrashRecords(updatedTrash);
+
+    saveRecordsToCloud(updatedRecords);
+    saveTrashToCloud(updatedTrash);
+
+    showToast(`${ids.length} فایل گوێزرانەوە بۆ سەلەی خۆڵ 🗑️`, 'info');
+    logActivity('TRASH_MOVE', `گواستنەوەی بەکۆمەڵ: (${ids.length}) فایل بە یەکەوە گوێزرانەوە بۆ سەلەی خۆڵ (لەلایەن: ${staffName})`, { count: ids.length });
+  };
+
+  // Restore record from Trash
+  const handleRestoreRecord = (id) => {
+    const staffName = getActiveStaffName();
+    const target = trashRecords.find(t => t.id === id);
+    if (!target) return;
+
+    const targetFileNum = isValidRealFile(target.fileNumber) ? String(target.fileNumber).trim() : null;
+    const targetId = String(target.id || id).trim();
+    const isTargetSpecial = Boolean(target.isSpecial);
+
+    const nowTs = Date.now();
+    const restoredItem = { ...target, updatedAt: nowTs };
+    delete restoredItem.isDeleted;
+    delete restoredItem.deletedAt;
+    delete restoredItem.deletedBy;
+
+    const updatedTrash = trashRecords.filter(t => {
+      if (String(t.id) === targetId) return false;
+      if (targetFileNum && isValidRealFile(t.fileNumber) && String(t.fileNumber || '').trim() === targetFileNum && Boolean(t.isSpecial) === isTargetSpecial) {
+        return false;
+      }
+      return true;
+    });
+
+    const updatedRecords = deduplicateRecords([...records, restoredItem]);
+
+    setRecords(updatedRecords);
+    setTrashRecords(updatedTrash);
+
+    saveRecordsToCloud(updatedRecords);
+    saveTrashToCloud(updatedTrash);
+
+    showToast(`فایلی (#${restoredItem.fileNumber}) بە سەرکەوتوویی گەڕێندرایەوە 🔄`, 'success');
+    logActivity('RESTORE', `گەڕاندنەوەی فایلی (${restoredItem.fileNumber}) لە سەلەی خۆڵەوە (لەلایەن: ${staffName})`, { fileNumber: restoredItem.fileNumber });
+  };
+
+  // Bulk Restore from Trash
+  const handleBatchRestore = (ids) => {
+    const staffName = getActiveStaffName();
+    const idSet = new Set(ids.map(x => String(x)));
+    const nowTs = Date.now();
+
+    const targets = trashRecords.filter(t => idSet.has(String(t.id)));
+    const targetFileMap = new Set(targets.map(t => {
+      const f = isValidRealFile(t.fileNumber) ? String(t.fileNumber).trim() : null;
+      return f ? `${t.isSpecial ? 'sp_' : 'reg_'}${f}` : null;
+    }).filter(Boolean));
+
+    const restoredItems = targets.map(item => {
+      const copy = { ...item, updatedAt: nowTs };
+      delete copy.isDeleted;
+      delete copy.deletedAt;
+      delete copy.deletedBy;
+      return copy;
+    });
+
+    const updatedTrash = trashRecords.filter(t => {
+      if (idSet.has(String(t.id))) return false;
+      const f = isValidRealFile(t.fileNumber) ? String(t.fileNumber).trim() : null;
+      if (f && targetFileMap.has(`${t.isSpecial ? 'sp_' : 'reg_'}${f}`)) return false;
+      return true;
+    });
+
+    const updatedRecords = deduplicateRecords([...records, ...restoredItems]);
+
+    setRecords(updatedRecords);
+    setTrashRecords(updatedTrash);
+
+    saveRecordsToCloud(updatedRecords);
+    saveTrashToCloud(updatedTrash);
+
+    showToast(`${ids.length} فایل بە سەرکەوتوویی گەڕێندرانەوە 🔄`, 'success');
+    logActivity('RESTORE', `گەڕاندنەوەی بەکۆمەڵ: (${ids.length}) فایل لە سەلەی خۆڵەوە گەڕێندرانەوە (لەلایەن: ${staffName})`, { count: ids.length });
+  };
+
+  // Permanent Delete single item
+  const handlePermanentDelete = (id) => {
+    const staffName = getActiveStaffName();
+    const target = trashRecords.find(t => t.id === id);
+    const targetFileNum = isValidRealFile(target?.fileNumber) ? String(target.fileNumber).trim() : null;
+    const targetId = String(target?.id || id).trim();
+    const isTargetSpecial = Boolean(target?.isSpecial);
+
+    if (target) {
+      addPermanentlyDeletedRecords(target);
+    } else {
+      addPermanentlyDeletedRecords({ id, fileNumber: targetFileNum });
+    }
+
+    const updatedTrash = trashRecords.filter(t => {
+      if (String(t.id) === targetId) return false;
+      if (targetFileNum && isValidRealFile(t.fileNumber) && String(t.fileNumber || '').trim() === targetFileNum && Boolean(t.isSpecial) === isTargetSpecial) {
+        return false;
+      }
+      return true;
+    });
+
+    const updatedRecords = records.filter(r => {
+      if (String(r.id) === targetId) return false;
+      if (targetFileNum && isValidRealFile(r.fileNumber) && String(r.fileNumber || '').trim() === targetFileNum && Boolean(r.isSpecial) === isTargetSpecial) {
+        return false;
+      }
+      return true;
+    });
+
+    setTrashRecords(updatedTrash);
+    setRecords(updatedRecords);
+    saveTrashToCloud(updatedTrash);
+    saveRecordsToCloud(updatedRecords);
+
+    showToast(`فایلی (${target?.fileNumber || id}) بە تەواوی لە سەلەی خۆڵ سڕایەوە`, 'info');
+    logActivity('PERMANENT_DELETE', `سڕینەوەی یەکجارەکی: فایلی (${target?.fileNumber || id}) بە تەواوی لە سیستەم سڕایەوە (لەلایەن: ${staffName})`, { fileNumber: target?.fileNumber });
+  };
+
+  // Permanent Delete batch items
+  const handleBatchPermanentDelete = (ids) => {
+    const staffName = getActiveStaffName();
+    const idSet = new Set(ids.map(x => String(x)));
+    const targets = trashRecords.filter(t => idSet.has(String(t.id)));
+    const targetFileMap = new Set(targets.map(t => {
+      const f = isValidRealFile(t.fileNumber) ? String(t.fileNumber).trim() : null;
+      return f ? `${t.isSpecial ? 'sp_' : 'reg_'}${f}` : null;
+    }).filter(Boolean));
+
+    addPermanentlyDeletedRecords(targets);
+
+    const updatedTrash = trashRecords.filter(t => {
+      if (idSet.has(String(t.id))) return false;
+      const f = isValidRealFile(t.fileNumber) ? String(t.fileNumber).trim() : null;
+      if (f && targetFileMap.has(`${t.isSpecial ? 'sp_' : 'reg_'}${f}`)) return false;
+      return true;
+    });
+
+    const updatedRecords = records.filter(r => {
+      if (idSet.has(String(r.id))) return false;
+      const f = isValidRealFile(r.fileNumber) ? String(r.fileNumber).trim() : null;
+      if (f && targetFileMap.has(`${r.isSpecial ? 'sp_' : 'reg_'}${f}`)) return false;
+      return true;
+    });
+
+    setTrashRecords(updatedTrash);
+    setRecords(updatedRecords);
+    saveTrashToCloud(updatedTrash);
+    saveRecordsToCloud(updatedRecords);
+
+    showToast(`${ids.length} فایل بە یەکجاری لە سەلەی خۆڵ سڕانەوە`, 'info');
+    logActivity('PERMANENT_DELETE', `سڕینەوەی یەکجارەکی بەکۆمەڵ: (${ids.length}) فایل بە تەواوی سڕانەوە (لەلایەن: ${staffName})`, { count: ids.length });
+  };
+
+  // Empty entire Trash
+  const handleEmptyTrash = () => {
+    const staffName = getActiveStaffName();
+    const count = trashRecords.length;
+    addPermanentlyDeletedRecords(trashRecords);
+
+    setTrashRecords([]);
+    saveTrashToCloud([]);
+
+    showToast('سەلەی خۆڵ بە تەواوی بەتاڵ کرایەوە 🧹', 'info');
+    logActivity('EMPTY_TRASH', `بەتاڵکردنی تەواوی سەلەی خۆڵ (${count} فایل) (لەلایەن: ${staffName})`, { count });
+  };
+
+  // Bulk Status update
+  const handleBatchUpdateStatus = (ids, newStatus) => {
+    const staffName = getActiveStaffName();
+    const idSet = new Set(ids);
+    const today = getKurdistanDate();
+    const nowTime = getKurdistanDateTime(false);
+    const nowTs = Date.now();
+
+    const updated = records.map(r => {
+      if (idSet.has(r.id)) {
+        const changes = { 
+          status: newStatus,
+          handledBy: staffName,
+          updatedAt: nowTs
+        };
+        if (newStatus === 'DELIVERED') {
+          changes.deliveredDate = r.deliveredDate || nowTime;
+          changes.deliveredBy = staffName;
+          changes.receiverName = r.receiverName || (r.hasRealName ? r.citizenName : 'هاوبەشی کارەبا');
+          changes.isKycDone = true;
+          changes.kycStatus = r.kycStatus === 'PRE_VERIFIED' ? 'PRE_VERIFIED' : 'DONE_BY_US';
+        } else if (newStatus === 'COMPLETED') {
+          changes.completionDate = r.completionDate || today;
+          changes.isKycDone = true;
+          changes.kycStatus = r.kycStatus === 'PRE_VERIFIED' ? 'PRE_VERIFIED' : 'DONE_BY_US';
+        } else if (newStatus === 'IN_PROGRESS') {
+          changes.deliveredDate = null;
+          changes.deliveredBy = '';
+          changes.receiverName = '';
+          changes.completionDate = null;
+        }
+        return { ...r, ...changes };
+      }
+      return r;
+    });
+
+    setRecords(updated);
+    saveRecordsToCloud(updated);
+    showToast(`دۆخی ${ids.length} فایل بە سەرکەوتوویی لە کڵاود گۆڕدرا`, 'success');
+    logActivity('STATUS_CHANGE', `گۆڕینی بەکۆمەڵی دۆخی (${ids.length}) فایل بۆ (${newStatus}) (لەلایەن: ${staffName})`, { count: ids.length, status: newStatus });
+  };
+
+  // Inline Status update from table
+  const handleUpdateStatus = (id, newStatus) => {
+    const staffName = getActiveStaffName();
+    const target = records.find(r => r.id === id);
+    const today = getKurdistanDate();
+    const nowTime = getKurdistanDateTime(false);
+    const nowTs = Date.now();
+
+    const updated = records.map(r => {
+      if (r.id === id) {
+        const changes = { 
+          status: newStatus,
+          handledBy: staffName,
+          updatedAt: nowTs
+        };
+        if (newStatus === 'DELIVERED') {
+          changes.deliveredDate = r.deliveredDate || nowTime;
+          changes.deliveredBy = staffName;
+          changes.receiverName = r.receiverName || (r.hasRealName ? r.citizenName : 'هاوبەشی کارەبا');
+          changes.isKycDone = true;
+          changes.kycStatus = r.kycStatus === 'PRE_VERIFIED' ? 'PRE_VERIFIED' : 'DONE_BY_US';
+        } else if (newStatus === 'COMPLETED') {
+          changes.completionDate = r.completionDate || today;
+          changes.isKycDone = true;
+          changes.kycStatus = r.kycStatus === 'PRE_VERIFIED' ? 'PRE_VERIFIED' : 'DONE_BY_US';
+        } else if (newStatus === 'IN_PROGRESS') {
+          changes.deliveredDate = null;
+          changes.deliveredBy = '';
+          changes.receiverName = '';
+          changes.completionDate = null;
+        }
+        return { ...r, ...changes };
+      }
+      return r;
+    });
+    setRecords(updated);
+    saveRecordsToCloud(updated);
+    showToast('دۆخی مامەڵە لە سێرڤەر بە سەرکەوتوویی نوێکرایەوە', 'success');
+    logActivity('STATUS_CHANGE', `گۆڕینی دۆخی فایلی (${target?.fileNumber || id}) بۆ (${newStatus}) (لەلایەن: ${staffName})`, {
+      fileNumber: target?.fileNumber,
+      citizenName: target?.citizenName,
+      status: newStatus
+    });
+  };
+
+  // Update KYC status for a single record with 3 choices
+  const handleUpdateKYC = (id, newKycStatus) => {
+    const staffName = getActiveStaffName();
+    const target = records.find(r => r.id === id);
+    const isDone = newKycStatus === 'DONE_BY_US' || newKycStatus === 'PRE_VERIFIED';
+    const nowTime = getKurdistanDateTime(false);
+    const nowTs = Date.now();
+
+    const updated = records.map(r => {
+      if (r.id === id) {
+        return {
+          ...r,
+          kycStatus: newKycStatus,
+          kycType: newKycStatus,
+          isKycDone: isDone,
+          kycVerifiedAt: isDone ? (r.kycVerifiedAt || nowTime) : null,
+          kycVerifiedBy: isDone ? (r.kycVerifiedBy || staffName) : null,
+          updatedAt: nowTs
+        };
+      }
+      return r;
+    });
+
+    setRecords(updated);
+    saveRecordsToCloud(updated);
+    const label = newKycStatus === 'DONE_BY_US' ? '🟢 ئێمە کردمان' : (newKycStatus === 'PRE_VERIFIED' ? '🔵 پێشتر کراوە (دەرەکی)' : '🟡 نەکراوە (پێنەدراوەتەوە)');
+    showToast(`دۆخی KYC فایلی (${target?.fileNumber || id}) گۆڕدرا بۆ: ${label}`, 'info');
+    logActivity('STATUS_CHANGE', `گۆڕینی دۆخی KYC فایلی (${target?.fileNumber || id}) بۆ (${label}) (لەلایەن: ${staffName})`, {
+      fileNumber: target?.fileNumber,
+      kycStatus: newKycStatus
+    });
+  };
+
+  // Toggle KYC status for a single record
+  const handleToggleKYC = (id) => {
+    const target = records.find(r => r.id === id);
+    let currentKyc = 'PENDING';
+    if (target?.kycStatus === 'PRE_VERIFIED' || target?.kycType === 'PRE_VERIFIED') currentKyc = 'PRE_VERIFIED';
+    else if (target?.isKycDone || target?.kycStatus === 'DONE' || target?.kycStatus === 'DONE_BY_US') currentKyc = 'DONE_BY_US';
+
+    let nextKyc = 'DONE_BY_US';
+    if (currentKyc === 'DONE_BY_US') nextKyc = 'PRE_VERIFIED';
+    else if (currentKyc === 'PRE_VERIFIED') nextKyc = 'PENDING';
+    else nextKyc = 'DONE_BY_US';
+
+    handleUpdateKYC(id, nextKyc);
+  };
+
+  // Bulk KYC update
+  const handleBatchUpdateKYC = (ids, kycValue = 'DONE_BY_US') => {
+    const staffName = getActiveStaffName();
+    const idSet = new Set(ids);
+    const nowTime = getKurdistanDateTime(false);
+    const nowTs = Date.now();
+    
+    let kycStatus = kycValue;
+    if (kycValue === true) kycStatus = 'DONE_BY_US';
+    else if (kycValue === false) kycStatus = 'PENDING';
+    
+    const isDone = kycStatus === 'DONE_BY_US' || kycStatus === 'PRE_VERIFIED';
+
+    const updated = records.map(r => {
+      if (idSet.has(r.id)) {
+        return {
+          ...r,
+          kycStatus: kycStatus,
+          kycType: kycStatus,
+          isKycDone: isDone,
+          kycVerifiedAt: isDone ? (r.kycVerifiedAt || nowTime) : null,
+          kycVerifiedBy: isDone ? (r.kycVerifiedBy || staffName) : null,
+          updatedAt: nowTs
+        };
+      }
+      return r;
+    });
+
+    setRecords(updated);
+    saveRecordsToCloud(updated);
+    const label = kycStatus === 'DONE_BY_US' ? '🟢 ئێمە کردمان' : (kycStatus === 'PRE_VERIFIED' ? '🔵 پێشتر کراوە (دەرەکی)' : '🟡 نەکراوە (پێنەدراوەتەوە)');
+    showToast(`دۆخی KYC بۆ ${ids.length} فایل گۆڕدرا بۆ: ${label}`, 'success');
+  };
+
+  // Toggle single record file type (Yellow Folder vs Paper)
+  const handleToggleFileType = (id) => {
+    const staffName = getActiveStaffName();
+    const target = records.find(r => r.id === id);
+    const nowTs = Date.now();
+    const updated = records.map(r => {
+      if (r.id === id) {
+        const nextType = r.fileType === 'YELLOW_FOLDER' ? 'PAPER' : 'YELLOW_FOLDER';
+        return { ...r, fileType: nextType, handledBy: staffName, updatedAt: nowTs };
+      }
+      return r;
+    });
+    setRecords(updated);
+    saveRecordsToCloud(updated);
+    showToast('جۆری دۆسیەکە لە کڵاود گۆڕدرا', 'info');
+    logActivity('STATUS_CHANGE', `گۆڕینی جۆری فایلی (${target?.fileNumber || id}) (لەلایەن: ${staffName})`, { fileNumber: target?.fileNumber });
+  };
+
+  // Bulk File Type update
+  const handleBatchUpdateFileType = (ids, newFileType) => {
+    const idSet = new Set(ids);
+    const nowTs = Date.now();
+    const updated = records.map(r => {
+      if (idSet.has(r.id)) {
+        return { ...r, fileType: newFileType, updatedAt: nowTs };
+      }
+      return r;
+    });
+    setRecords(updated);
+    saveRecordsToCloud(updated);
+    showToast(`جۆری ${ids.length} فایل گۆڕدرا بۆ ${newFileType === 'YELLOW_FOLDER' ? 'فایلی زەرد' : 'ئەوراق'}`, 'success');
+  };
+
+  // Delivery Modal confirm
+  const handleConfirmDelivery = (id, receiverName, customDate, note, isKycDone = true, nationalId = '') => {
+    const updated = markAsDelivered(id, receiverName, customDate, isKycDone, nationalId);
+    const staffName = getActiveStaffName();
+    const nowTs = Date.now();
+    if (note) {
+      const rec = updated.find(r => r.id === id);
+      if (rec) {
+        rec.notes = (rec.notes ? rec.notes + ' | ' : '') + note;
+        rec.updatedAt = nowTs;
+        rec.handledBy = staffName;
+      }
+    }
+    setRecords(updated);
+    saveRecordsToCloud(updated);
+    setDeliveryModalRecord(null);
+    showToast(`فایل بە فەرمی تەسلیمی (${receiverName || 'هاووڵاتی'}) کرا لە [${customDate}] و KYC تۆمار کرا ✅`, 'success');
+  };
+
+  // Reset to demo
+  const handleResetData = () => {
+    if (window.confirm('ئایا دڵنیایت لە گەڕاندنەوەی داتاکان بۆ داتای سەرەتایی نموونەیی؟')) {
+      const reset = resetToDemoRecords();
+      setRecords(reset);
+      saveRecordsToCloud(reset);
+      showToast('داتاکان لە سێرڤەر گەڕێندرانەوە بۆ دۆخی سەرەتایی', 'info');
+    }
   };
 
   return (
-    <div className="relative min-h-screen flex flex-col font-kurdish antialiased bg-slate-50 dark:bg-[#080d1a] text-slate-900 dark:text-slate-100 transition-colors duration-300 overflow-x-hidden" dir="rtl">
-      {/* Ambient Energy Aura Orbs */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="ambient-orb-1 absolute -top-40 -right-40 w-96 sm:w-[550px] h-96 sm:h-[550px] bg-gradient-to-br from-amber-500/15 via-yellow-500/10 to-transparent rounded-full blur-3xl" />
-        <div className="ambient-orb-2 absolute top-1/2 -left-40 w-96 sm:w-[600px] h-96 sm:h-[600px] bg-gradient-to-tr from-cyan-500/10 via-sky-500/5 to-transparent rounded-full blur-3xl" />
-        <div className="ambient-orb-1 absolute -bottom-40 right-1/4 w-96 sm:w-[500px] h-96 sm:h-[500px] bg-gradient-to-t from-amber-500/10 via-orange-500/5 to-transparent rounded-full blur-3xl" />
+    <div className="relative min-h-screen flex flex-col font-kurdish antialiased bg-[#f4f7fb] dark:bg-[#060a15] text-slate-900 dark:text-slate-100 transition-colors duration-300 overflow-x-hidden w-full max-w-[100vw]">
+      
+      {/*  iOS Ambient Dynamic Mesh Lighting Orbs (Background Light Show) */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div className="absolute -top-24 -right-24 w-[600px] h-[600px] bg-amber-500/20 dark:bg-amber-500/25 rounded-full blur-[140px] mix-blend-screen" />
+        <div className="absolute top-1/4 -left-32 w-[650px] h-[650px] bg-sky-500/15 dark:bg-sky-600/20 rounded-full blur-[150px] mix-blend-screen" />
+        <div className="absolute bottom-10 right-1/4 w-[700px] h-[700px] bg-emerald-500/12 dark:bg-emerald-500/18 rounded-full blur-[160px] mix-blend-screen" />
+        <div className="absolute top-2/3 -right-20 w-[450px] h-[450px] bg-purple-500/12 dark:bg-purple-600/18 rounded-full blur-[140px] mix-blend-screen" />
       </div>
 
       {/* 3D Antigravity Floating Particle Field */}
       <AntigravityBackground isDarkMode={isDarkMode} />
 
-      {/* Navigation - Clean Citizen View */}
-      <div className="relative z-10">
-        <Navbar
-          isDarkMode={isDarkMode}
-          onToggleTheme={toggleTheme}
-          language={language}
-          onLanguageChange={handleLanguageChange}
-        />
-      </div>
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-50 animate-bounce">
+          <div className={`px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 border text-sm font-bold ${
+            toast.type === 'success' 
+              ? 'bg-emerald-900/95 dark:bg-emerald-950/90 border-emerald-500 text-white dark:text-emerald-200 shadow-emerald-500/20' 
+              : 'bg-blue-900/95 dark:bg-blue-950/90 border-blue-500 text-white dark:text-blue-200 shadow-blue-500/20'
+          }`}>
+            {toast.type === 'success' ? <CheckCircle2 className="w-5 h-5 text-emerald-400" /> : <Info className="w-5 h-5 text-blue-400" />}
+            <span>{toast.message}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Navigation */}
+      <Navbar
+        currentView={currentView}
+        setCurrentView={setCurrentView}
+        isAdmin={isAdmin}
+        isAdminPath={isAdminPath}
+        activeStaff={activeStaff}
+        onOpenAdminLogin={() => setIsLoginOpen(true)}
+        onAdminLogout={handleAdminLogout}
+        isDarkMode={isDarkMode}
+        onToggleTheme={toggleTheme}
+        onToggleSidebar={() => setIsSidebarOpen(prev => !prev)}
+        isSidebarOpen={isSidebarOpen}
+      />
 
       {/* Main Content Area */}
       <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
-        <ErrorBoundary>
+        {currentView === 'citizen' ? (
           <CitizenSearch
             records={records}
-            language={language}
-            onOpenPrintModal={(record) => {
-              setPrintModalRecord(record);
-            }}
+            onOpenPrintModal={(rec) => setPrintModalRecord(rec)}
           />
-        </ErrorBoundary>
+        ) : !isAdmin ? (
+          <AdminLoginView
+            onLoginSuccess={handleLoginSuccess}
+            onGoToCitizen={() => setCurrentView('citizen')}
+            onOpenScanner={() => setIsScannerOpen(true)}
+          />
+        ) : (
+          <ErrorBoundary>
+            <AdminDashboard
+              records={records}
+              trashRecords={trashRecords}
+              activeStaff={activeStaff}
+              isSidebarOpen={isSidebarOpen}
+              setIsSidebarOpen={setIsSidebarOpen}
+              onOpenExcelImport={() => setIsExcelOpen(true)}
+              onOpenAddModal={() => { setEditingRecord(null); setIsRecordModalOpen(true); }}
+              onOpenEditModal={(rec) => { setEditingRecord(rec); setIsRecordModalOpen(true); }}
+              onOpenDeliveryModal={(rec) => setDeliveryModalRecord(rec)}
+              onOpenPrintModal={(rec) => setPrintModalRecord(rec)}
+              onOpenScanner={() => setIsScannerOpen(true)}
+              onDeleteRecord={handleDeleteRecord}
+              onBatchDelete={handleBatchDelete}
+              onRestoreRecord={handleRestoreRecord}
+              onBatchRestore={handleBatchRestore}
+              onPermanentDelete={handlePermanentDelete}
+              onBatchPermanentDelete={handleBatchPermanentDelete}
+              onEmptyTrash={handleEmptyTrash}
+              onBatchUpdateStatus={handleBatchUpdateStatus}
+              onBatchUpdateFileType={handleBatchUpdateFileType}
+              onToggleFileType={handleToggleFileType}
+              onToggleKYC={handleToggleKYC}
+              onUpdateKYC={handleUpdateKYC}
+              onBatchUpdateKYC={handleBatchUpdateKYC}
+              onBatchEditRecords={handleBatchEditRecords}
+              onUpdateStatus={handleUpdateStatus}
+              onSaveRecord={handleSaveRecord}
+              onResetData={handleResetData}
+            />
+          </ErrorBoundary>
+        )}
       </main>
 
-      {/* Royal Printable Receipt Modal */}
+      {/* Footer */}
+      <Footer />
+
+      {/* Runaki Smart Scanner Modal */}
+      <RunakiSmartScanner
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        records={records}
+        onSelectRecord={(rec) => {
+          setEditingRecord(rec);
+          setIsRecordModalOpen(true);
+          setIsScannerOpen(false);
+        }}
+        onSearchInSystem={(term) => {
+          setIsScannerOpen(false);
+          window.dispatchEvent(new CustomEvent('smart_scanner_search', { detail: term }));
+        }}
+      />
+
+      {/* Admin Login Modal */}
+      <AdminLoginModal
+        isOpen={isLoginOpen}
+        onClose={() => setIsLoginOpen(false)}
+        onLoginSuccess={handleLoginSuccess}
+      />
+
+      {/* Add / Edit Record Modal */}
+      <RecordModal
+        isOpen={isRecordModalOpen}
+        onClose={() => { setIsRecordModalOpen(false); setEditingRecord(null); }}
+        onSave={handleSaveRecord}
+        editingRecord={editingRecord}
+        records={records}
+      />
+
+      {/* Excel Import Modal */}
+      <ExcelModal
+        isOpen={isExcelOpen}
+        onClose={() => setIsExcelOpen(false)}
+        onImportSuccess={handleImportSuccess}
+      />
+
+      {/* Delivery Confirmation Modal */}
+      <DeliveryModal
+        isOpen={Boolean(deliveryModalRecord)}
+        onClose={() => setDeliveryModalRecord(null)}
+        record={deliveryModalRecord}
+        onConfirm={handleConfirmDelivery}
+      />
+
+      {/* Print Slip / Receipt Modal */}
       <PrintReceiptModal
         isOpen={Boolean(printModalRecord)}
         onClose={() => setPrintModalRecord(null)}
         record={printModalRecord}
-        language={language}
       />
 
       {/* Floating Scroll Navigator (Top / Bottom) */}
@@ -111,10 +1038,6 @@ export default function App() {
       {/* Luxury Custom Electric Cursor & Click Shockwave */}
       <CustomElectricCursor />
 
-      {/* Footer */}
-      <div className="relative z-10">
-        <Footer language={language} />
-      </div>
     </div>
   );
 }

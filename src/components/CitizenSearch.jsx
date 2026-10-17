@@ -25,6 +25,8 @@ import {
   HelpCircle,
   Folder,
   PhoneOff,
+  LogIn,
+  LogOut,
   X
 } from 'lucide-react';
 import { formatKurdistanDateTime } from '../utils/dateUtils';
@@ -1089,6 +1091,91 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
                           {formatKurdistanDateTime(result.deliveredDate)}
                         </div>
                       )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── VISUAL FILE LIFECYCLE TIMELINE ── */}
+                <div className="p-4 sm:p-6 bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800">
+                  <div className="text-xs font-black text-slate-800 dark:text-slate-200 mb-3 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <Clock className="w-4 h-4 text-amber-500" />
+                      {isAr ? 'مسار وتواريخ مراحل الإضبارة' : 'قۆناغ و بەروارەکانی مێژووی فایل'}
+                    </span>
+                    {result.status === 'DELIVERED' ? (
+                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-500/30">
+                        {isAr ? 'مكتمل ومسلّم ✅' : 'تەواوبوو و تەسلیمکراوە ✅'}
+                      </span>
+                    ) : result.status === 'COMPLETED' ? (
+                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30">
+                        {isAr ? 'منجز بانتظار الاستلام' : 'تەواوبووە - ئامادەیە بۆ وەرگرتنەوە'}
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30">
+                        {isAr ? 'قيد المتابعة والإجراء' : 'لە قۆناغی کارکردندایە'}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                    {/* 1. Intake */}
+                    <div className={`p-2.5 rounded-xl border transition-all ${
+                      (result.submissionDate || result.createdAt) 
+                        ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-300 dark:border-emerald-500/30' 
+                        : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 opacity-60'
+                    }`}>
+                      <div className="flex items-center gap-1.5 text-[11px] font-black text-emerald-800 dark:text-emerald-400">
+                        <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                        <span>{isAr ? '١. تاريخ الإدخال' : '١. داخیلکردن'}</span>
+                      </div>
+                      <div className="text-xs font-mono font-bold text-slate-800 dark:text-slate-200 mt-1">
+                        {result.submissionDate || (result.createdAt ? new Date(result.createdAt).toISOString().slice(0, 10) : 'تۆمارکراو')}
+                      </div>
+                    </div>
+
+                    {/* 2. Temporary Checkout */}
+                    <div className={`p-2.5 rounded-xl border transition-all ${
+                      result.temporaryCheckoutDate 
+                        ? 'bg-amber-50 dark:bg-amber-500/10 border-amber-300 dark:border-amber-500/30' 
+                        : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 opacity-60'
+                    }`}>
+                      <div className="flex items-center gap-1.5 text-[11px] font-black text-amber-800 dark:text-amber-400">
+                        <LogOut className="w-3.5 h-3.5 shrink-0" />
+                        <span>{isAr ? '٢. خروج مؤقت' : '٢. بردنەدەرەوە'}</span>
+                      </div>
+                      <div className="text-xs font-mono font-bold text-slate-800 dark:text-slate-200 mt-1">
+                        {result.temporaryCheckoutDate || (isAr ? 'لم يخرج' : 'نەبراوەتە دەرەوە')}
+                      </div>
+                    </div>
+
+                    {/* 3. Return to Room 19 */}
+                    <div className={`p-2.5 rounded-xl border transition-all ${
+                      result.returnDate 
+                        ? 'bg-sky-50 dark:bg-sky-500/10 border-sky-300 dark:border-sky-500/30' 
+                        : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 opacity-60'
+                    }`}>
+                      <div className="flex items-center gap-1.5 text-[11px] font-black text-sky-800 dark:text-sky-400">
+                        <LogIn className="w-3.5 h-3.5 shrink-0" />
+                        <span>{isAr ? '٣. إعادة للغرفة 19' : '٣. هێنانەوە بۆ ١٩'}</span>
+                      </div>
+                      <div className="text-xs font-mono font-bold text-slate-800 dark:text-slate-200 mt-1">
+                        {result.returnDate || (result.temporaryCheckoutDate ? (isAr ? 'بانتظار الإعادة' : 'چاوەڕوانی هێنانەوە') : (isAr ? 'بالدائرة' : 'لە فەرمانگەیە'))}
+                      </div>
+                    </div>
+
+                    {/* 4. Complete / Final Delivery */}
+                    <div className={`p-2.5 rounded-xl border transition-all ${
+                      (result.deliveredDate || result.completionDate || result.status === 'COMPLETED' || result.status === 'DELIVERED')
+                        ? 'bg-blue-50 dark:bg-blue-500/10 border-blue-300 dark:border-blue-500/30' 
+                        : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 opacity-60'
+                    }`}>
+                      <div className="flex items-center gap-1.5 text-[11px] font-black text-blue-800 dark:text-blue-400">
+                        <PackageCheck className="w-3.5 h-3.5 shrink-0" />
+                        <span>{result.status === 'DELIVERED' ? (isAr ? '٤. التسليم النهائي' : '٤. تەسلیمکردنەوە') : (isAr ? '٤. إنجاز المعاملة' : '٤. تەواوبوون')}</span>
+                      </div>
+                      <div className="text-xs font-mono font-bold text-slate-800 dark:text-slate-200 mt-1">
+                        {result.deliveredDate ? result.deliveredDate.slice(0, 10) : (result.completionDate || (result.status === 'COMPLETED' ? (isAr ? 'منجز' : 'تەواوبووە') : (isAr ? 'قيد العمل' : 'هێشتا نەگەیشتووە')))}
+                      </div>
                     </div>
                   </div>
                 </div>

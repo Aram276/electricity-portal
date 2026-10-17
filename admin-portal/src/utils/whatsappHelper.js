@@ -1,6 +1,8 @@
 /**
  * WhatsApp Helper for Kurdistan Electricity Directorate / Roonaki Project
  */
+import { toLatinDigits } from './dateUtils';
+import { saveWhatsAppTemplateToCloud } from './cloudSync';
 
 export const DEFAULT_WHATSAPP_TEMPLATE = `سڵاو بەڕێز {ناو}،
 ئاگادارت دەکەینەوە لە پڕۆژەی ڕووناکی (فرۆشیاری وزە ٢):
@@ -17,7 +19,8 @@ export const DEFAULT_WHATSAPP_TEMPLATE = `سڵاو بەڕێز {ناو}،
 
 export function cleanIraqiPhone(phoneStr) {
   if (!phoneStr) return null;
-  const digits = String(phoneStr).replace(/[^0-9]/g, '');
+  const latin = toLatinDigits(String(phoneStr));
+  const digits = latin.replace(/[^0-9]/g, '');
   if (!digits || digits.length < 8) return null;
 
   // Already starts with 964
@@ -35,8 +38,6 @@ export function cleanIraqiPhone(phoneStr) {
 
   return digits;
 }
-
-import { saveWhatsAppTemplateToCloud } from './cloudSync';
 
 export function getCustomWhatsAppTemplate() {
   return localStorage.getItem('electricity_whatsapp_template') || DEFAULT_WHATSAPP_TEMPLATE;
@@ -71,16 +72,16 @@ export function buildWhatsAppMessage(record, customTemplate) {
   }
 
   let msg = template
-    .replaceAll('{ناو}', citizenName)
-    .replaceAll('{name}', citizenName)
-    .replaceAll('{ژمارەی_فایل}', record.fileNumber || 'نادیار')
-    .replaceAll('{fileNumber}', record.fileNumber || 'نادیار')
-    .replaceAll('{ژمارەی_ئەژمار}', record.accountNumber || 'نیە')
-    .replaceAll('{accountNumber}', record.accountNumber || 'نیە')
-    .replaceAll('{دۆخ}', statusText)
-    .replaceAll('{status}', statusText)
-    .replaceAll('{ژوور}', 'ژووری ژمارە ١٩')
-    .replaceAll('{فەرمانگە}', 'فرۆشیاری وزە ٢ (هەولێر)');
+    .replace(/{ناو}/g, citizenName)
+    .replace(/{name}/g, citizenName)
+    .replace(/{ژمارەی_فایل}/g, record.fileNumber || 'نادیار')
+    .replace(/{fileNumber}/g, record.fileNumber || 'نادیار')
+    .replace(/{ژمارەی_ئەژمار}/g, record.accountNumber || 'نیە')
+    .replace(/{accountNumber}/g, record.accountNumber || 'نیە')
+    .replace(/{دۆخ}/g, statusText)
+    .replace(/{status}/g, statusText)
+    .replace(/{ژوور}/g, 'ژووری ژمارە ١٩')
+    .replace(/{فەرمانگە}/g, 'فرۆشیاری وزە ٢ (هەولێر)');
 
   return msg;
 }

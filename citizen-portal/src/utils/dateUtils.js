@@ -110,3 +110,15 @@ export function formatKurdistanDate(dateInput) {
 }
 
 export const getLocalTimestamp = getKurdistanDateTime;
+
+export function toLatinDigits(str) {
+  if (!str && str !== 0) return '';
+  const eastern = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+  const persian = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+  let res = String(str);
+  for (let i = 0; i < 10; i++) {
+    res = res.replace(new RegExp(eastern[i], 'g'), String(i)).replace(new RegExp(persian[i], 'g'), String(i));
+  }
+  return res;
+}
+

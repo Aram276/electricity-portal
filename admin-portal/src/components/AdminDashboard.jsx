@@ -525,27 +525,36 @@ export default function AdminDashboard({
   const handleBatchSetSpecial = (ids, isSpecial) => {
     if (!ids || ids.length === 0) return;
     const nowTime = getKurdistanDateTime(false);
-    ids.forEach(id => {
-      const target = records.find(r => r.id === id);
-      if (target && onSaveRecord) {
-        onSaveRecord({
-          ...target,
-          isSpecial: isSpecial,
-          specialDate: isSpecial ? (target.specialDate || nowTime) : null
-        }, id);
-      }
-    });
+    if (onBatchEditRecords) {
+      onBatchEditRecords(ids, {
+        isSpecial: isSpecial,
+        specialDate: isSpecial ? nowTime : null
+      });
+    } else if (onSaveRecord) {
+      ids.forEach(id => {
+        const target = records.find(r => r.id === id);
+        if (target) {
+          onSaveRecord({
+            ...target,
+            isSpecial: isSpecial,
+            specialDate: isSpecial ? (target.specialDate || nowTime) : null
+          }, id);
+        }
+      });
+    }
     logActivity('UPDATE', `${isSpecial ? 'زیادکردنی' : 'لابردنی'} ${ids.length} فایل بۆ فایلەکانی کاک سالار`);
   };
 
-  // Add audit note to file timeline
-  const handleTimelineNote = (recordId, noteObj) => {
+  // Add audit note or update milestone in file timeline
+  const handleTimelineNote = (recordId, noteObj, fieldUpdates = {}) => {
     const target = records.find(r => r.id === recordId);
     if (!target) return;
     const existingTimeline = Array.isArray(target.timeline) ? target.timeline : [];
     const updatedRecord = {
       ...target,
-      timeline: [...existingTimeline, noteObj]
+      ...fieldUpdates,
+      timeline: noteObj ? [...existingTimeline, noteObj] : existingTimeline,
+      updatedAt: Date.now()
     };
     if (onSaveRecord) {
       onSaveRecord(updatedRecord, recordId);

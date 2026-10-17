@@ -13,6 +13,7 @@ import Footer from './components/Footer';
 import ScrollNavigator from './components/ScrollNavigator';
 import CustomElectricCursor from './components/CustomElectricCursor';
 import AntigravityBackground from './components/AntigravityBackground';
+import ErrorBoundary from './components/ErrorBoundary';
 import { 
   getStoredRecords, 
   saveRecords, 
@@ -22,7 +23,8 @@ import {
   setAdminAuthenticated,
   deduplicateRecords,
   getStoredTrash,
-  saveTrash
+  saveTrash,
+  isValidRealFile
 } from './utils/storage';
 import { 
   subscribeToCloudRecords, 
@@ -330,9 +332,10 @@ export default function App() {
         processedData
       );
     } else {
-      // CRITICAL: NEVER match a special record with a regular record!
-      const existingIdx = targetFileNum 
-        ? records.findIndex(r => String(r.fileNumber || '').trim() === targetFileNum && Boolean(r.isSpecial) === isSpecial)
+      // CRITICAL: NEVER match a special record with a regular record, and NEVER match placeholder numbers!
+      const isRealFile = isValidRealFile(targetFileNum);
+      const existingIdx = (isRealFile && targetFileNum) 
+        ? records.findIndex(r => isValidRealFile(r.fileNumber) && String(r.fileNumber || '').trim() === targetFileNum && Boolean(r.isSpecial) === isSpecial)
         : -1;
 
       if (existingIdx !== -1) {
@@ -395,7 +398,7 @@ export default function App() {
     const target = records.find(r => r.id === id);
     if (!target) return;
 
-    const targetFileNum = String(target.fileNumber || '').trim();
+    const targetFileNum = isValidRealFile(target.fileNumber) ? String(target.fileNumber).trim() : null;
     const targetId = String(target.id || id).trim();
     const isTargetSpecial = Boolean(target.isSpecial);
 
@@ -409,10 +412,10 @@ export default function App() {
       updatedAt: nowTs
     };
 
-    // Filter OUT by BOTH id AND fileNumber strictly
+    // Filter OUT by BOTH id AND fileNumber strictly (fileNumber ONLY if valid real number)
     const updatedRecords = records.filter(r => {
       if (String(r.id) === targetId) return false;
-      if (targetFileNum && String(r.fileNumber || '').trim() === targetFileNum && Boolean(r.isSpecial) === isTargetSpecial) {
+      if (targetFileNum && isValidRealFile(r.fileNumber) && String(r.fileNumber || '').trim() === targetFileNum && Boolean(r.isSpecial) === isTargetSpecial) {
         return false;
       }
       return true;
@@ -422,7 +425,7 @@ export default function App() {
       deletedItem,
       ...trashRecords.filter(t => {
         if (String(t.id) === targetId) return false;
-        if (targetFileNum && String(t.fileNumber || '').trim() === targetFileNum && Boolean(t.isSpecial) === isTargetSpecial) {
+        if (targetFileNum && isValidRealFile(t.fileNumber) && String(t.fileNumber || '').trim() === targetFileNum && Boolean(t.isSpecial) === isTargetSpecial) {
           return false;
         }
         return true;
@@ -448,7 +451,7 @@ export default function App() {
 
     const targets = records.filter(r => idSet.has(String(r.id)));
     const targetFileMap = new Set(targets.map(r => {
-      const f = String(r.fileNumber || '').trim();
+      const f = isValidRealFile(r.fileNumber) ? String(r.fileNumber).trim() : null;
       return f ? `${r.isSpecial ? 'sp_' : 'reg_'}${f}` : null;
     }).filter(Boolean));
 
@@ -462,7 +465,7 @@ export default function App() {
 
     const updatedRecords = records.filter(r => {
       if (idSet.has(String(r.id))) return false;
-      const f = String(r.fileNumber || '').trim();
+      const f = isValidRealFile(r.fileNumber) ? String(r.fileNumber).trim() : null;
       if (f && targetFileMap.has(`${r.isSpecial ? 'sp_' : 'reg_'}${f}`)) return false;
       return true;
     });
@@ -471,7 +474,7 @@ export default function App() {
       ...deletedItems,
       ...trashRecords.filter(t => {
         if (idSet.has(String(t.id))) return false;
-        const f = String(t.fileNumber || '').trim();
+        const f = isValidRealFile(t.fileNumber) ? String(t.fileNumber).trim() : null;
         if (f && targetFileMap.has(`${t.isSpecial ? 'sp_' : 'reg_'}${f}`)) return false;
         return true;
       })
@@ -493,7 +496,7 @@ export default function App() {
     const target = trashRecords.find(t => t.id === id);
     if (!target) return;
 
-    const targetFileNum = String(target.fileNumber || '').trim();
+    const targetFileNum = isValidRealFile(target.fileNumber) ? String(target.fileNumber).trim() : null;
     const targetId = String(target.id || id).trim();
     const isTargetSpecial = Boolean(target.isSpecial);
 
@@ -505,7 +508,7 @@ export default function App() {
 
     const updatedTrash = trashRecords.filter(t => {
       if (String(t.id) === targetId) return false;
-      if (targetFileNum && String(t.fileNumber || '').trim() === targetFileNum && Boolean(t.isSpecial) === isTargetSpecial) {
+      if (targetFileNum && isValidRealFile(t.fileNumber) && String(t.fileNumber || '').trim() === targetFileNum && Boolean(t.isSpecial) === isTargetSpecial) {
         return false;
       }
       return true;
@@ -531,7 +534,7 @@ export default function App() {
 
     const targets = trashRecords.filter(t => idSet.has(String(t.id)));
     const targetFileMap = new Set(targets.map(t => {
-      const f = String(t.fileNumber || '').trim();
+      const f = isValidRealFile(t.fileNumber) ? String(t.fileNumber).trim() : null;
       return f ? `${t.isSpecial ? 'sp_' : 'reg_'}${f}` : null;
     }).filter(Boolean));
 
@@ -545,7 +548,7 @@ export default function App() {
 
     const updatedTrash = trashRecords.filter(t => {
       if (idSet.has(String(t.id))) return false;
-      const f = String(t.fileNumber || '').trim();
+      const f = isValidRealFile(t.fileNumber) ? String(t.fileNumber).trim() : null;
       if (f && targetFileMap.has(`${t.isSpecial ? 'sp_' : 'reg_'}${f}`)) return false;
       return true;
     });
@@ -566,7 +569,7 @@ export default function App() {
   const handlePermanentDelete = (id) => {
     const staffName = getActiveStaffName();
     const target = trashRecords.find(t => t.id === id);
-    const targetFileNum = String(target?.fileNumber || '').trim();
+    const targetFileNum = isValidRealFile(target?.fileNumber) ? String(target.fileNumber).trim() : null;
     const targetId = String(target?.id || id).trim();
     const isTargetSpecial = Boolean(target?.isSpecial);
 
@@ -578,7 +581,7 @@ export default function App() {
 
     const updatedTrash = trashRecords.filter(t => {
       if (String(t.id) === targetId) return false;
-      if (targetFileNum && String(t.fileNumber || '').trim() === targetFileNum && Boolean(t.isSpecial) === isTargetSpecial) {
+      if (targetFileNum && isValidRealFile(t.fileNumber) && String(t.fileNumber || '').trim() === targetFileNum && Boolean(t.isSpecial) === isTargetSpecial) {
         return false;
       }
       return true;
@@ -586,7 +589,7 @@ export default function App() {
 
     const updatedRecords = records.filter(r => {
       if (String(r.id) === targetId) return false;
-      if (targetFileNum && String(r.fileNumber || '').trim() === targetFileNum && Boolean(r.isSpecial) === isTargetSpecial) {
+      if (targetFileNum && isValidRealFile(r.fileNumber) && String(r.fileNumber || '').trim() === targetFileNum && Boolean(r.isSpecial) === isTargetSpecial) {
         return false;
       }
       return true;
@@ -607,7 +610,7 @@ export default function App() {
     const idSet = new Set(ids.map(x => String(x)));
     const targets = trashRecords.filter(t => idSet.has(String(t.id)));
     const targetFileMap = new Set(targets.map(t => {
-      const f = String(t.fileNumber || '').trim();
+      const f = isValidRealFile(t.fileNumber) ? String(t.fileNumber).trim() : null;
       return f ? `${t.isSpecial ? 'sp_' : 'reg_'}${f}` : null;
     }).filter(Boolean));
 
@@ -615,14 +618,14 @@ export default function App() {
 
     const updatedTrash = trashRecords.filter(t => {
       if (idSet.has(String(t.id))) return false;
-      const f = String(t.fileNumber || '').trim();
+      const f = isValidRealFile(t.fileNumber) ? String(t.fileNumber).trim() : null;
       if (f && targetFileMap.has(`${t.isSpecial ? 'sp_' : 'reg_'}${f}`)) return false;
       return true;
     });
 
     const updatedRecords = records.filter(r => {
       if (idSet.has(String(r.id))) return false;
-      const f = String(r.fileNumber || '').trim();
+      const f = isValidRealFile(r.fileNumber) ? String(r.fileNumber).trim() : null;
       if (f && targetFileMap.has(`${r.isSpecial ? 'sp_' : 'reg_'}${f}`)) return false;
       return true;
     });
@@ -937,36 +940,38 @@ export default function App() {
             onOpenScanner={() => setIsScannerOpen(true)}
           />
         ) : (
-          <AdminDashboard
-            records={records}
-            trashRecords={trashRecords}
-            activeStaff={activeStaff}
-            isSidebarOpen={isSidebarOpen}
-            setIsSidebarOpen={setIsSidebarOpen}
-            onOpenExcelImport={() => setIsExcelOpen(true)}
-            onOpenAddModal={() => { setEditingRecord(null); setIsRecordModalOpen(true); }}
-            onOpenEditModal={(rec) => { setEditingRecord(rec); setIsRecordModalOpen(true); }}
-            onOpenDeliveryModal={(rec) => setDeliveryModalRecord(rec)}
-            onOpenPrintModal={(rec) => setPrintModalRecord(rec)}
-            onOpenScanner={() => setIsScannerOpen(true)}
-            onDeleteRecord={handleDeleteRecord}
-            onBatchDelete={handleBatchDelete}
-            onRestoreRecord={handleRestoreRecord}
-            onBatchRestore={handleBatchRestore}
-            onPermanentDelete={handlePermanentDelete}
-            onBatchPermanentDelete={handleBatchPermanentDelete}
-            onEmptyTrash={handleEmptyTrash}
-            onBatchUpdateStatus={handleBatchUpdateStatus}
-            onBatchUpdateFileType={handleBatchUpdateFileType}
-            onToggleFileType={handleToggleFileType}
-            onToggleKYC={handleToggleKYC}
-            onUpdateKYC={handleUpdateKYC}
-            onBatchUpdateKYC={handleBatchUpdateKYC}
-            onBatchEditRecords={handleBatchEditRecords}
-            onUpdateStatus={handleUpdateStatus}
-            onSaveRecord={handleSaveRecord}
-            onResetData={handleResetData}
-          />
+          <ErrorBoundary>
+            <AdminDashboard
+              records={records}
+              trashRecords={trashRecords}
+              activeStaff={activeStaff}
+              isSidebarOpen={isSidebarOpen}
+              setIsSidebarOpen={setIsSidebarOpen}
+              onOpenExcelImport={() => setIsExcelOpen(true)}
+              onOpenAddModal={() => { setEditingRecord(null); setIsRecordModalOpen(true); }}
+              onOpenEditModal={(rec) => { setEditingRecord(rec); setIsRecordModalOpen(true); }}
+              onOpenDeliveryModal={(rec) => setDeliveryModalRecord(rec)}
+              onOpenPrintModal={(rec) => setPrintModalRecord(rec)}
+              onOpenScanner={() => setIsScannerOpen(true)}
+              onDeleteRecord={handleDeleteRecord}
+              onBatchDelete={handleBatchDelete}
+              onRestoreRecord={handleRestoreRecord}
+              onBatchRestore={handleBatchRestore}
+              onPermanentDelete={handlePermanentDelete}
+              onBatchPermanentDelete={handleBatchPermanentDelete}
+              onEmptyTrash={handleEmptyTrash}
+              onBatchUpdateStatus={handleBatchUpdateStatus}
+              onBatchUpdateFileType={handleBatchUpdateFileType}
+              onToggleFileType={handleToggleFileType}
+              onToggleKYC={handleToggleKYC}
+              onUpdateKYC={handleUpdateKYC}
+              onBatchUpdateKYC={handleBatchUpdateKYC}
+              onBatchEditRecords={handleBatchEditRecords}
+              onUpdateStatus={handleUpdateStatus}
+              onSaveRecord={handleSaveRecord}
+              onResetData={handleResetData}
+            />
+          </ErrorBoundary>
         )}
       </main>
 

@@ -71,16 +71,16 @@ export default function DailyIntake({ records = [], onSaveRecord, onDeleteRecord
   const duplicates = useMemo(() => {
     const regularOnly = (records || []).filter(r => !r.isSpecial);
     if (!regularOnly.length) return [];
-    const cleanAccount = (formData.accountNumber || '').trim();
+    const cleanAccount = toLatinDigits(formData.accountNumber || '').trim();
     const cleanName = (formData.citizenName || '').trim().toLowerCase();
-    const cleanPhone = (formData.phoneNumber || '').replace(/\D/g, '');
+    const cleanPhone = toLatinDigits(formData.phoneNumber || '').replace(/\D/g, '');
 
     if (!cleanAccount && !cleanName && !cleanPhone) return [];
 
     return regularOnly.filter(r => {
-      const rAccount = (r.accountNumber || '').trim();
+      const rAccount = toLatinDigits(r.accountNumber || '').trim();
       const rName = (r.citizenName || '').trim().toLowerCase();
-      const rPhone = (r.phoneNumber || '').replace(/\D/g, '');
+      const rPhone = toLatinDigits(r.phoneNumber || '').replace(/\D/g, '');
 
       const isSameAccount = cleanAccount && cleanAccount.length >= 4 && cleanAccount === rAccount;
       const isSamePhone = cleanPhone && cleanPhone.length >= 8 && cleanPhone === rPhone;

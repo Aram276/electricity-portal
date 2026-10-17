@@ -11,9 +11,10 @@ import {
   saveRecords, 
   deduplicateRecords,
   getStoredSpecialRecords,
-  saveSpecialRecords
+  saveSpecialRecords,
+  isValidRealFile
 } from './storage';
-import { getKurdistanDateTime, getKurdistanDate, getLocalTimestamp } from './dateUtils';
+import { getKurdistanDateTime, getKurdistanDate, getLocalTimestamp, toLatinDigits } from './dateUtils';
 
 export { getLocalTimestamp };
 
@@ -64,7 +65,7 @@ export function combineCloudAndLocal(cloudRegular, cloudSpecial, localFallback) 
     const isSpecial = Boolean(r.isSpecial);
     const prefix = isSpecial ? 'sp_' : 'reg_';
     const fileStr = String(r.fileNumber || '').trim();
-    if (fileStr) return prefix + 'file_' + fileStr;
+    if (isValidRealFile(fileStr)) return prefix + 'file_' + toLatinDigits(fileStr).trim();
     const idStr = String(r.id || '').trim();
     if (idStr) return prefix + 'id_' + idStr;
     return null;

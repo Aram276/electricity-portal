@@ -13,7 +13,8 @@ import {
   getStoredTrash,
   saveTrash,
   getStoredSpecialRecords,
-  saveSpecialRecords
+  saveSpecialRecords,
+  isValidRealFile
 } from './storage';
 import { getKurdistanDateTime, getKurdistanDate, getLocalTimestamp } from './dateUtils';
 
@@ -95,7 +96,7 @@ export function unmarkAsDeleted(fileNumber, id, isSpecial = false) {
     const idStr = String(id || '').trim();
     const set = getPermanentlyDeletedKeys();
     let changed = false;
-    if (fStr) {
+    if (fStr && isValidRealFile(fStr)) {
       if (set.delete('sp_file_' + fStr)) changed = true;
       if (set.delete('reg_file_' + fStr)) changed = true;
       if (set.delete('file_' + fStr)) changed = true;
@@ -116,7 +117,7 @@ export function unmarkAsDeleted(fileNumber, id, isSpecial = false) {
     const trash = getStoredTrash();
     const updatedTrash = trash.filter(t => {
       if (idStr && String(t.id || '').trim() === idStr) return false;
-      if (fStr && String(t.fileNumber || '').trim() === fStr && Boolean(t.isSpecial) === Boolean(isSpecial)) return false;
+      if (fStr && isValidRealFile(fStr) && String(t.fileNumber || '').trim() === fStr && Boolean(t.isSpecial) === Boolean(isSpecial)) return false;
       return true;
     });
     if (updatedTrash.length !== trash.length) {
@@ -171,7 +172,7 @@ export function combineCloudAndLocal(cloudRegular, cloudSpecial, localFallback) 
       if (!r) return;
       const f = String(r.fileNumber || '').trim();
       const id = String(r.id || '').trim();
-      if (f) {
+      if (f && isValidRealFile(f)) {
         if (permDeletedSet.delete('sp_file_' + f)) permChanged = true;
         if (permDeletedSet.delete('reg_file_' + f)) permChanged = true;
         if (permDeletedSet.delete('file_' + f)) permChanged = true;
@@ -192,7 +193,7 @@ export function combineCloudAndLocal(cloudRegular, cloudSpecial, localFallback) 
     const isSpecial = Boolean(r.isSpecial);
     const prefix = isSpecial ? 'sp_' : 'reg_';
     const fileStr = String(r.fileNumber || '').trim();
-    if (fileStr) return prefix + 'file_' + fileStr;
+    if (isValidRealFile(fileStr)) return prefix + 'file_' + toLatinDigits(fileStr).trim();
     const idStr = String(r.id || '').trim();
     if (idStr) return prefix + 'id_' + idStr;
     return null;
@@ -345,7 +346,7 @@ export async function saveRecordsToCloud(records) {
       cleaned.forEach(r => {
         const f = String(r.fileNumber || '').trim();
         const id = String(r.id || '').trim();
-        if (f) {
+        if (f && isValidRealFile(f)) {
           if (permDeletedSet.delete('sp_file_' + f)) permChanged = true;
           if (permDeletedSet.delete('reg_file_' + f)) permChanged = true;
           if (permDeletedSet.delete('file_' + f)) permChanged = true;

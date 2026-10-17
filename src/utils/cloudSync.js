@@ -13,7 +13,8 @@ import {
   getStoredTrash,
   saveTrash,
   getStoredSpecialRecords,
-  saveSpecialRecords
+  saveSpecialRecords,
+  isValidRealFile
 } from './storage';
 import { getKurdistanDateTime, getKurdistanDate, getLocalTimestamp } from './dateUtils';
 
@@ -95,7 +96,7 @@ export function unmarkAsDeleted(fileNumber, id, isSpecial = false) {
     const idStr = String(id || '').trim();
     const set = getPermanentlyDeletedKeys();
     let changed = false;
-    if (fStr) {
+    if (fStr && isValidRealFile(fStr)) {
       if (set.delete('sp_file_' + fStr)) changed = true;
       if (set.delete('reg_file_' + fStr)) changed = true;
       if (set.delete('file_' + fStr)) changed = true;
@@ -116,7 +117,7 @@ export function unmarkAsDeleted(fileNumber, id, isSpecial = false) {
     const trash = getStoredTrash();
     const updatedTrash = trash.filter(t => {
       if (idStr && String(t.id || '').trim() === idStr) return false;
-      if (fStr && String(t.fileNumber || '').trim() === fStr && Boolean(t.isSpecial) === Boolean(isSpecial)) return false;
+      if (fStr && isValidRealFile(fStr) && String(t.fileNumber || '').trim() === fStr && Boolean(t.isSpecial) === Boolean(isSpecial)) return false;
       return true;
     });
     if (updatedTrash.length !== trash.length) {
@@ -154,6 +155,11 @@ export function isRecordInDeletedSet(r, deletedSet) {
   return false;
 }
 
+/**
+ * Cleanly combines cloud documents (regular + dedicated specials) and local safety cache.
+ * Uses Last-Write-Wins (LWW) timestamp reconciliation to guarantee no local edits are ever overwritten.
+ * Strictly guarantees that any deleted/trash records are never resurrected.
+ */
 export function combineCloudAndLocal(cloudRegular, cloudSpecial, localFallback) {
   const map = new Map();
 
@@ -166,7 +172,7 @@ export function combineCloudAndLocal(cloudRegular, cloudSpecial, localFallback) 
       if (!r) return;
       const f = String(r.fileNumber || '').trim();
       const id = String(r.id || '').trim();
-      if (f) {
+      if (f && isValidRealFile(f)) {
         if (permDeletedSet.delete('sp_file_' + f)) permChanged = true;
         if (permDeletedSet.delete('reg_file_' + f)) permChanged = true;
         if (permDeletedSet.delete('file_' + f)) permChanged = true;
@@ -187,7 +193,7 @@ export function combineCloudAndLocal(cloudRegular, cloudSpecial, localFallback) 
     const isSpecial = Boolean(r.isSpecial);
     const prefix = isSpecial ? 'sp_' : 'reg_';
     const fileStr = String(r.fileNumber || '').trim();
-    if (fileStr) return prefix + 'file_' + fileStr;
+    if (isValidRealFile(fileStr)) return prefix + 'file_' + toLatinDigits(fileStr).trim();
     const idStr = String(r.id || '').trim();
     if (idStr) return prefix + 'id_' + idStr;
     return null;
@@ -340,7 +346,7 @@ export async function saveRecordsToCloud(records) {
       cleaned.forEach(r => {
         const f = String(r.fileNumber || '').trim();
         const id = String(r.id || '').trim();
-        if (f) {
+        if (f && isValidRealFile(f)) {
           if (permDeletedSet.delete('sp_file_' + f)) permChanged = true;
           if (permDeletedSet.delete('reg_file_' + f)) permChanged = true;
           if (permDeletedSet.delete('file_' + f)) permChanged = true;
@@ -452,7 +458,7 @@ export async function saveTrashToCloud(trashRecords) {
     saveTrash(trashRecords || []);
     await setDoc(TRASH_DOC_REF, {
       trashRecords: trashRecords || [],
-      lastUpdated: getKurdistanDateTime(true),
+      lastUpdated: new Date().toISOString(),
       count: (trashRecords || []).length
     });
   } catch (error) {
@@ -469,13 +475,25 @@ export function subscribeToFooterSettings(onUpdateCallback) {
       if (snapshot.exists()) {
         const data = snapshot.data();
         if (data) {
-          onUpdateCallback(data);
+          const merged = { ...DEFAULT_FOOTER, ...data };
+          localStorage.setItem('footer_description', merged.description || '');
+          localStorage.setItem('footer_hotline', merged.hotline || '');
+          localStorage.setItem('footer_phone', merged.phone || '');
+          localStorage.setItem('footer_hours', merged.hours || '');
+          localStorage.setItem('footer_location', merged.location || '');
+          localStorage.setItem('footer_website_name', merged.websiteName || '');
+          localStorage.setItem('footer_website_url', merged.websiteUrl || '');
+          localStorage.setItem('footer_copyright', merged.copyright || '');
+          localStorage.setItem('footer_bottom_note', merged.bottomNote || '');
+          onUpdateCallback(merged);
           return;
         }
       }
+
+      // Fallback
       onUpdateCallback(DEFAULT_FOOTER);
-    }, (error) => {
-      console.warn('Firestore footer settings subscription error, using default:', error);
+    }, (err) => {
+      console.warn('Footer cloud sync error:', err);
       onUpdateCallback(DEFAULT_FOOTER);
     });
 
@@ -488,7 +506,7 @@ export function subscribeToFooterSettings(onUpdateCallback) {
 }
 
 /**
- * Save updated Footer settings to Firestore Cloud.
+ * Save updated footer settings to Firestore Cloud for all users.
  */
 export async function saveFooterSettingsToCloud(settings) {
   try {
@@ -505,7 +523,7 @@ export async function saveFooterSettingsToCloud(settings) {
 
     await setDoc(FOOTER_DOC_REF, {
       ...settings,
-      lastUpdated: getKurdistanDateTime(true)
+      lastUpdated: new Date().toISOString()
     });
   } catch (error) {
     console.error('Failed to save footer settings to cloud:', error);
@@ -678,7 +696,7 @@ export async function saveStaffAccountsToCloud(staffList) {
     localStorage.setItem('electricity_staff_list', JSON.stringify(staffList));
     await setDoc(STAFF_DOC_REF, {
       staff: staffList,
-      lastUpdated: getKurdistanDateTime(true)
+      lastUpdated: new Date().toISOString()
     });
   } catch (err) {
     console.error('Failed to save staff accounts to cloud:', err);
@@ -734,7 +752,7 @@ export async function saveWhatsAppTemplateToCloud(template) {
       window.dispatchEvent(new CustomEvent('whatsapp_template_updated', { detail: template }));
       await setDoc(WA_DOC_REF, {
         template: template,
-        lastUpdated: getKurdistanDateTime(true)
+        lastUpdated: new Date().toISOString()
       });
     }
   } catch (err) {
@@ -752,14 +770,14 @@ export async function takeCloudBackup(records, reason = 'باکئەپی دەست
     if (!records || !records.length) return false;
     const backupPayload = {
       records: records,
-      backupTimestamp: getKurdistanDateTime(true),
-      timestampFormatted: getKurdistanDateTime(true),
+      backupTimestamp: new Date().toISOString(),
+      timestampFormatted: getLocalTimestamp(true),
       count: records.length,
       reason
     };
     await setDoc(BACKUP_DOC_REF, backupPayload);
     localStorage.setItem('electricity_portal_records_safety_backup', JSON.stringify(records));
-    localStorage.setItem('electricity_portal_backup_time', getKurdistanDateTime(true));
+    localStorage.setItem('electricity_portal_backup_time', new Date().toISOString());
     return backupPayload;
   } catch (err) {
     console.error('Failed to save cloud backup:', err);

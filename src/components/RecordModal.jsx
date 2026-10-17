@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { STATUS_CONFIG, DEPARTMENTS, TRANSACTION_TYPES, KYC_CONFIG, getRecordKYC } from '../constants/status';
 import { getKurdistanDate, toLatinDigits } from '../utils/dateUtils';
+import { isValidRealFile } from '../utils/storage';
 
 export default function RecordModal({ isOpen, onClose, onSave, editingRecord, initialData, records = [] }) {
   const currentRecord = editingRecord || initialData;
@@ -35,6 +36,9 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, in
     status: 'IN_PROGRESS',
     archiveLocation: '',
     submissionDate: getKurdistanDate(),
+    temporaryCheckoutDate: '',
+    checkoutReceiver: '',
+    returnDate: '',
     completionDate: '',
     deliveredDate: '',
     receiverName: '',
@@ -51,29 +55,30 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, in
   const duplicates = useMemo(() => {
     if (!records || !records.length) return [];
     const currentId = currentRecord?.id;
-    const cleanFileNum = (formData.fileNumber || '').trim();
-    const cleanAccount = (formData.accountNumber || '').trim();
+    const cleanFileNum = toLatinDigits(formData.fileNumber || '').trim();
+    const isRealFile = isValidRealFile(cleanFileNum);
+    const cleanAccount = toLatinDigits(formData.accountNumber || '').trim();
     const cleanName = (formData.citizenName || '').trim().toLowerCase();
-    const cleanPhone = (formData.phoneNumber || '').replace(/\D/g, '');
+    const cleanPhone = toLatinDigits(formData.phoneNumber || '').replace(/\D/g, '');
 
     if (!cleanFileNum && !cleanAccount && !cleanName && !cleanPhone) return [];
 
     return records.filter(r => {
       if (r.id === currentId) return false;
       if (Boolean(r.isSpecial) !== Boolean(formData.isSpecial)) return false;
-      const rFileNum = (r.fileNumber || '').trim();
-      const rAccount = (r.accountNumber || '').trim();
+      const rFileNum = toLatinDigits(r.fileNumber || '').trim();
+      const rAccount = toLatinDigits(r.accountNumber || '').trim();
       const rName = (r.citizenName || '').trim().toLowerCase();
-      const rPhone = (r.phoneNumber || '').replace(/\D/g, '');
+      const rPhone = toLatinDigits(r.phoneNumber || '').replace(/\D/g, '');
 
-      const isSameFileNum = cleanFileNum && cleanFileNum === rFileNum;
+      const isSameFileNum = isRealFile && cleanFileNum === rFileNum;
       const isSameAccount = cleanAccount && cleanAccount.length >= 4 && cleanAccount === rAccount;
       const isSamePhone = cleanPhone && cleanPhone.length >= 8 && cleanPhone === rPhone;
       const isSameName = cleanName && cleanName !== 'هاوبەشی کارەبا' && cleanName.length >= 4 && (cleanName === rName || rName.includes(cleanName) || cleanName.includes(rName));
 
       return isSameFileNum || isSameAccount || isSamePhone || isSameName;
     }).slice(0, 3);
-  }, [formData.fileNumber, formData.accountNumber, formData.citizenName, formData.phoneNumber, records, currentRecord]);
+  }, [formData.fileNumber, formData.accountNumber, formData.citizenName, formData.phoneNumber, records, currentRecord, formData.isSpecial]);
 
   // Autofill form from previous matched file
   const handleAutofillFromDuplicate = (dup) => {
@@ -107,6 +112,9 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, in
         status: currentRecord.status || 'IN_PROGRESS',
         archiveLocation: currentRecord.archiveLocation || '',
         submissionDate: currentRecord.submissionDate || getKurdistanDate(),
+        temporaryCheckoutDate: currentRecord.temporaryCheckoutDate || '',
+        checkoutReceiver: currentRecord.checkoutReceiver || '',
+        returnDate: currentRecord.returnDate || '',
         completionDate: currentRecord.completionDate || '',
         deliveredDate: currentRecord.deliveredDate || '',
         receiverName: currentRecord.receiverName || '',
@@ -134,6 +142,9 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, in
         status: 'IN_PROGRESS',
         archiveLocation: `سندوقی ${nextNum}`,
         submissionDate: getKurdistanDate(),
+        temporaryCheckoutDate: '',
+        checkoutReceiver: '',
+        returnDate: '',
         completionDate: '',
         deliveredDate: '',
         receiverName: '',
@@ -486,12 +497,40 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, in
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
                 <Calendar className="w-3.5 h-3.5 text-amber-500" />
-                <span>بەرواری پێشکەشکردن:</span>
+                <span>بەرواری داخیلکردن / پێشکەشکردن:</span>
               </label>
               <input
                 type="date"
                 value={formData.submissionDate}
                 onChange={(e) => setFormData({ ...formData, submissionDate: e.target.value })}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-amber-500"
+              />
+            </div>
+
+            {/* 10.1. Temporary Checkout Date */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-orange-500" />
+                <span>بەرواری بردنەدەرەوەی کاتی (لایەنەکان):</span>
+              </label>
+              <input
+                type="date"
+                value={formData.temporaryCheckoutDate || ''}
+                onChange={(e) => setFormData({ ...formData, temporaryCheckoutDate: e.target.value })}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-amber-500"
+              />
+            </div>
+
+            {/* 10.2. Return Date */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-sky-500" />
+                <span>بەرواری هێنانەوە بۆ ژووری ١٩:</span>
+              </label>
+              <input
+                type="date"
+                value={formData.returnDate || ''}
+                onChange={(e) => setFormData({ ...formData, returnDate: e.target.value })}
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-amber-500"
               />
             </div>

@@ -1,9 +1,26 @@
 import { INITIAL_RECORDS } from '../data/initialData';
-import { getKurdistanDateTime } from './dateUtils';
+import { getKurdistanDateTime, toLatinDigits } from './dateUtils';
 
 const STORAGE_KEY = 'electricity_portal_records_v2_real';
 const SPECIAL_STORAGE_KEY = 'electricity_portal_special_records_v1';
 const ADMIN_KEY = 'electricity_portal_admin_session';
+
+/**
+ * Check if a file number is a real, assigned numeric file number.
+ * Returns false for placeholder strings like 'نیە', 'نادیار', '-', '0', empty strings, etc.
+ */
+export function isValidRealFile(fileNum) {
+  if (fileNum === null || fileNum === undefined) return false;
+  const s = String(fileNum).trim();
+  if (!s) return false;
+  const latin = toLatinDigits(s).toLowerCase();
+  if (['نیە', 'نادیار', 'نەزانراو', 'وەجبە', '-', '--', 'none', 'null', 'undefined', '0', '00', ''].includes(latin)) {
+    return false;
+  }
+  const parsed = parseInt(latin, 10);
+  if (!isNaN(parsed) && parsed === 0) return false;
+  return true;
+}
 
 /**
  * Get stored special records from dedicated local storage key
@@ -38,33 +55,39 @@ export function saveSpecialRecords(specialRecords) {
 export function deduplicateRecords(records) {
   if (!Array.isArray(records)) records = [];
 
-  const regularMap = new Map(); // fileStr -> record
-  const specialMap = new Map(); // fileStr -> record
+  const regularMap = new Map(); // key -> record
+  const specialMap = new Map(); // key -> record
   const seenIds = new Set();
 
   for (const raw of records) {
     if (!raw || raw.isDeleted) continue;
-    const r = { ...raw };
+    const rawFile = String(raw.fileNumber || '').trim();
+    const fileStr = toLatinDigits(rawFile).trim();
+    const isRealFile = isValidRealFile(fileStr);
+    const r = { ...raw, fileNumber: fileStr || raw.fileNumber };
     const isSpecial = Boolean(r.isSpecial);
-    const fileStr = String(r.fileNumber || '').trim();
 
     if (isSpecial) {
       if (!r.id || r.id.startsWith('rec-')) {
         r.id = 'sp-' + (r.id ? r.id : (Date.now() + '-' + Math.random().toString(36).slice(2, 7)));
       }
-      if (fileStr) {
-        specialMap.set(fileStr, r);
+      const key = isRealFile ? ('f_' + fileStr) : ('id_' + (r.id || Math.random()));
+      if (!specialMap.has(key)) {
+        specialMap.set(key, r);
       } else {
-        specialMap.set('no_file_sp_' + (r.id || Math.random()), r);
+        const existing = specialMap.get(key);
+        specialMap.set(key, { ...existing, ...r });
       }
     } else {
       if (!r.id) {
         r.id = 'rec-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
       }
-      if (fileStr) {
-        regularMap.set(fileStr, r);
+      const key = isRealFile ? ('f_' + fileStr) : ('id_' + (r.id || Math.random()));
+      if (!regularMap.has(key)) {
+        regularMap.set(key, r);
       } else {
-        regularMap.set('no_file_reg_' + (r.id || Math.random()), r);
+        const existing = regularMap.get(key);
+        regularMap.set(key, { ...existing, ...r });
       }
     }
   }
@@ -108,6 +131,12 @@ export function getStoredRecords() {
       const initial = deduplicateRecords(INITIAL_RECORDS);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(initial));
       return initial;
+    }
+    // If INITIAL_RECORDS has more records than local storage (e.g. codebase updated with records up to 1400)
+    if (Array.isArray(INITIAL_RECORDS) && INITIAL_RECORDS.length > parsed.length) {
+      const mergedWithInitial = deduplicateRecords([...INITIAL_RECORDS, ...parsed]);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedWithInitial));
+      return mergedWithInitial;
     }
     return deduplicateRecords(parsed);
   } catch (error) {
