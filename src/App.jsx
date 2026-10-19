@@ -47,13 +47,13 @@ export default function App() {
       const hash = window.location.hash.toLowerCase();
       const search = window.location.search.toLowerCase();
       
-      // Only show citizen if explicitly specified in the URL
-      if (path.includes('citizen') || hash.includes('citizen') || search.includes('citizen')) {
-        return 'citizen';
+      // Only show admin if explicitly requested via /admin or #admin
+      if (path.includes('admin') || hash.includes('admin') || search.includes('admin')) {
+        return 'admin';
       }
     } catch (e) {}
-    // Unconditional default to Admin
-    return 'admin';
+    // Default to Citizen view for public citizen portal (http://localhost:3000/)
+    return 'citizen';
   });
   const [isAdmin, setIsAdmin] = useState(() => {
     try {
@@ -91,8 +91,24 @@ export default function App() {
 
   // Toast notification
   const [toast, setToast] = useState(null);
-  const [isAdminPath, setIsAdminPath] = useState(true);
+  const [isAdminPath, setIsAdminPath] = useState(() => {
+    try {
+      const path = window.location.pathname.toLowerCase();
+      const hash = window.location.hash.toLowerCase();
+      return path.includes('admin') || hash.includes('admin');
+    } catch (e) {
+      return false;
+    }
+  });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [language, setLanguage] = useState(() => {
+    return localStorage.getItem('electricity_portal_lang') || 'ku';
+  });
+
+  const handleLanguageChange = (newLang) => {
+    setLanguage(newLang);
+    localStorage.setItem('electricity_portal_lang', newLang);
+  };
 
   // Check URL path on mount & hashchange
   useEffect(() => {
@@ -101,18 +117,18 @@ export default function App() {
       const hash = window.location.hash.toLowerCase();
       const search = window.location.search.toLowerCase();
       
-      const isCitizenExplicit = 
-        path.includes('citizen') || 
-        hash.includes('citizen') || 
-        search.includes('citizen');
+      const isAdminExplicit = 
+        path.includes('admin') || 
+        hash.includes('admin') || 
+        search.includes('admin');
 
-      if (isCitizenExplicit) {
-        setCurrentView('citizen');
-        setIsAdminPath(false);
-      } else {
-        // ALWAYS default to admin
+      if (isAdminExplicit) {
         setCurrentView('admin');
         setIsAdminPath(true);
+      } else {
+        // ALWAYS default to citizen view for http://localhost:3000/
+        setCurrentView('citizen');
+        setIsAdminPath(false);
       }
     };
 
@@ -924,6 +940,8 @@ export default function App() {
         onToggleTheme={toggleTheme}
         onToggleSidebar={() => setIsSidebarOpen(prev => !prev)}
         isSidebarOpen={isSidebarOpen}
+        language={language}
+        onLanguageChange={handleLanguageChange}
       />
 
       {/* Main Content Area */}
@@ -931,6 +949,7 @@ export default function App() {
         {currentView === 'citizen' ? (
           <CitizenSearch
             records={records}
+            language={language}
             onOpenPrintModal={(rec) => setPrintModalRecord(rec)}
           />
         ) : !isAdmin ? (
@@ -976,7 +995,7 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <Footer />
+      <Footer language={language} />
 
       {/* Runaki Smart Scanner Modal */}
       <RunakiSmartScanner
@@ -1030,6 +1049,7 @@ export default function App() {
         isOpen={Boolean(printModalRecord)}
         onClose={() => setPrintModalRecord(null)}
         record={printModalRecord}
+        language={language}
       />
 
       {/* Floating Scroll Navigator (Top / Bottom) */}
