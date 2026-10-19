@@ -218,8 +218,8 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
     const list = Array.isArray(records) ? records : [];
     return list.map(r => {
       if (!r || typeof r !== 'object') return null;
-      const fileStr = String(r.fileNumber || '').trim().toLowerCase();
-      const accStr = String(r.accountNumber || '').trim();
+      const fileStr = toLatinDigits(String(r.fileNumber || '')).trim().toLowerCase();
+      const accStr = toLatinDigits(String(r.accountNumber || '')).trim();
       const recPhone = normalizeIraqiPhone(r.phoneNumber);
       const citizenName = String(r.citizenName || '').trim();
       const receiverName = String(r.receiverName || '').trim();

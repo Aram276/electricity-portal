@@ -16,7 +16,7 @@ import {
   saveSpecialRecords,
   isValidRealFile
 } from './storage';
-import { getKurdistanDateTime, getKurdistanDate, getLocalTimestamp } from './dateUtils';
+import { getKurdistanDateTime, getKurdistanDate, getLocalTimestamp, toLatinDigits } from './dateUtils';
 
 export { getLocalTimestamp };
 

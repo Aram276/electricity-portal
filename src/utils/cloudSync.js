@@ -16,7 +16,7 @@ import {
   saveSpecialRecords,
   isValidRealFile
 } from './storage';
-import { getKurdistanDateTime, getKurdistanDate, getLocalTimestamp } from './dateUtils';
+import { getKurdistanDateTime, getKurdistanDate, getLocalTimestamp, toLatinDigits } from './dateUtils';
 
 export { getLocalTimestamp };
 
@@ -268,13 +268,17 @@ export function subscribeToCloudRecords(onUpdateCallback) {
     if (isLocalSaving) return; // Don't interrupt while a local write is taking place
 
     const localRecords = getStoredRecords();
-    const cleaned = combineCloudAndLocal(latestCloudRegular, latestCloudSpecial, localRecords);
+    try {
+      const cleaned = combineCloudAndLocal(latestCloudRegular, latestCloudSpecial, localRecords);
 
-    // Save to local storage
-    saveRecords(cleaned);
+      // Save to local storage
+      saveRecords(cleaned);
 
-    // Notify React components
-    onUpdateCallback(cleaned);
+      // Notify React components
+      onUpdateCallback(cleaned);
+    } catch (err) {
+      console.error('Failed to combine cloud and local records:', err);
+    }
   };
 
   try {

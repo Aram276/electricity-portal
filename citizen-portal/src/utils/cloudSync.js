@@ -129,13 +129,17 @@ export function subscribeToCloudRecords(onUpdateCallback) {
     if (isLocalSaving) return;
 
     const localRecords = getStoredRecords();
-    const cleaned = combineCloudAndLocal(latestCloudRegular, latestCloudSpecial, localRecords);
+    try {
+      const cleaned = combineCloudAndLocal(latestCloudRegular, latestCloudSpecial, localRecords);
 
-    // Save to local storage
-    saveRecords(cleaned);
+      // Save to local storage
+      saveRecords(cleaned);
 
-    // Notify React components
-    onUpdateCallback(cleaned);
+      // Notify React components
+      onUpdateCallback(cleaned);
+    } catch (err) {
+      console.error('Failed to combine cloud and local records:', err);
+    }
   };
 
   try {

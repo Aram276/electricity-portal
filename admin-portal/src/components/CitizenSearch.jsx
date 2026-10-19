@@ -218,8 +218,8 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
     const list = Array.isArray(records) ? records : [];
     return list.map(r => {
       if (!r || typeof r !== 'object') return null;
-      const fileStr = String(r.fileNumber || '').trim().toLowerCase();
-      const accStr = String(r.accountNumber || '').trim();
+      const fileStr = toLatinDigits(String(r.fileNumber || '')).trim().toLowerCase();
+      const accStr = toLatinDigits(String(r.accountNumber || '')).trim();
       const recPhone = normalizeIraqiPhone(r.phoneNumber);
       const citizenName = String(r.citizenName || '').trim();
       const receiverName = String(r.receiverName || '').trim();
@@ -570,104 +570,104 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 sm:space-y-10 py-4 sm:py-8 px-2 sm:px-0" dir="rtl">
+    <div className="max-w-4xl mx-auto space-y-4 sm:space-y-8 py-2 sm:py-6 px-2 sm:px-0" dir="rtl">
       
       {/* Official Roonaki Hero Section */}
-      <div className="relative overflow-hidden rounded-2xl sm:rounded-[32px] roonaki-card p-5 sm:p-10 md:p-12 text-center transition-all">
+      <div className="relative overflow-hidden rounded-2xl sm:rounded-[32px] roonaki-card p-4 sm:p-8 md:p-10 text-center transition-all">
         
         {/* Ambient Light Aura */}
-        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-72 sm:w-[500px] h-72 sm:h-[500px] bg-gradient-to-b from-amber-500/20 via-yellow-500/10 to-transparent rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-64 sm:w-[500px] h-64 sm:h-[500px] bg-gradient-to-b from-amber-500/20 via-yellow-500/10 to-transparent rounded-full blur-3xl pointer-events-none"></div>
 
-        <div className="relative z-10 space-y-4 sm:space-y-6">
+        <div className="relative z-10 space-y-3.5 sm:space-y-5">
           
           {/* Logo Showcase */}
           <div className="flex justify-center">
-            <RoonakiLogo className="h-16 sm:h-24 w-auto" showText={false} />
+            <RoonakiLogo className="h-12 sm:h-20 w-auto" showText={false} />
           </div>
 
           {/* Top Pill Tag */}
-          <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full roonaki-badge-gold text-[11px] sm:text-sm font-bold shadow-sm max-w-full truncate">
-            <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+          <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-full roonaki-badge-gold text-[10px] sm:text-xs font-bold shadow-sm max-w-full truncate">
+            <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
             <span className="truncate">
               {isAr ? 'مشروع روناهي الوطني لتوفير الكهرباء على مدار 24 ساعة' : 'پڕۆژەی نیشتمانیی ڕووناکی بۆ کارەبای ٢٤ کاتژمێری'}
             </span>
           </div>
 
           {/* Headline */}
-          <div className="space-y-2">
-            <h2 className="text-2xl sm:text-4xl md:text-5xl font-black text-slate-900 dark:text-white leading-tight tracking-tight">
+          <div className="space-y-1 sm:space-y-2">
+            <h2 className="text-xl sm:text-3xl md:text-4xl font-black text-slate-900 dark:text-white leading-tight tracking-tight">
               {isAr ? (
                 <>البوابة الإلكترونية لمتابعة <span className="text-amber-600 dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-amber-300 dark:via-yellow-400 dark:to-amber-500">معاملات المشتركين</span></>
               ) : (
                 <>پۆرتاڵی زیرەکی بەدواداچوونی <span className="text-amber-600 dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-amber-300 dark:via-yellow-400 dark:to-amber-500">مامەڵەکانی کارەبا</span></>
               )}
             </h2>
-            <p className="text-slate-700 dark:text-slate-300 text-xs sm:text-base max-w-2xl mx-auto leading-relaxed font-medium">
+            <p className="text-slate-600 dark:text-slate-300 text-[11px] sm:text-sm max-w-2xl mx-auto leading-relaxed font-medium">
               {isAr ? (
-                <>نظام البحث الذكي: اكتب <strong className="text-amber-700 dark:text-amber-300 font-bold">اسمك</strong> أو <strong className="text-amber-700 dark:text-amber-300 font-bold">جزءاً من رقم هاتفك أو رقم الحساب</strong> للاستعلام الفوري عن معاملتك.</>
+                <>نظام البحث الذكي: اكتب <strong className="text-amber-700 dark:text-amber-300 font-bold">اسمك</strong> أو <strong className="text-amber-700 dark:text-amber-300 font-bold">رقم هاتفك أو رقم الحساب</strong> للاستعلام الفوري.</>
               ) : (
-                <>سیستەمی گەڕانی زیرەک: تەنها <strong className="text-amber-700 dark:text-amber-300 font-bold">ناوی یەکەم</strong> یان <strong className="text-amber-700 dark:text-amber-300 font-bold">بەشێک لە ژمارەی مۆبایلەکەت</strong> بنووسە، ڕاستەوخۆ دۆسیەکەت دەدۆزێتەوە.</>
+                <>سیستەمی گەڕانی زیرەک: تەنها <strong className="text-amber-700 dark:text-amber-300 font-bold">ناوی یەکەم</strong> یان <strong className="text-amber-700 dark:text-amber-300 font-bold">بەشێک لە مۆبایلەکەت</strong> بنووسە بۆ دۆزینەوەی دۆسیەکەت.</>
               )}
             </p>
           </div>
 
-          {/* Animated Live Counters Strip (ژمارەژمێری زیندوو 0 -> 1330) */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 max-w-3xl mx-auto pt-2 pb-1">
-            <div className="p-3 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-amber-500/20 shadow-sm backdrop-blur-md transition-all hover:scale-102">
-              <div className="text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400">
+          {/* Animated Live Counters Strip */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-3 max-w-3xl mx-auto pt-1 sm:pt-2 pb-0.5">
+            <div className="p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-amber-500/20 shadow-sm backdrop-blur-md transition-all hover:scale-102">
+              <div className="text-[10px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400">
                 {isAr ? '⚡ إجمالي الإضبارات' : '⚡ کۆی گشتی فایلەکان'}
               </div>
-              <div className="text-xl sm:text-2xl font-black font-mono text-slate-900 dark:text-amber-400 mt-0.5">
+              <div className="text-base sm:text-2xl font-black font-mono text-slate-900 dark:text-amber-400 mt-0.5">
                 <AnimatedCounter value={totalRecordsAll} duration={1400} />
               </div>
             </div>
 
-            <div className="p-3 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-emerald-500/20 shadow-sm backdrop-blur-md transition-all hover:scale-102">
-              <div className="text-[11px] sm:text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+            <div className="p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-emerald-500/20 shadow-sm backdrop-blur-md transition-all hover:scale-102">
+              <div className="text-[10px] sm:text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                 {isAr ? '✅ جاهزة للاستلام' : '✅ وەرگیراوەتەوە (Done)'}
               </div>
-              <div className="text-xl sm:text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">
+              <div className="text-base sm:text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">
                 <AnimatedCounter value={totalCompletedAll} duration={1400} />
               </div>
             </div>
 
-            <div className="p-3 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-amber-500/20 shadow-sm backdrop-blur-md transition-all hover:scale-102">
-              <div className="text-[11px] sm:text-xs font-semibold text-amber-600 dark:text-amber-400">
-                {isAr ? '⏳ قيد المتابعة الفنية' : '⏳ پێنەدراوەتەوە (لەلای ئێمەیە)'}
+            <div className="p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-amber-500/20 shadow-sm backdrop-blur-md transition-all hover:scale-102">
+              <div className="text-[10px] sm:text-xs font-semibold text-amber-600 dark:text-amber-400">
+                {isAr ? '⏳ قيد المتابعة' : '⏳ پێنەدراوەتەوە (لەلای ئێمەیە)'}
               </div>
-              <div className="text-xl sm:text-2xl font-black font-mono text-amber-600 dark:text-amber-400 mt-0.5">
+              <div className="text-base sm:text-2xl font-black font-mono text-amber-600 dark:text-amber-400 mt-0.5">
                 <AnimatedCounter value={totalInProgressAll} duration={1400} />
               </div>
             </div>
 
-            <div className="p-3 rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-purple-500/20 shadow-sm backdrop-blur-md transition-all hover:scale-102">
-              <div className="text-[11px] sm:text-xs font-semibold text-purple-600 dark:text-purple-400">
+            <div className="p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-white/80 dark:bg-slate-900/80 border border-purple-500/20 shadow-sm backdrop-blur-md transition-all hover:scale-102">
+              <div className="text-[10px] sm:text-xs font-semibold text-purple-600 dark:text-purple-400">
                 {isAr ? '📋 بحاجة لمعلومات' : '📋 دۆسیە ناتەواوەکان'}
               </div>
-              <div className="text-xl sm:text-2xl font-black font-mono text-purple-600 dark:text-purple-400 mt-0.5">
+              <div className="text-base sm:text-2xl font-black font-mono text-purple-600 dark:text-purple-400 mt-0.5">
                 <AnimatedCounter value={missingAnyCount} duration={1400} />
               </div>
             </div>
           </div>
 
-          {/* Search Criteria Mode Buttons */}
-          <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 pt-2">
+          {/* Search Criteria Mode Buttons (Horizontally scrollable on mobile) */}
+          <div className="flex items-center gap-1.5 sm:gap-2 pt-1 pb-1 overflow-x-auto no-scrollbar sm:flex-wrap sm:justify-center px-0.5 select-none">
             <button
               type="button"
               onClick={() => setSearchMode('ALL')}
-              className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+              className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all shrink-0 whitespace-nowrap cursor-pointer ${
                 searchMode === 'ALL'
                   ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/25 font-black'
                   : 'bg-slate-100 dark:bg-slate-900/80 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:border-amber-400'
               }`}
             >
-              {isAr ? '🔍 كافة الحالات (عام)' : '🔍 گشت شێوازەکان (گشتی)'}
+              {isAr ? '🔍 كافة الحالات' : '🔍 گشت شێوازەکان'}
             </button>
 
             <button
               type="button"
               onClick={() => setSearchMode('NAME')}
-              className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 ${
+              className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all shrink-0 whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
                 searchMode === 'NAME'
                   ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/25 font-black'
                   : 'bg-slate-100 dark:bg-slate-900/80 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:border-amber-400'
@@ -680,7 +680,7 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
             <button
               type="button"
               onClick={() => setSearchMode('PHONE')}
-              className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 ${
+              className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all shrink-0 whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
                 searchMode === 'PHONE'
                   ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/25 font-black'
                   : 'bg-slate-100 dark:bg-slate-900/80 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:border-amber-400'
@@ -693,7 +693,7 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
             <button
               type="button"
               onClick={() => setSearchMode('FILE')}
-              className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 ${
+              className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all shrink-0 whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
                 searchMode === 'FILE'
                   ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/25 font-black'
                   : 'bg-slate-100 dark:bg-slate-900/80 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:border-amber-400'
@@ -706,7 +706,7 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
             <button
               type="button"
               onClick={() => setSearchMode('ID')}
-              className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 ${
+              className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all shrink-0 whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
                 searchMode === 'ID'
                   ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/25 font-black'
                   : 'bg-slate-100 dark:bg-slate-900/80 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:border-amber-400'
@@ -719,7 +719,7 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
             <button
               type="button"
               onClick={() => { setSearchMode('MISSING_PHONE'); setDisplayLimit(25); }}
-              className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 ${
+              className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all shrink-0 whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
                 searchMode === 'MISSING_PHONE'
                   ? 'bg-rose-600 text-white shadow-md shadow-rose-600/30 font-black ring-2 ring-rose-500/50'
                   : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-900/50 hover:border-rose-400'
@@ -732,7 +732,7 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
             <button
               type="button"
               onClick={() => { setSearchMode('MISSING_ID'); setDisplayLimit(25); }}
-              className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 ${
+              className={`px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all shrink-0 whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
                 searchMode === 'MISSING_ID'
                   ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30 font-black ring-2 ring-purple-500/50'
                   : 'bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-900/50 hover:border-purple-400'
@@ -743,21 +743,20 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
             </button>
           </div>
 
-          {/* Search Form with Cyber Glow & Rock-Solid Layout */}
-          <form onSubmit={handleSearchSubmit} className="max-w-2xl mx-auto pt-1 sm:pt-2">
-            <div className={`relative flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 bg-white/95 dark:bg-[#090e1a]/95 p-2 rounded-2xl border-2 transition-colors duration-200 shadow-xl backdrop-blur-md ${
+          {/* Search Form with Inline Layout & Mobile Touch Optimization */}
+          <form onSubmit={handleSearchSubmit} className="max-w-2xl mx-auto pt-1">
+            <div className={`relative flex items-center bg-white/95 dark:bg-[#090e1a]/95 p-1 sm:p-2 rounded-2xl border-2 transition-colors duration-200 shadow-xl backdrop-blur-md ${
               isSearchFocused
                 ? 'border-amber-500 ring-2 ring-amber-500/30 shadow-[0_0_22px_rgba(245,158,11,0.25)]'
                 : 'border-amber-500/40 hover:border-amber-500/70 shadow-amber-500/5'
             }`}>
               <div className="relative flex-1 flex items-center min-w-0">
-                {/* Dynamic Rotating Spark / Lightning Icon when typing */}
                 {query.trim().length > 0 ? (
-                  <div className="absolute right-3.5 sm:right-4 flex items-center justify-center pointer-events-none">
-                    <Zap className="w-5 h-5 text-amber-500 fill-amber-400 sparkle-spin drop-shadow-[0_0_6px_rgba(245,158,11,0.8)]" />
+                  <div className="absolute right-3 sm:right-4 flex items-center justify-center pointer-events-none">
+                    <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500 fill-amber-400 sparkle-spin drop-shadow-[0_0_6px_rgba(245,158,11,0.8)]" />
                   </div>
                 ) : (
-                  <Search className="absolute right-3.5 sm:right-4 w-5 h-5 text-amber-500 pointer-events-none" />
+                  <Search className="absolute right-3 sm:right-4 w-4 h-4 sm:w-5 sm:h-5 text-amber-500 pointer-events-none" />
                 )}
 
                 <input
@@ -770,8 +769,8 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
                   onBlur={() => setIsSearchFocused(false)}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder={getPlaceholder()}
-                  style={{ fontSize: '16px', touchAction: 'manipulation' }}
-                  className="w-full pr-11 sm:pr-12 pl-10 sm:pl-10 py-3 sm:py-3.5 bg-transparent text-slate-900 dark:text-white placeholder-slate-400 text-[16px] sm:text-base font-semibold focus:outline-none"
+                  style={{ fontSize: '15px', touchAction: 'manipulation' }}
+                  className="w-full pr-9 sm:pr-12 pl-8 sm:pl-10 py-2.5 sm:py-3.5 bg-transparent text-slate-900 dark:text-white placeholder-slate-400 text-sm sm:text-base font-semibold focus:outline-none"
                   dir="rtl"
                   autoCapitalize="none"
                   autoCorrect="off"
@@ -787,7 +786,7 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
                       inputRef.current?.focus();
                     }}
                     style={{ touchAction: 'manipulation' }}
-                    className="absolute left-3 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg transition-colors cursor-pointer select-none"
+                    className="absolute left-2 p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg transition-colors cursor-pointer select-none"
                     aria-label="Clear query"
                   >
                     <X className="w-4 h-4" />
@@ -798,16 +797,16 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
               <button
                 type="submit"
                 style={{ touchAction: 'manipulation' }}
-                className="w-full sm:w-auto min-h-[48px] px-6 sm:px-8 py-3.5 rounded-xl roonaki-btn-primary text-slate-950 font-black text-base flex items-center justify-center gap-2 active:scale-95 shrink-0 shadow-md shadow-amber-500/25 cursor-pointer select-none"
+                className="min-h-[42px] sm:min-h-[48px] px-4 sm:px-8 py-2 sm:py-3.5 rounded-xl roonaki-btn-primary text-slate-950 font-black text-xs sm:text-base flex items-center justify-center gap-1.5 sm:gap-2 active:scale-95 shrink-0 shadow-md shadow-amber-500/25 cursor-pointer select-none"
               >
-                <Zap className="w-5 h-5 fill-slate-950" />
+                <Zap className="w-4 h-4 sm:w-5 sm:h-5 fill-slate-950" />
                 <span>{t.searchBtn}</span>
               </button>
             </div>
 
-            {/* Non-intrusive Active Search Badge (Placed below search bar so input NEVER shrinks or jumps) */}
+            {/* Non-intrusive Active Search Badge */}
             {query.trim().length > 0 && (
-              <div className="flex items-center justify-center gap-1.5 pt-2 text-amber-600 dark:text-amber-400 text-xs font-black animate-fadeIn">
+              <div className="flex items-center justify-center gap-1.5 pt-1.5 text-amber-600 dark:text-amber-400 text-xs font-black animate-fadeIn">
                 <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-spin" />
                 <span>{isAr ? 'البحث الذكي الفوري نشط ⚡' : 'گەڕانی زیرەکی بروسکەیی چالاکە ⚡'}</span>
               </div>
@@ -815,28 +814,28 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
           </form>
 
           {/* Quick Examples & Guidance */}
-          <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-100/90 dark:bg-[#0c1322] border border-slate-200 dark:border-amber-500/30 max-w-2xl mx-auto text-xs sm:text-sm text-slate-800 dark:text-slate-200 flex items-center gap-3 text-right shadow-sm">
-            <div className="w-7 h-7 rounded-xl bg-amber-500/15 dark:bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0">
-              <HelpCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+          <div className="p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl bg-slate-100/90 dark:bg-[#0c1322] border border-slate-200 dark:border-amber-500/30 max-w-2xl mx-auto text-[11px] sm:text-xs text-slate-800 dark:text-slate-200 flex items-center gap-2.5 text-right shadow-sm">
+            <div className="w-6 h-6 rounded-lg bg-amber-500/15 dark:bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0">
+              <HelpCircle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
             </div>
-            <p className="leading-relaxed flex-1">
+            <p className="leading-snug flex-1">
               <span className="font-black text-amber-700 dark:text-amber-400">
-                {isAr ? '💡 ميزة البحث السريع: ' : '💡 شێوازی گەڕانی زیرەک: '}
+                {isAr ? '💡 ميزة البحث: ' : '💡 شێوازی گەڕان: '}
               </span>
               {isAr ? (
-                <>إذا كتبت جزءاً من الاسم مثل <span className="font-bold text-slate-950 dark:text-white bg-amber-500/20 dark:bg-amber-500/30 px-1.5 py-0.5 rounded border border-amber-500/30">محمد</span> أو جزءاً من الهاتف مثل <span className="font-bold font-mono text-slate-950 dark:text-white bg-amber-500/20 dark:bg-amber-500/30 px-1.5 py-0.5 rounded border border-amber-500/30">0750494</span> فسيتم العثور على معاملتك مباشرة.</>
+                <>اكتب جزءاً من الاسم أو الهاتف مثل <span className="font-bold font-mono text-slate-950 dark:text-white bg-amber-500/20 px-1 py-0.5 rounded">0750494</span>.</>
               ) : (
-                <>ئەگەر تەنها بەشێکی ناو وەک <span className="font-bold text-slate-950 dark:text-white bg-amber-500/20 dark:bg-amber-500/30 px-1.5 py-0.5 rounded border border-amber-500/30">ڕێبین</span> یان بەشێکی مۆبایل وەک <span className="font-bold font-mono text-slate-950 dark:text-white bg-amber-500/20 dark:bg-amber-500/30 px-1.5 py-0.5 rounded border border-amber-500/30">0750494</span> بنووسیت، ڕاستەوخۆ دەیدۆزێتەوە.</>
+                <>تەنها بەشێکی ناو وەک <span className="font-bold text-slate-950 dark:text-white bg-amber-500/20 px-1 py-0.5 rounded">ڕێبین</span> یان مۆبایل وەک <span className="font-bold font-mono text-slate-950 dark:text-white bg-amber-500/20 px-1 py-0.5 rounded">0750494</span> بنووسە.</>
               )}
             </p>
           </div>
 
           {/* Missing Phone & Missing ID Special Quick Action Box */}
-          <div className="max-w-2xl mx-auto rounded-2xl bg-amber-500/10 dark:bg-[#080d1a]/95 border-2 border-amber-500/40 p-3.5 sm:p-4 text-right space-y-3 shadow-md">
-            <div className="flex items-center justify-between gap-2 flex-wrap">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
+          <div className="max-w-2xl mx-auto rounded-xl sm:rounded-2xl bg-amber-500/10 dark:bg-[#080d1a]/95 border border-amber-500/40 p-2.5 sm:p-3.5 text-right space-y-2 sm:space-y-2.5 shadow-sm">
+            <div className="flex items-center justify-between gap-1.5 flex-wrap">
+              <div className="flex items-center gap-1.5">
+                <AlertCircle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                <span className="text-[11px] sm:text-xs font-black text-slate-900 dark:text-white">
                   {isAr ? 'قسم المعاملات غير المزودة برقم هاتف أو حساب (ID):' : 'بەشی دۆسیە بێ ژمارە مۆبایل و بێ ئەژمارەکان (ID):'}
                 </span>
               </div>
@@ -844,29 +843,29 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
                 <button
                   type="button"
                   onClick={() => { setSearchMode('ALL'); setQuery(''); }}
-                  className="px-2.5 py-1 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-bold hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors flex items-center gap-1"
+                  className="px-2 py-0.5 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-bold hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors flex items-center gap-1 cursor-pointer"
                 >
-                  <X className="w-3 h-3" />
+                  <X className="w-2.5 h-2.5" />
                   <span>{isAr ? 'إلغاء الفلتر' : 'لابردنی فلتەر'}</span>
                 </button>
               )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
               <button
                 type="button"
                 onClick={() => { setSearchMode('MISSING_PHONE'); setDisplayLimit(25); }}
-                className={`p-2.5 rounded-xl border transition-all text-right flex items-center justify-between gap-2 cursor-pointer ${
+                className={`p-2 sm:p-2.5 rounded-lg sm:rounded-xl border transition-all text-right flex flex-col sm:flex-row items-center justify-between gap-1 cursor-pointer ${
                   searchMode === 'MISSING_PHONE'
                     ? 'bg-rose-500 text-white border-rose-500 shadow-md font-bold'
                     : 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border-rose-300 dark:border-rose-900/50 hover:bg-rose-50 dark:hover:bg-rose-950/30'
                 }`}
               >
-                <div className="flex items-center gap-1.5 text-xs font-bold truncate">
-                  <PhoneOff className="w-3.5 h-3.5 shrink-0 text-rose-500" />
-                  <span className="truncate">{isAr ? 'معاملات بدون هاتف' : 'دۆسیە بێ مۆبایلەکان'}</span>
+                <div className="flex items-center gap-1 text-[11px] sm:text-xs font-bold truncate">
+                  <PhoneOff className="w-3 h-3 shrink-0 text-rose-500" />
+                  <span className="truncate">{isAr ? 'بدون هاتف' : 'بێ مۆبایل'}</span>
                 </div>
-                <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-black ${
+                <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-black ${
                   searchMode === 'MISSING_PHONE' ? 'bg-white/20 text-white' : 'bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300'
                 }`}>
                   {missingPhoneCount}
@@ -876,17 +875,17 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
               <button
                 type="button"
                 onClick={() => { setSearchMode('MISSING_ID'); setDisplayLimit(25); }}
-                className={`p-2.5 rounded-xl border transition-all text-right flex items-center justify-between gap-2 cursor-pointer ${
+                className={`p-2 sm:p-2.5 rounded-lg sm:rounded-xl border transition-all text-right flex flex-col sm:flex-row items-center justify-between gap-1 cursor-pointer ${
                   searchMode === 'MISSING_ID'
                     ? 'bg-purple-600 text-white border-purple-600 shadow-md font-bold'
                     : 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border-purple-300 dark:border-purple-900/50 hover:bg-purple-50 dark:hover:bg-purple-950/30'
                 }`}
               >
-                <div className="flex items-center gap-1.5 text-xs font-bold truncate">
-                  <Hash className="w-3.5 h-3.5 shrink-0 text-purple-500" />
-                  <span className="truncate">{isAr ? 'بدون رقم حساب (ID)' : 'دۆسیە بێ ئەژمارەکان (ID)'}</span>
+                <div className="flex items-center gap-1 text-[11px] sm:text-xs font-bold truncate">
+                  <Hash className="w-3 h-3 shrink-0 text-purple-500" />
+                  <span className="truncate">{isAr ? 'بدون حساب' : 'بێ ئەژمار'}</span>
                 </div>
-                <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-black ${
+                <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-black ${
                   searchMode === 'MISSING_ID' ? 'bg-white/20 text-white' : 'bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300'
                 }`}>
                   {missingIdCount}
@@ -896,17 +895,17 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
               <button
                 type="button"
                 onClick={() => { setSearchMode('MISSING_ANY'); setDisplayLimit(25); }}
-                className={`p-2.5 rounded-xl border transition-all text-right flex items-center justify-between gap-2 cursor-pointer ${
+                className={`p-2 sm:p-2.5 rounded-lg sm:rounded-xl border transition-all text-right flex flex-col sm:flex-row items-center justify-between gap-1 cursor-pointer ${
                   searchMode === 'MISSING_ANY'
                     ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-md font-bold'
                     : 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border-amber-300 dark:border-amber-900/50 hover:bg-amber-50 dark:hover:bg-amber-950/30'
                 }`}
               >
-                <div className="flex items-center gap-1.5 text-xs font-bold truncate">
-                  <AlertCircle className="w-3.5 h-3.5 shrink-0 text-amber-500" />
-                  <span className="truncate">{isAr ? 'بيانات غير مكتملة' : 'هەردووکیان / هەریەکێکیان'}</span>
+                <div className="flex items-center gap-1 text-[11px] sm:text-xs font-bold truncate">
+                  <AlertCircle className="w-3 h-3 shrink-0 text-amber-500" />
+                  <span className="truncate">{isAr ? 'غير مكتملة' : 'هەردووکیان'}</span>
                 </div>
-                <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-black ${
+                <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-black ${
                   searchMode === 'MISSING_ANY' ? 'bg-slate-950/20 text-slate-950' : 'bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300'
                 }`}>
                   {missingAnyCount}
