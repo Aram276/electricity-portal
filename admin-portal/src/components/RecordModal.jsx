@@ -178,7 +178,13 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, in
       ...prev,
       status: newStatus,
       kycStatus: isDone && prev.kycStatus === 'PENDING' ? 'DONE_BY_US' : prev.kycStatus,
-      isKycDone: isDone ? true : prev.isKycDone
+      isKycDone: isDone ? true : prev.isKycDone,
+      ...(newStatus === 'IN_PROGRESS' ? {
+        deliveredDate: '',
+        completionDate: '',
+        receiverName: '',
+        deliveredBy: ''
+      } : {})
     }));
   };
 
@@ -190,8 +196,11 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, in
     const rawName = (formData.citizenName || '').trim();
     const hasRealName = Boolean(rawName && rawName !== 'هاوبەشی کارەبا' && !rawName.startsWith('مانگی '));
     const isDone = formData.kycStatus === 'DONE_BY_US' || formData.kycStatus === 'PRE_VERIFIED';
+    const isDelivered = formData.status === 'DELIVERED';
+    const isCompleted = formData.status === 'COMPLETED';
+    const isInProgress = formData.status === 'IN_PROGRESS';
 
-    onSave({
+    const cleanData = {
       ...formData,
       fileNumber: cleanFileNum || String(Date.now()).slice(-4),
       accountNumber: cleanAccount || 'نیە',
@@ -202,7 +211,23 @@ export default function RecordModal({ isOpen, onClose, onSave, editingRecord, in
       kycType: formData.kycStatus,
       isKycDone: isDone,
       updatedAt: Date.now()
-    }, currentRecord ? currentRecord.id : null);
+    };
+
+    if (isInProgress) {
+      cleanData.deliveredDate = null;
+      cleanData.completionDate = null;
+      cleanData.receiverName = '';
+      cleanData.deliveredBy = '';
+    } else if (isCompleted) {
+      cleanData.deliveredDate = null;
+      cleanData.receiverName = '';
+      cleanData.deliveredBy = '';
+      cleanData.completionDate = formData.completionDate || getKurdistanDate();
+    } else if (isDelivered) {
+      cleanData.deliveredDate = formData.deliveredDate || getKurdistanDateTime(false);
+    }
+
+    onSave(cleanData, currentRecord ? currentRecord.id : null);
     onClose();
   };
 

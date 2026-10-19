@@ -222,7 +222,8 @@ export function combineCloudAndLocal(cloudRegular, cloudSpecial, localFallback) 
     if (key) map.set(key, { ...r, isSpecial: true });
   });
 
-  // 3. Reconcile with local records using Last-Write-Wins
+  // 3. Reconcile with local records:
+  // Add any local records that do NOT exist in cloud yet (e.g. created offline)
   let hasNewerLocal = false;
   const deletedSet = getAllDeletedKeySet();
   (localFallback || []).forEach(localRec => {
@@ -231,26 +232,16 @@ export function combineCloudAndLocal(cloudRegular, cloudSpecial, localFallback) 
     if (!key) return;
 
     if (!map.has(key)) {
-      // Local record not in cloud yet
+      // Local record created offline or not in cloud yet -> preserve it!
       map.set(key, localRec);
       hasNewerLocal = true;
-    } else {
-      const cloudRec = map.get(key);
-      const localTime = getRecordTimestamp(localRec);
-      const cloudTime = getRecordTimestamp(cloudRec);
-
-      // If local edit is newer than cloud snapshot, keep local edit!
-      if (localTime > cloudTime) {
-        map.set(key, localRec);
-        hasNewerLocal = true;
-      }
     }
   });
 
   const finalRecords = deduplicateRecords(Array.from(map.values())).filter(r => r && !r.isDeleted);
 
-  // If local had newer edits not yet in cloud, sync in background
-  if (hasNewerLocal && !isLocalSaving) {
+  // If local had new offline records not yet in cloud, sync in background
+  if (hasNewerLocal && !isLocalSaving && (cloudRegular || []).length > 0) {
     saveRecordsToCloud(finalRecords);
   }
 
@@ -338,8 +329,10 @@ export function subscribeToCloudRecords(onUpdateCallback) {
 export async function saveRecordsToCloud(records) {
   try {
     isLocalSaving = true;
-    // Active records passed to saveRecordsToCloud are explicitly alive and must not be filtered out
-    const cleaned = deduplicateRecords(records).filter(r => r && !r.isDeleted);
+    const now = Date.now();
+    const cleaned = deduplicateRecords(records)
+      .filter(r => r && !r.isDeleted)
+      .map(r => r.updatedAt ? r : { ...r, updatedAt: now });
     const safeSpecials = cleaned.filter(r => r && r.isSpecial === true);
     const safeRegulars = cleaned.filter(r => !r.isSpecial);
 

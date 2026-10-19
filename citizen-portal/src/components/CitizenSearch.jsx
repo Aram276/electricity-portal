@@ -1164,7 +1164,7 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
 
                     {/* 4. Complete / Final Delivery */}
                     <div className={`p-2.5 rounded-xl border transition-all ${
-                      (result.deliveredDate || result.completionDate || result.status === 'COMPLETED' || result.status === 'DELIVERED')
+                      (result.status === 'COMPLETED' || result.status === 'DELIVERED')
                         ? 'bg-blue-50 dark:bg-blue-500/10 border-blue-300 dark:border-blue-500/30' 
                         : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 opacity-60'
                     }`}>
@@ -1173,7 +1173,11 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
                         <span>{result.status === 'DELIVERED' ? (isAr ? '٤. التسليم النهائي' : '٤. تەسلیمکردنەوە') : (isAr ? '٤. إنجاز المعاملة' : '٤. تەواوبوون')}</span>
                       </div>
                       <div className="text-xs font-mono font-bold text-slate-800 dark:text-slate-200 mt-1">
-                        {result.deliveredDate ? result.deliveredDate.slice(0, 10) : (result.completionDate || (result.status === 'COMPLETED' ? (isAr ? 'منجز' : 'تەواوبووە') : (isAr ? 'قيد العمل' : 'هێشتا نەگەیشتووە')))}
+                        {result.status === 'DELIVERED' 
+                          ? (result.deliveredDate ? result.deliveredDate.slice(0, 10) : (isAr ? 'تم التسليم' : 'تەسلیمکراوە'))
+                          : (result.status === 'COMPLETED'
+                              ? (result.completionDate || (isAr ? 'منجز' : 'تەواوبووە'))
+                              : (isAr ? 'قيد العمل' : 'هێشتا نەگەیشتووە'))}
                       </div>
                     </div>
                   </div>

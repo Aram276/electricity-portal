@@ -302,7 +302,19 @@ export default function App() {
       hasRealName: hasRealName,
       handledBy: formData.handledBy || staffName,
       updatedAt: nowTs,
-      ...(isDelivered ? { deliveredBy: formData.deliveredBy || formData.handledBy || staffName } : {})
+      ...(formData.status === 'IN_PROGRESS' ? {
+        deliveredDate: null,
+        completionDate: null,
+        receiverName: '',
+        deliveredBy: ''
+      } : {}),
+      ...(formData.status === 'COMPLETED' ? {
+        deliveredDate: null,
+        receiverName: '',
+        deliveredBy: '',
+        completionDate: formData.completionDate || getKurdistanDate()
+      } : {}),
+      ...(isDelivered ? { deliveredBy: formData.deliveredBy || formData.handledBy || staffName, deliveredDate: formData.deliveredDate || getKurdistanDateTime(false) } : {})
     };
 
     const targetFileNum = processedData.fileNumber;
@@ -324,7 +336,23 @@ export default function App() {
     });
 
     if (recordId) {
-      updated = records.map(r => r.id === recordId ? { ...r, ...processedData } : r);
+      updated = records.map(r => {
+        if (r.id === recordId) {
+          const merged = { ...r, ...processedData };
+          if (processedData.status === 'IN_PROGRESS') {
+            merged.deliveredDate = null;
+            merged.completionDate = null;
+            merged.receiverName = '';
+            merged.deliveredBy = '';
+          } else if (processedData.status === 'COMPLETED') {
+            merged.deliveredDate = null;
+            merged.receiverName = '';
+            merged.deliveredBy = '';
+          }
+          return merged;
+        }
+        return r;
+      });
       showToast('زانیارییەکانی دۆسیەکە بە سەرکەوتوویی نوێکرایەوە', 'success');
       logActivity(
         isDelivered ? 'DELIVERY' : 'STATUS_CHANGE',

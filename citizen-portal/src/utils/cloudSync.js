@@ -1,15 +1,17 @@
 import { db } from '../firebase';
-import { 
-  doc, 
-  getDoc, 
-  setDoc, 
-  onSnapshot 
+import {
+  doc,
+  getDoc,
+  setDoc,
+  onSnapshot
 } from 'firebase/firestore';
 import { INITIAL_RECORDS } from '../data/initialData';
-import { 
-  getStoredRecords, 
-  saveRecords, 
+import {
+  getStoredRecords,
+  saveRecords,
   deduplicateRecords,
+  getStoredTrash,
+  saveTrash,
   getStoredSpecialRecords,
   saveSpecialRecords,
   isValidRealFile
@@ -20,6 +22,7 @@ export { getLocalTimestamp };
 
 const DOC_REF = doc(db, 'portal_data', 'electricity_records');
 const SPECIAL_DOC_REF = doc(db, 'portal_data', 'electricity_special_records');
+const TRASH_DOC_REF = doc(db, 'portal_data', 'electricity_trash');
 const FOOTER_DOC_REF = doc(db, 'portal_data', 'footer_settings');
 
 const DEFAULT_FOOTER = {
@@ -53,12 +56,137 @@ function sanitizeRecordForCloud(record) {
   return clean;
 }
 
+const PERM_DELETED_STORAGE_KEY = 'electricity_portal_permanently_deleted_keys_v1';
+
+export function getPermanentlyDeletedKeys() {
+  try {
+    const raw = localStorage.getItem(PERM_DELETED_STORAGE_KEY);
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch (e) {
+    return new Set();
+  }
+}
+
+export function addPermanentlyDeletedRecords(records) {
+  try {
+    const set = getPermanentlyDeletedKeys();
+    const list = Array.isArray(records) ? records : [records];
+    list.forEach(r => {
+      if (!r) return;
+      const isSpecial = Boolean(r.isSpecial);
+      const prefix = isSpecial ? 'sp_' : 'reg_';
+      const idStr = String(r.id || '').trim();
+      if (idStr) {
+        set.add(prefix + 'id_' + idStr);
+        set.add('reg_id_' + idStr);
+        set.add('sp_id_' + idStr);
+        set.add('id_' + idStr);
+      }
+    });
+    localStorage.setItem(PERM_DELETED_STORAGE_KEY, JSON.stringify(Array.from(set)));
+  } catch (e) {}
+}
+
+/**
+ * Remove record tombstones from permanently deleted keys and trash when a record is created or saved.
+ */
+export function unmarkAsDeleted(fileNumber, id, isSpecial = false) {
+  try {
+    const fStr = String(fileNumber || '').trim();
+    const idStr = String(id || '').trim();
+    const set = getPermanentlyDeletedKeys();
+    let changed = false;
+    if (fStr && isValidRealFile(fStr)) {
+      if (set.delete('sp_file_' + fStr)) changed = true;
+      if (set.delete('reg_file_' + fStr)) changed = true;
+      if (set.delete('file_' + fStr)) changed = true;
+    }
+    if (idStr) {
+      if (set.delete('sp_id_' + idStr)) changed = true;
+      if (set.delete('reg_id_' + idStr)) changed = true;
+      if (set.delete('id_' + idStr)) changed = true;
+    }
+    if (changed) {
+      localStorage.setItem(PERM_DELETED_STORAGE_KEY, JSON.stringify(Array.from(set)));
+    }
+  } catch (e) {}
+
+  try {
+    const fStr = String(fileNumber || '').trim();
+    const idStr = String(id || '').trim();
+    const trash = getStoredTrash();
+    const updatedTrash = trash.filter(t => {
+      if (idStr && String(t.id || '').trim() === idStr) return false;
+      if (fStr && isValidRealFile(fStr) && String(t.fileNumber || '').trim() === fStr && Boolean(t.isSpecial) === Boolean(isSpecial)) return false;
+      return true;
+    });
+    if (updatedTrash.length !== trash.length) {
+      saveTrash(updatedTrash);
+      saveTrashToCloud(updatedTrash);
+    }
+  } catch (e) {}
+}
+
+export function getAllDeletedKeySet() {
+  const set = getPermanentlyDeletedKeys();
+  const trash = getStoredTrash();
+  (trash || []).forEach(t => {
+    if (!t) return;
+    const isSpecial = Boolean(t.isSpecial);
+    const prefix = isSpecial ? 'sp_' : 'reg_';
+    const idStr = String(t.id || '').trim();
+    if (idStr) {
+      set.add(prefix + 'id_' + idStr);
+      set.add('reg_id_' + idStr);
+      set.add('sp_id_' + idStr);
+      set.add('id_' + idStr);
+    }
+  });
+  return set;
+}
+
+export function isRecordInDeletedSet(r, deletedSet) {
+  if (!r) return true;
+  if (r.isDeleted === true) return true;
+  const idStr = String(r.id || '').trim();
+  if (idStr && deletedSet && (deletedSet.has('id_' + idStr) || deletedSet.has('reg_id_' + idStr) || deletedSet.has('sp_id_' + idStr))) {
+    return true;
+  }
+  return false;
+}
+
 /**
  * Cleanly combines cloud documents (regular + dedicated specials) and local safety cache.
  * Uses Last-Write-Wins (LWW) timestamp reconciliation to guarantee no local edits are ever overwritten.
+ * Strictly guarantees that any deleted/trash records are never resurrected.
  */
 export function combineCloudAndLocal(cloudRegular, cloudSpecial, localFallback) {
   const map = new Map();
+
+  // Self-heal: unmark any active record that exists in cloud from local tombstones
+  try {
+    const permDeletedSet = getPermanentlyDeletedKeys();
+    let permChanged = false;
+    const allCloud = [...(cloudRegular || []), ...(cloudSpecial || [])];
+    allCloud.forEach(r => {
+      if (!r) return;
+      const f = String(r.fileNumber || '').trim();
+      const id = String(r.id || '').trim();
+      if (f && isValidRealFile(f)) {
+        if (permDeletedSet.delete('sp_file_' + f)) permChanged = true;
+        if (permDeletedSet.delete('reg_file_' + f)) permChanged = true;
+        if (permDeletedSet.delete('file_' + f)) permChanged = true;
+      }
+      if (id) {
+        if (permDeletedSet.delete('sp_id_' + id)) permChanged = true;
+        if (permDeletedSet.delete('reg_id_' + id)) permChanged = true;
+        if (permDeletedSet.delete('id_' + id)) permChanged = true;
+      }
+    });
+    if (permChanged) {
+      localStorage.setItem(PERM_DELETED_STORAGE_KEY, JSON.stringify(Array.from(permDeletedSet)));
+    }
+  } catch (e) {}
 
   const getRecordKey = (r) => {
     if (!r) return null;
@@ -80,53 +208,55 @@ export function combineCloudAndLocal(cloudRegular, cloudSpecial, localFallback) 
     return 0;
   };
 
-  // 1. Add all cloud regular records
+  // 1. Add all cloud regular records (authoritative active records)
   (cloudRegular || []).forEach(r => {
     if (!r || r.isDeleted) return;
     const key = getRecordKey(r);
     if (key) map.set(key, { ...r, isSpecial: Boolean(r.isSpecial) });
   });
 
-  // 2. Add all cloud special records
+  // 2. Add all cloud special records (authoritative active records)
   (cloudSpecial || []).forEach(r => {
     if (!r || r.isDeleted) return;
     const key = getRecordKey({ ...r, isSpecial: true });
     if (key) map.set(key, { ...r, isSpecial: true });
   });
 
-  // 3. Reconcile with local records using Last-Write-Wins
+  // 3. Reconcile with local records:
+  // Add any local records that do NOT exist in cloud yet (e.g. created offline)
+  let hasNewerLocal = false;
+  const deletedSet = getAllDeletedKeySet();
   (localFallback || []).forEach(localRec => {
-    if (!localRec || localRec.isDeleted) return;
+    if (!localRec || localRec.isDeleted || isRecordInDeletedSet(localRec, deletedSet)) return;
     const key = getRecordKey(localRec);
     if (!key) return;
 
     if (!map.has(key)) {
-      // Local record not in cloud yet - keep it
+      // Local record created offline or not in cloud yet -> preserve it!
       map.set(key, localRec);
-    } else {
-      const cloudRec = map.get(key);
-      const localTime = getRecordTimestamp(localRec);
-      const cloudTime = getRecordTimestamp(cloudRec);
-
-      // If local edit is newer than cloud snapshot, keep local edit!
-      if (localTime > cloudTime) {
-        map.set(key, localRec);
-      }
+      hasNewerLocal = true;
     }
   });
 
-  return deduplicateRecords(Array.from(map.values()));
+  const finalRecords = deduplicateRecords(Array.from(map.values())).filter(r => r && !r.isDeleted);
+
+  // If local had new offline records not yet in cloud, sync in background
+  if (hasNewerLocal && !isLocalSaving && (cloudRegular || []).length > 0) {
+    saveRecordsToCloud(finalRecords);
+  }
+
+  return finalRecords;
 }
 
 /**
  * Listen to real-time changes for records from Firestore Cloud (both regular and special).
  */
 export function subscribeToCloudRecords(onUpdateCallback) {
-  let unsubRegular = () => {};
-  let unsubSpecial = () => {};
+  let unsubRegular = () => { };
+  let unsubSpecial = () => { };
 
   const notifyMerged = () => {
-    if (isLocalSaving) return;
+    if (isLocalSaving) return; // Don't interrupt while a local write is taking place
 
     const localRecords = getStoredRecords();
     try {
@@ -146,7 +276,7 @@ export function subscribeToCloudRecords(onUpdateCallback) {
     // 1. Subscribe to main records document
     unsubRegular = onSnapshot(DOC_REF, (snapshot) => {
       if (snapshot.metadata && snapshot.metadata.hasPendingWrites) {
-        return;
+        return; // Ignore local in-flight writes to avoid lagging or rollback
       }
       if (snapshot.exists()) {
         const data = snapshot.data();
@@ -157,8 +287,9 @@ export function subscribeToCloudRecords(onUpdateCallback) {
         }
       }
 
-      // If cloud document does not exist yet, use local fallback
+      // If cloud document does not exist yet, initialize it
       const current = getStoredRecords();
+      saveRecordsToCloud(current);
       onUpdateCallback(current);
     }, (error) => {
       console.warn('Firestore real-time subscription error, using local storage:', error);
@@ -188,7 +319,7 @@ export function subscribeToCloudRecords(onUpdateCallback) {
   } catch (err) {
     console.error('Failed to subscribe to cloud records:', err);
     onUpdateCallback(getStoredRecords());
-    return () => {};
+    return () => { };
   }
 }
 
@@ -198,16 +329,47 @@ export function subscribeToCloudRecords(onUpdateCallback) {
 export async function saveRecordsToCloud(records) {
   try {
     isLocalSaving = true;
-    const cleaned = deduplicateRecords(records);
+    const now = Date.now();
+    const cleaned = deduplicateRecords(records)
+      .filter(r => r && !r.isDeleted)
+      .map(r => r.updatedAt ? r : { ...r, updatedAt: now });
     const safeSpecials = cleaned.filter(r => r && r.isSpecial === true);
     const safeRegulars = cleaned.filter(r => !r.isSpecial);
 
-    // Immediately sync local in-memory cache
+    // Unmark all active records from permanently deleted tombstones so they are never filtered out
+    try {
+      const permDeletedSet = getPermanentlyDeletedKeys();
+      let permChanged = false;
+      cleaned.forEach(r => {
+        const f = String(r.fileNumber || '').trim();
+        const id = String(r.id || '').trim();
+        if (f && isValidRealFile(f)) {
+          if (permDeletedSet.delete('sp_file_' + f)) permChanged = true;
+          if (permDeletedSet.delete('reg_file_' + f)) permChanged = true;
+          if (permDeletedSet.delete('file_' + f)) permChanged = true;
+        }
+        if (id) {
+          if (permDeletedSet.delete('sp_id_' + id)) permChanged = true;
+          if (permDeletedSet.delete('reg_id_' + id)) permChanged = true;
+          if (permDeletedSet.delete('id_' + id)) permChanged = true;
+        }
+      });
+      if (permChanged) {
+        localStorage.setItem(PERM_DELETED_STORAGE_KEY, JSON.stringify(Array.from(permDeletedSet)));
+      }
+    } catch (e) {}
+
+    // Immediately sync local in-memory cache so subsequent reads and snapshots are instant
     latestCloudRegular = safeRegulars;
     latestCloudSpecial = safeSpecials;
 
-    // Save locally
+    // Save locally to storage immediately
     saveRecords(cleaned);
+
+    // Dispatch update event for synchronous UI response across components
+    try {
+      window.dispatchEvent(new CustomEvent('electricity_records_updated', { detail: cleaned }));
+    } catch (e) {}
 
     // 1. Always save special records to dedicated special collection
     try {
@@ -246,13 +408,58 @@ export async function saveRecordsToCloud(records) {
           count: sanitizedRecords.length
         });
       }
-    } catch (bErr) {}
+    } catch (bErr) { }
   } catch (error) {
     console.error('Failed to save records to Firestore Cloud:', error);
   } finally {
     setTimeout(() => {
       isLocalSaving = false;
     }, 1500);
+  }
+}
+
+/**
+ * Listen to real-time changes for Trash (Recycle Bin) from Firestore Cloud.
+ */
+export function subscribeToCloudTrash(onUpdateCallback) {
+  try {
+    const unsubscribe = onSnapshot(TRASH_DOC_REF, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        if (data && Array.isArray(data.trashRecords)) {
+          saveTrash(data.trashRecords);
+          onUpdateCallback(data.trashRecords);
+          return;
+        }
+      }
+      const current = getStoredTrash();
+      onUpdateCallback(current);
+    }, (error) => {
+      console.warn('Firestore real-time trash subscription error, using local storage:', error);
+      onUpdateCallback(getStoredTrash());
+    });
+
+    return unsubscribe;
+  } catch (err) {
+    console.error('Failed to subscribe to cloud trash:', err);
+    onUpdateCallback(getStoredTrash());
+    return () => { };
+  }
+}
+
+/**
+ * Save updated Trash records to Firestore Cloud.
+ */
+export async function saveTrashToCloud(trashRecords) {
+  try {
+    saveTrash(trashRecords || []);
+    await setDoc(TRASH_DOC_REF, {
+      trashRecords: trashRecords || [],
+      lastUpdated: new Date().toISOString(),
+      count: (trashRecords || []).length
+    });
+  } catch (error) {
+    console.error('Failed to save trash records to Firestore Cloud:', error);
   }
 }
 
@@ -291,7 +498,7 @@ export function subscribeToFooterSettings(onUpdateCallback) {
   } catch (err) {
     console.error('Failed to subscribe to footer settings:', err);
     onUpdateCallback(DEFAULT_FOOTER);
-    return () => {};
+    return () => { };
   }
 }
 
@@ -313,7 +520,7 @@ export async function saveFooterSettingsToCloud(settings) {
 
     await setDoc(FOOTER_DOC_REF, {
       ...settings,
-      lastUpdated: getKurdistanDateTime(true)
+      lastUpdated: new Date().toISOString()
     });
   } catch (error) {
     console.error('Failed to save footer settings to cloud:', error);
@@ -333,7 +540,7 @@ export function subscribeToActivityLogs(onUpdateCallback) {
       if (Array.isArray(cached) && cached.length > 0) {
         onUpdateCallback(cached);
       }
-    } catch (e) {}
+    } catch (e) { }
 
     // In-app immediate update listener
     const handleLocalUpdate = (e) => {
@@ -375,7 +582,7 @@ export function subscribeToActivityLogs(onUpdateCallback) {
     };
   } catch (err) {
     console.error('Failed to subscribe to activity logs:', err);
-    return () => {};
+    return () => { };
   }
 }
 
@@ -402,7 +609,7 @@ export async function logActivity(type, title, details = {}) {
     let localLogs = [];
     try {
       localLogs = JSON.parse(localStorage.getItem('electricity_activity_logs') || '[]');
-    } catch (e) {}
+    } catch (e) { }
 
     // Deduplicate and combine logs
     const logMap = new Map();
@@ -438,7 +645,7 @@ const STAFF_DOC_REF = doc(db, 'portal_data', 'staff_accounts');
 
 export const DEFAULT_STAFF = [
   { id: 'staff-1', username: 'aram', name: 'ئارام', role: 'ADMIN', pin: '075075', title: 'بەڕێوەبەری سەرەکی' },
-  { id: 'staff-2', username: 'raad', name: 'ڕەعد', role: 'STAFF', pin: '1919', title: 'فەرمانبەری ژووری ١٩' }
+  { id: 'staff-2', username: 'raad', name: 'ڕەعد', role: 'ADMIN', pin: '1919', title: 'بەڕێوەبەری سەرەکی' }
 ];
 
 /**
@@ -474,7 +681,7 @@ export function subscribeToStaffAccounts(onUpdateCallback) {
     return unsubscribe;
   } catch (err) {
     console.error('Failed to subscribe to staff accounts:', err);
-    return () => {};
+    return () => { };
   }
 }
 
@@ -486,7 +693,7 @@ export async function saveStaffAccountsToCloud(staffList) {
     localStorage.setItem('electricity_staff_list', JSON.stringify(staffList));
     await setDoc(STAFF_DOC_REF, {
       staff: staffList,
-      lastUpdated: getKurdistanDateTime(true)
+      lastUpdated: new Date().toISOString()
     });
   } catch (err) {
     console.error('Failed to save staff accounts to cloud:', err);
@@ -528,7 +735,7 @@ export function subscribeToWhatsAppTemplate(onUpdateCallback) {
     return unsubscribe;
   } catch (err) {
     console.error('Failed to subscribe to whatsapp template:', err);
-    return () => {};
+    return () => { };
   }
 }
 
@@ -542,7 +749,7 @@ export async function saveWhatsAppTemplateToCloud(template) {
       window.dispatchEvent(new CustomEvent('whatsapp_template_updated', { detail: template }));
       await setDoc(WA_DOC_REF, {
         template: template,
-        lastUpdated: getKurdistanDateTime(true)
+        lastUpdated: new Date().toISOString()
       });
     }
   } catch (err) {
@@ -560,14 +767,14 @@ export async function takeCloudBackup(records, reason = 'باکئەپی دەست
     if (!records || !records.length) return false;
     const backupPayload = {
       records: records,
-      backupTimestamp: getKurdistanDateTime(true),
-      timestampFormatted: getKurdistanDateTime(true),
+      backupTimestamp: new Date().toISOString(),
+      timestampFormatted: getLocalTimestamp(true),
       count: records.length,
       reason
     };
     await setDoc(BACKUP_DOC_REF, backupPayload);
     localStorage.setItem('electricity_portal_records_safety_backup', JSON.stringify(records));
-    localStorage.setItem('electricity_portal_backup_time', getKurdistanDateTime(true));
+    localStorage.setItem('electricity_portal_backup_time', new Date().toISOString());
     return backupPayload;
   } catch (err) {
     console.error('Failed to save cloud backup:', err);
