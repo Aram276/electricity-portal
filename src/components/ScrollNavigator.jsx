@@ -14,13 +14,22 @@ export default function ScrollNavigator() {
       // Show top button if scrolled more than 180px
       setShowTop(scrollY > 180);
 
-      // Show bottom button if not near the bottom
-      setShowBottom(scrollY + clientHeight < scrollHeight - 150);
+      // On mobile, only show bottom button when user has scrolled down somewhat, preventing floating button on clean page
+      const isMobile = (window.innerWidth || 0) < 640;
+      if (isMobile) {
+        setShowBottom(scrollY > 120 && scrollY + clientHeight < scrollHeight - 200);
+      } else {
+        setShowBottom(scrollY + clientHeight < scrollHeight - 150);
+      }
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', handleScroll, { passive: true });
     handleScroll();
-    return () => window.removeEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleScroll);
+    };
   }, []);
 
   const scrollToTop = () => {
