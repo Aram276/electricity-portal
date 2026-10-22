@@ -16,9 +16,16 @@ export default function HolographicTiltCard({ children, className = '', style = 
 
   const handleMouseMove = useCallback((e) => {
     // Disable on touch screens (iPhone/mobile) to prevent sticky tilt & visual glitches
-    if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(pointer: coarse)').matches) {
+    if (
+      typeof window !== 'undefined' &&
+      (window.innerWidth < 768 ||
+        'ontouchstart' in window ||
+        (navigator.maxTouchPoints && navigator.maxTouchPoints > 0) ||
+        (window.matchMedia && window.matchMedia('(pointer: coarse)').matches))
+    ) {
       return;
     }
+
     if (!cardRef.current) return;
     const rect = cardRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;

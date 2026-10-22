@@ -60,8 +60,8 @@ function triggerSparkleConfetti(event) {
   }
 }
 
-// 60FPS Smooth Animated Live Counter (0 -> target)
-function AnimatedCounter({ value, duration = 1200 }) {
+// Live Animated Counter (Direct bypass on mobile to eliminate 60FPS layout thrashing & typing lag)
+function AnimatedCounter({ value, duration = 800 }) {
   const [displayCount, setDisplayCount] = useState(0);
 
   useEffect(() => {
@@ -70,13 +70,24 @@ function AnimatedCounter({ value, duration = 1200 }) {
       setDisplayCount(0);
       return;
     }
+
+    // On mobile / touch screens, directly set the count to prevent heavy 60FPS setState loops during search
+    const isMobile = typeof window !== 'undefined' && (
+      window.innerWidth < 768 || 
+      ('ontouchstart' in window) || 
+      (navigator.maxTouchPoints && navigator.maxTouchPoints > 0)
+    );
+    if (isMobile) {
+      setDisplayCount(end);
+      return;
+    }
+
     const startTime = performance.now();
     let animId;
 
     const update = (now) => {
       const elapsed = now - startTime;
       const progress = Math.min(elapsed / duration, 1);
-      // Smooth cubic-out easing curve
       const ease = 1 - Math.pow(1 - progress, 3);
       setDisplayCount(Math.round(ease * end));
 
@@ -201,9 +212,9 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
   const [displayLimit, setDisplayLimit] = useState(25);
   const [hasSearched, setHasSearched] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const inputRef = useRef(null);
   const resultsRef = useRef(null);
+
 
   const t = getTranslation(language);
   const isAr = language === 'ar';
@@ -403,16 +414,19 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
       if (typeof e.stopPropagation === 'function') e.stopPropagation();
     }
     try {
-      // Dismiss iOS on-screen keyboard
-      inputRef.current?.blur();
+      // Dismiss iOS / Android on-screen keyboard cleanly
+      if (inputRef.current) {
+        inputRef.current.blur();
+      }
       executeSearch(query, searchMode);
 
       // Smoothly scroll down to results on mobile if a search was performed
       if (query.trim().length > 0) {
         setTimeout(() => {
           try {
-            if (resultsRef.current) {
-              const rect = resultsRef.current.getBoundingClientRect();
+            const target = resultsRef.current || document.getElementById('search-results-section');
+            if (target) {
+              const rect = target.getBoundingClientRect();
               const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
               window.scrollTo({
                 top: Math.max(0, rect.top + scrollTop - 70),
@@ -428,6 +442,7 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
       console.error('Submit error:', err);
     }
   };
+
 
   // Run instant search whenever deferredQuery or searchMode changes (smooth 60fps, zero typing lag)
   useEffect(() => {
@@ -745,15 +760,11 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
 
           {/* Search Form with Inline Layout & Mobile Touch Optimization */}
           <form onSubmit={handleSearchSubmit} className="max-w-2xl mx-auto pt-1">
-            <div className={`relative flex items-center bg-white/95 dark:bg-[#090e1a]/95 p-1 sm:p-2 rounded-2xl border-2 transition-colors duration-200 shadow-xl backdrop-blur-md ${
-              isSearchFocused
-                ? 'border-amber-500 ring-2 ring-amber-500/30 shadow-[0_0_22px_rgba(245,158,11,0.25)]'
-                : 'border-amber-500/40 hover:border-amber-500/70 shadow-amber-500/5'
-            }`}>
+            <div className="relative flex items-center bg-white/95 dark:bg-[#090e1a]/95 p-1 sm:p-2 rounded-2xl border-2 border-amber-500/40 hover:border-amber-500/70 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-500/30 focus-within:shadow-[0_0_22px_rgba(245,158,11,0.25)] transition-all duration-200 shadow-xl backdrop-blur-md">
               <div className="relative flex-1 flex items-center min-w-0">
                 {query.trim().length > 0 ? (
                   <div className="absolute right-3 sm:right-4 flex items-center justify-center pointer-events-none">
-                    <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500 fill-amber-400 sparkle-spin drop-shadow-[0_0_6px_rgba(245,158,11,0.8)]" />
+                    <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500 fill-amber-400 drop-shadow-[0_0_4px_rgba(245,158,11,0.5)]" />
                   </div>
                 ) : (
                   <Search className="absolute right-3 sm:right-4 w-4 h-4 sm:w-5 sm:h-5 text-amber-500 pointer-events-none" />
@@ -765,12 +776,10 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
                   inputMode="search"
                   enterKeyHint="search"
                   value={query}
-                  onFocus={() => setIsSearchFocused(true)}
-                  onBlur={() => setIsSearchFocused(false)}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder={getPlaceholder()}
-                  style={{ fontSize: '15px', touchAction: 'manipulation' }}
-                  className="w-full pr-9 sm:pr-12 pl-8 sm:pl-10 py-2.5 sm:py-3.5 bg-transparent text-slate-900 dark:text-white placeholder-slate-400 text-sm sm:text-base font-semibold focus:outline-none"
+                  style={{ fontSize: '16px', touchAction: 'manipulation' }}
+                  className="w-full pr-9 sm:pr-12 pl-8 sm:pl-10 py-2.5 sm:py-3.5 bg-transparent text-slate-900 dark:text-white placeholder-slate-400 text-base font-semibold focus:outline-none"
                   dir="rtl"
                   autoCapitalize="none"
                   autoCorrect="off"
@@ -796,13 +805,19 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
 
               <button
                 type="submit"
+                onClick={handleSearchSubmit}
+                onPointerDown={(e) => {
+                  // Prevents input blur from cancelling the touch/click event on mobile browsers!
+                  e.preventDefault();
+                }}
                 style={{ touchAction: 'manipulation' }}
-                className="min-h-[42px] sm:min-h-[48px] px-4 sm:px-8 py-2 sm:py-3.5 rounded-xl roonaki-btn-primary text-slate-950 font-black text-xs sm:text-base flex items-center justify-center gap-1.5 sm:gap-2 active:scale-95 shrink-0 shadow-md shadow-amber-500/25 cursor-pointer select-none"
+                className="min-h-[44px] sm:min-h-[48px] px-4 sm:px-8 py-2 sm:py-3.5 rounded-xl roonaki-btn-primary text-slate-950 font-black text-xs sm:text-base flex items-center justify-center gap-1.5 sm:gap-2 active:scale-95 shrink-0 shadow-md shadow-amber-500/25 cursor-pointer select-none touch-manipulation"
               >
                 <Zap className="w-4 h-4 sm:w-5 sm:h-5 fill-slate-950" />
                 <span>{t.searchBtn}</span>
               </button>
             </div>
+
 
             {/* Non-intrusive Active Search Badge */}
             {query.trim().length > 0 && (
@@ -919,7 +934,7 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
 
       {/* Results Header Banner (when 1 or more files are found) */}
       {hasSearched && searchResults.length > 0 && (
-        <div ref={resultsRef} className="p-4 sm:p-5 rounded-2xl border-2 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-3 animate-fadeIn bg-white dark:bg-slate-900 border-amber-500/40 text-slate-900 dark:text-white">
+        <div ref={resultsRef} id="search-results-section" className="p-4 sm:p-5 rounded-2xl border-2 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-3 animate-fadeIn bg-white dark:bg-slate-900 border-amber-500/40 text-slate-900 dark:text-white">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border bg-amber-500/15 border-amber-500/30 text-amber-600 dark:text-amber-400">
               <Layers className="w-5 h-5" />
@@ -1328,7 +1343,7 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
 
       {/* Not Found State */}
       {hasSearched && searchResults.length === 0 && (
-        <div ref={resultsRef} className="rounded-2xl sm:rounded-[32px] roonaki-card border-amber-400 dark:border-amber-500/40 p-6 sm:p-10 text-center space-y-4 shadow-xl animate-fadeIn">
+        <div ref={resultsRef} id="search-results-section" className="rounded-2xl sm:rounded-[32px] roonaki-card border-amber-400 dark:border-amber-500/40 p-6 sm:p-10 text-center space-y-4 shadow-xl animate-fadeIn">
           <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-amber-100 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto">
             <AlertCircle className="w-7 h-7 sm:w-8 sm:h-8" />
           </div>

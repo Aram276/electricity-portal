@@ -13,15 +13,36 @@ export default function CustomElectricCursor() {
   const [ripples, setRipples] = useState([]);
 
   useEffect(() => {
-    // Only mount on desktop devices with fine pointer (mouse/trackpad)
+    // Only mount on desktop devices with fine mouse/trackpad pointer and wide screens
     if (typeof window === 'undefined') return;
-    const media = window.matchMedia('(pointer: fine)');
-    setIsPointerFine(media.matches);
+    const isTouchOrMobile = 
+      'ontouchstart' in window || 
+      (navigator.maxTouchPoints && navigator.maxTouchPoints > 0) ||
+      window.innerWidth < 1024;
 
-    const checkMedia = (e) => setIsPointerFine(e.matches);
-    media.addEventListener('change', checkMedia);
-    return () => media.removeEventListener('change', checkMedia);
+    if (isTouchOrMobile) {
+      setIsPointerFine(false);
+      return;
+    }
+
+    const media = window.matchMedia('(pointer: fine)');
+    const updateFine = () => {
+      const nowTouchOrMobile = 
+        'ontouchstart' in window || 
+        (navigator.maxTouchPoints && navigator.maxTouchPoints > 0) ||
+        window.innerWidth < 1024;
+      setIsPointerFine(!nowTouchOrMobile && media.matches);
+    };
+
+    updateFine();
+    media.addEventListener('change', updateFine);
+    window.addEventListener('resize', updateFine, { passive: true });
+    return () => {
+      media.removeEventListener('change', updateFine);
+      window.removeEventListener('resize', updateFine);
+    };
   }, []);
+
 
   useEffect(() => {
     if (!isPointerFine) return;
