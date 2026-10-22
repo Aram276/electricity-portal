@@ -741,3 +741,18 @@ input[type="search"]::-webkit-search-results-decoration {
     display: none;
   }
 }
+
+/* ❄️ Mobile Thermal & Battery Cooling Optimization */
+@media screen and (max-width: 768px), (pointer: coarse) {
+  .ambient-orb-1,
+  .ambient-orb-2 {
+    animation: none !important;
+    filter: blur(35px) !important;
+    opacity: 0.35 !important;
+    transform: none !important;
+  }
+  .roonaki-card {
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+  }
+}
