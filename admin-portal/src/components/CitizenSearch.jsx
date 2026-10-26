@@ -1084,8 +1084,9 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
                           className="p-2 sm:p-2.5 rounded-xl bg-white hover:bg-slate-100 dark:bg-slate-900/90 dark:hover:bg-slate-800 text-amber-700 dark:text-amber-400 border border-amber-400 dark:border-amber-500/30 transition-all shadow-sm hover:scale-105 active:scale-95 cursor-pointer"
                           title={isAr ? 'نسخ رقم الإضبارة' : 'کۆپیکردنی ژمارەی فایل'}
                         >
-                          {isCopied ? <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                          {copiedId === result.id ? <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-4 h-4" />}
                         </button>
+
                       </div>
                       <p className="text-xs text-slate-700 dark:text-slate-300 flex items-center justify-center md:justify-start gap-1.5 pt-1">
                         <Info className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
@@ -1235,7 +1236,7 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
                           className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-400 hover:text-amber-500 transition-colors"
                           title={isAr ? 'نسخ رقم الحساب' : 'کۆپیکردنی ئەژمار'}
                         >
-                          {isCopiedAcc ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                          {copiedId === `acc-${result.id}` ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
                         </button>
                       )}
                     </div>
@@ -1264,9 +1265,10 @@ export default function CitizenSearch({ records, onOpenPrintModal, language = 'k
                           className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-400 hover:text-amber-500 transition-colors"
                           title={isAr ? 'نسخ رقم الهاتف' : 'کۆپیکردنی مۆبایل'}
                         >
-                          {isCopiedPhone ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                          {copiedId === `phone-${result.id}` ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
                         </button>
                       )}
+
                     </div>
                   </div>
 
