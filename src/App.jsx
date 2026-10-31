@@ -900,21 +900,42 @@ export default function App() {
 
   // Delivery Modal confirm
   const handleConfirmDelivery = (id, receiverName, customDate, note, isKycDone = true, nationalId = '') => {
-    const updated = markAsDelivered(id, receiverName, customDate, isKycDone, nationalId);
-    const staffName = getActiveStaffName();
+    const now = customDate || getKurdistanDateTime(false);
     const nowTs = Date.now();
-    if (note) {
-      const rec = updated.find(r => r.id === id);
-      if (rec) {
-        rec.notes = (rec.notes ? rec.notes + ' | ' : '') + note;
-        rec.updatedAt = nowTs;
-        rec.handledBy = staffName;
+    const staffName = getActiveStaffName();
+
+    // Match by ID OR by valid fileNumber
+    const target = records.find(r => r.id === id || (isValidRealFile(r.fileNumber) && String(r.fileNumber).trim() === String(id).trim()));
+    const targetId = target?.id || id;
+    const targetFile = target ? String(target.fileNumber).trim() : null;
+    const isTargetSpecial = target ? Boolean(target.isSpecial) : false;
+
+    const updated = records.map(r => {
+      const matchId = r.id === targetId;
+      const matchFile = targetFile && isValidRealFile(r.fileNumber) && String(r.fileNumber).trim() === targetFile && Boolean(r.isSpecial) === isTargetSpecial;
+      if (matchId || matchFile) {
+        return {
+          ...r,
+          status: 'DELIVERED',
+          deliveredDate: now,
+          receiverName: receiverName || (r.hasRealName ? r.citizenName : 'هاوبەشی کارەبا'),
+          deliveredBy: staffName,
+          isKycDone: isKycDone ?? true,
+          kycStatus: isKycDone ? 'DONE_BY_US' : 'PENDING',
+          nationalId: nationalId || r.nationalId || '',
+          updatedAt: nowTs,
+          notes: (r.notes ? r.notes + ' | ' : '') + (note ? note : `تەسلیم کرایەوە لە [${now}]`)
+        };
       }
-    }
-    setRecords(updated);
-    saveRecordsToCloud(updated);
+      return r;
+    });
+
+    const cleaned = deduplicateRecords(updated);
+    setRecords(cleaned);
+    saveRecordsToCloud(cleaned);
     setDeliveryModalRecord(null);
-    showToast(`فایل بە فەرمی تەسلیمی (${receiverName || 'هاووڵاتی'}) کرا لە [${customDate}] و KYC تۆمار کرا ✅`, 'success');
+    showToast(`فایل بە فەرمی تەسلیمی (${receiverName || 'هاووڵاتی'}) کرا لە [${customDate || now}] ✅`, 'success');
+    logActivity('DELIVERY', `تەسلیمکردنەوەی فایلی (${target?.fileNumber || id}) بە [${receiverName || target?.citizenName || 'هاووڵاتی'}] (لەلایەن: ${staffName})`, { fileNumber: target?.fileNumber });
   };
 
   // Reset to demo

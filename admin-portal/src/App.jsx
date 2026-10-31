@@ -47,13 +47,13 @@ export default function App() {
       const hash = window.location.hash.toLowerCase();
       const search = window.location.search.toLowerCase();
       
-      // Only show citizen if explicitly specified in the URL
-      if (path.includes('citizen') || hash.includes('citizen') || search.includes('citizen')) {
-        return 'citizen';
+      // Only show admin if explicitly requested via /admin or #admin
+      if (path.includes('admin') || hash.includes('admin') || search.includes('admin')) {
+        return 'admin';
       }
     } catch (e) {}
-    // Unconditional default to Admin
-    return 'admin';
+    // Default to Citizen view for public citizen portal (http://localhost:3000/)
+    return 'citizen';
   });
   const [isAdmin, setIsAdmin] = useState(() => {
     try {
@@ -91,8 +91,24 @@ export default function App() {
 
   // Toast notification
   const [toast, setToast] = useState(null);
-  const [isAdminPath, setIsAdminPath] = useState(true);
+  const [isAdminPath, setIsAdminPath] = useState(() => {
+    try {
+      const path = window.location.pathname.toLowerCase();
+      const hash = window.location.hash.toLowerCase();
+      return path.includes('admin') || hash.includes('admin');
+    } catch (e) {
+      return false;
+    }
+  });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [language, setLanguage] = useState(() => {
+    return localStorage.getItem('electricity_portal_lang') || 'ku';
+  });
+
+  const handleLanguageChange = (newLang) => {
+    setLanguage(newLang);
+    localStorage.setItem('electricity_portal_lang', newLang);
+  };
 
   // Check URL path on mount & hashchange
   useEffect(() => {
@@ -101,18 +117,18 @@ export default function App() {
       const hash = window.location.hash.toLowerCase();
       const search = window.location.search.toLowerCase();
       
-      const isCitizenExplicit = 
-        path.includes('citizen') || 
-        hash.includes('citizen') || 
-        search.includes('citizen');
+      const isAdminExplicit = 
+        path.includes('admin') || 
+        hash.includes('admin') || 
+        search.includes('admin');
 
-      if (isCitizenExplicit) {
-        setCurrentView('citizen');
-        setIsAdminPath(false);
-      } else {
-        // ALWAYS default to admin
+      if (isAdminExplicit) {
         setCurrentView('admin');
         setIsAdminPath(true);
+      } else {
+        // ALWAYS default to citizen view for http://localhost:3000/
+        setCurrentView('citizen');
+        setIsAdminPath(false);
       }
     };
 
@@ -884,21 +900,42 @@ export default function App() {
 
   // Delivery Modal confirm
   const handleConfirmDelivery = (id, receiverName, customDate, note, isKycDone = true, nationalId = '') => {
-    const updated = markAsDelivered(id, receiverName, customDate, isKycDone, nationalId);
-    const staffName = getActiveStaffName();
+    const now = customDate || getKurdistanDateTime(false);
     const nowTs = Date.now();
-    if (note) {
-      const rec = updated.find(r => r.id === id);
-      if (rec) {
-        rec.notes = (rec.notes ? rec.notes + ' | ' : '') + note;
-        rec.updatedAt = nowTs;
-        rec.handledBy = staffName;
+    const staffName = getActiveStaffName();
+
+    // Match by ID OR by valid fileNumber
+    const target = records.find(r => r.id === id || (isValidRealFile(r.fileNumber) && String(r.fileNumber).trim() === String(id).trim()));
+    const targetId = target?.id || id;
+    const targetFile = target ? String(target.fileNumber).trim() : null;
+    const isTargetSpecial = target ? Boolean(target.isSpecial) : false;
+
+    const updated = records.map(r => {
+      const matchId = r.id === targetId;
+      const matchFile = targetFile && isValidRealFile(r.fileNumber) && String(r.fileNumber).trim() === targetFile && Boolean(r.isSpecial) === isTargetSpecial;
+      if (matchId || matchFile) {
+        return {
+          ...r,
+          status: 'DELIVERED',
+          deliveredDate: now,
+          receiverName: receiverName || (r.hasRealName ? r.citizenName : 'هاوبەشی کارەبا'),
+          deliveredBy: staffName,
+          isKycDone: isKycDone ?? true,
+          kycStatus: isKycDone ? 'DONE_BY_US' : 'PENDING',
+          nationalId: nationalId || r.nationalId || '',
+          updatedAt: nowTs,
+          notes: (r.notes ? r.notes + ' | ' : '') + (note ? note : `تەسلیم کرایەوە لە [${now}]`)
+        };
       }
-    }
-    setRecords(updated);
-    saveRecordsToCloud(updated);
+      return r;
+    });
+
+    const cleaned = deduplicateRecords(updated);
+    setRecords(cleaned);
+    saveRecordsToCloud(cleaned);
     setDeliveryModalRecord(null);
-    showToast(`فایل بە فەرمی تەسلیمی (${receiverName || 'هاووڵاتی'}) کرا لە [${customDate}] و KYC تۆمار کرا ✅`, 'success');
+    showToast(`فایل بە فەرمی تەسلیمی (${receiverName || 'هاووڵاتی'}) کرا لە [${customDate || now}] ✅`, 'success');
+    logActivity('DELIVERY', `تەسلیمکردنەوەی فایلی (${target?.fileNumber || id}) بە [${receiverName || target?.citizenName || 'هاووڵاتی'}] (لەلایەن: ${staffName})`, { fileNumber: target?.fileNumber });
   };
 
   // Reset to demo
@@ -914,12 +951,11 @@ export default function App() {
   return (
     <div className="relative min-h-screen flex flex-col font-kurdish antialiased bg-[#f4f7fb] dark:bg-[#060a15] text-slate-900 dark:text-slate-100 transition-colors duration-300 overflow-x-hidden w-full max-w-[100vw]">
       
-      {/*  iOS Ambient Dynamic Mesh Lighting Orbs (Background Light Show) */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <div className="absolute -top-24 -right-24 w-[600px] h-[600px] bg-amber-500/20 dark:bg-amber-500/25 rounded-full blur-[140px] mix-blend-screen" />
-        <div className="absolute top-1/4 -left-32 w-[650px] h-[650px] bg-sky-500/15 dark:bg-sky-600/20 rounded-full blur-[150px] mix-blend-screen" />
-        <div className="absolute bottom-10 right-1/4 w-[700px] h-[700px] bg-emerald-500/12 dark:bg-emerald-500/18 rounded-full blur-[160px] mix-blend-screen" />
-        <div className="absolute top-2/3 -right-20 w-[450px] h-[450px] bg-purple-500/12 dark:bg-purple-600/18 rounded-full blur-[140px] mix-blend-screen" />
+      {/* Ambient Energy Aura Orbs */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="ambient-orb-1 absolute -top-40 -right-40 w-96 sm:w-[550px] h-96 sm:h-[550px] bg-gradient-to-br from-amber-500/15 via-yellow-500/10 to-transparent rounded-full blur-3xl" />
+        <div className="ambient-orb-2 absolute top-1/2 -left-40 w-96 sm:w-[600px] h-96 sm:h-[600px] bg-gradient-to-tr from-cyan-500/10 via-sky-500/5 to-transparent rounded-full blur-3xl" />
+        <div className="ambient-orb-1 absolute -bottom-40 right-1/4 w-96 sm:w-[500px] h-96 sm:h-[500px] bg-gradient-to-t from-amber-500/10 via-orange-500/5 to-transparent rounded-full blur-3xl" />
       </div>
 
       {/* 3D Antigravity Floating Particle Field */}
@@ -952,16 +988,22 @@ export default function App() {
         onToggleTheme={toggleTheme}
         onToggleSidebar={() => setIsSidebarOpen(prev => !prev)}
         isSidebarOpen={isSidebarOpen}
+        language={language}
+        onLanguageChange={handleLanguageChange}
       />
 
       {/* Main Content Area */}
       <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
         {currentView === 'citizen' ? (
-          <CitizenSearch
-            records={records}
-            onOpenPrintModal={(rec) => setPrintModalRecord(rec)}
-          />
-        ) : !isAdmin ? (
+          <ErrorBoundary>
+            <CitizenSearch
+              records={records}
+              language={language}
+              onOpenPrintModal={(rec) => setPrintModalRecord(rec)}
+            />
+          </ErrorBoundary>
+        ) :
+ !isAdmin ? (
           <AdminLoginView
             onLoginSuccess={handleLoginSuccess}
             onGoToCitizen={() => setCurrentView('citizen')}
@@ -1004,7 +1046,7 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <Footer />
+      <Footer language={language} />
 
       {/* Runaki Smart Scanner Modal */}
       <RunakiSmartScanner
@@ -1058,6 +1100,7 @@ export default function App() {
         isOpen={Boolean(printModalRecord)}
         onClose={() => setPrintModalRecord(null)}
         record={printModalRecord}
+        language={language}
       />
 
       {/* Floating Scroll Navigator (Top / Bottom) */}

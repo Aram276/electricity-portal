@@ -144,6 +144,14 @@ export function getAllDeletedKeySet() {
       set.add('sp_id_' + idStr);
       set.add('id_' + idStr);
     }
+    const fileStr = String(t.fileNumber || '').trim();
+    if (fileStr && isValidRealFile(fileStr)) {
+      const latin = toLatinDigits(fileStr).trim();
+      set.add(prefix + 'file_' + latin);
+      set.add('reg_file_' + latin);
+      set.add('sp_file_' + latin);
+      set.add('file_' + latin);
+    }
   });
   return set;
 }
@@ -154,6 +162,13 @@ export function isRecordInDeletedSet(r, deletedSet) {
   const idStr = String(r.id || '').trim();
   if (idStr && deletedSet && (deletedSet.has('id_' + idStr) || deletedSet.has('reg_id_' + idStr) || deletedSet.has('sp_id_' + idStr))) {
     return true;
+  }
+  const fileStr = String(r.fileNumber || '').trim();
+  if (fileStr && isValidRealFile(fileStr) && deletedSet) {
+    const latin = toLatinDigits(fileStr).trim();
+    if (deletedSet.has('file_' + latin) || deletedSet.has('reg_file_' + latin) || deletedSet.has('sp_file_' + latin)) {
+      return true;
+    }
   }
   return false;
 }
@@ -211,16 +226,18 @@ export function combineCloudAndLocal(cloudRegular, cloudSpecial, localFallback) 
     return 0;
   };
 
+  const deletedSet = getAllDeletedKeySet();
+
   // 1. Add all cloud regular records (authoritative active records)
   (cloudRegular || []).forEach(r => {
-    if (!r || r.isDeleted) return;
+    if (!r || r.isDeleted || isRecordInDeletedSet(r, deletedSet)) return;
     const key = getRecordKey(r);
     if (key) map.set(key, { ...r, isSpecial: Boolean(r.isSpecial) });
   });
 
   // 2. Add all cloud special records (authoritative active records)
   (cloudSpecial || []).forEach(r => {
-    if (!r || r.isDeleted) return;
+    if (!r || r.isDeleted || isRecordInDeletedSet(r, deletedSet)) return;
     const key = getRecordKey({ ...r, isSpecial: true });
     if (key) map.set(key, { ...r, isSpecial: true });
   });
@@ -229,7 +246,6 @@ export function combineCloudAndLocal(cloudRegular, cloudSpecial, localFallback) 
   // Add any local records that do NOT exist in cloud yet (e.g. created offline)
   // OR apply local edits if the local record has a newer timestamp (Last-Write-Wins)
   let hasNewerLocal = false;
-  const deletedSet = getAllDeletedKeySet();
   (localFallback || []).forEach(localRec => {
     if (!localRec || localRec.isDeleted || isRecordInDeletedSet(localRec, deletedSet)) return;
     const key = getRecordKey(localRec);
@@ -276,7 +292,7 @@ export function subscribeToCloudRecords(onUpdateCallback) {
   let unsubMeta = () => { };
   let unsubChunks = [];
   let unsubSpecial = () => { };
-  let unsubLegacy = () => { };
+  let unsubLegacy = null;
 
   const chunkMap = new Map();
 
@@ -328,6 +344,10 @@ export function subscribeToCloudRecords(onUpdateCallback) {
         unsubChunks = [];
 
         if (totalChunks > 0) {
+          if (typeof unsubLegacy === 'function') {
+            unsubLegacy();
+            unsubLegacy = null;
+          }
           for (let i = 0; i < totalChunks; i++) {
             const chunkIdx = i;
             const u = onSnapshot(getChunkDocRef(chunkIdx), (chunkSnap) => {
@@ -348,8 +368,8 @@ export function subscribeToCloudRecords(onUpdateCallback) {
         }
       }
 
-      // If META does not exist yet, fall back to legacy single DOC_REF
-      if (!unsubLegacy || typeof unsubLegacy !== 'function') {
+      // If META does not exist yet or has 0 chunks, fall back to legacy single DOC_REF
+      if (!unsubLegacy) {
         unsubLegacy = onSnapshot(DOC_REF, (snapshot) => {
           if (snapshot.metadata && snapshot.metadata.hasPendingWrites) {
             return;
