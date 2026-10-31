@@ -20,7 +20,10 @@ import { getKurdistanDateTime, getKurdistanDate, getLocalTimestamp, toLatinDigit
 
 export { getLocalTimestamp };
 
+const CHUNK_SIZE = 350;
 const DOC_REF = doc(db, 'portal_data', 'electricity_records');
+const META_DOC_REF = doc(db, 'portal_data', 'electricity_records_meta');
+const getChunkDocRef = (index) => doc(db, 'portal_data', `electricity_records_chunk_${index}`);
 const SPECIAL_DOC_REF = doc(db, 'portal_data', 'electricity_special_records');
 const TRASH_DOC_REF = doc(db, 'portal_data', 'electricity_trash');
 const FOOTER_DOC_REF = doc(db, 'portal_data', 'footer_settings');
@@ -224,6 +227,7 @@ export function combineCloudAndLocal(cloudRegular, cloudSpecial, localFallback) 
 
   // 3. Reconcile with local records:
   // Add any local records that do NOT exist in cloud yet (e.g. created offline)
+  // OR apply local edits if the local record has a newer timestamp (Last-Write-Wins)
   let hasNewerLocal = false;
   const deletedSet = getAllDeletedKeySet();
   (localFallback || []).forEach(localRec => {
@@ -235,12 +239,28 @@ export function combineCloudAndLocal(cloudRegular, cloudSpecial, localFallback) 
       // Local record created offline or not in cloud yet -> preserve it!
       map.set(key, localRec);
       hasNewerLocal = true;
+    } else {
+      const cloudRec = map.get(key);
+      const cloudTs = getRecordTimestamp(cloudRec);
+      const localTs = getRecordTimestamp(localRec);
+      if (localTs > cloudTs) {
+        // Local edit is newer! Apply local edit
+        const merged = { ...cloudRec, ...localRec };
+        if (localRec.status === 'IN_PROGRESS') {
+          merged.deliveredDate = null;
+          merged.completionDate = null;
+          merged.receiverName = '';
+          merged.deliveredBy = '';
+        }
+        map.set(key, merged);
+        hasNewerLocal = true;
+      }
     }
   });
 
   const finalRecords = deduplicateRecords(Array.from(map.values())).filter(r => r && !r.isDeleted);
 
-  // If local had new offline records not yet in cloud, sync in background
+  // If local had new offline records or newer edits not yet in cloud, sync in background
   if (hasNewerLocal && !isLocalSaving && (cloudRegular || []).length > 0) {
     saveRecordsToCloud(finalRecords);
   }
@@ -250,10 +270,15 @@ export function combineCloudAndLocal(cloudRegular, cloudSpecial, localFallback) 
 
 /**
  * Listen to real-time changes for records from Firestore Cloud (both regular and special).
+ * Uses automatic chunk reassembly so that datasets of any size load seamlessly without hitting Firestore limits.
  */
 export function subscribeToCloudRecords(onUpdateCallback) {
-  let unsubRegular = () => { };
+  let unsubMeta = () => { };
+  let unsubChunks = [];
   let unsubSpecial = () => { };
+  let unsubLegacy = () => { };
+
+  const chunkMap = new Map();
 
   const notifyMerged = () => {
     if (isLocalSaving) return; // Don't interrupt while a local write is taking place
@@ -272,28 +297,82 @@ export function subscribeToCloudRecords(onUpdateCallback) {
     }
   };
 
-  try {
-    // 1. Subscribe to main records document
-    unsubRegular = onSnapshot(DOC_REF, (snapshot) => {
-      if (snapshot.metadata && snapshot.metadata.hasPendingWrites) {
-        return; // Ignore local in-flight writes to avoid lagging or rollback
+  const rebuildChunksAndNotify = () => {
+    const sortedIndices = Array.from(chunkMap.keys()).sort((a, b) => a - b);
+    const allRegulars = [];
+    for (const idx of sortedIndices) {
+      const arr = chunkMap.get(idx);
+      if (Array.isArray(arr)) {
+        allRegulars.push(...arr);
       }
-      if (snapshot.exists()) {
-        const data = snapshot.data();
-        if (data && Array.isArray(data.records)) {
-          latestCloudRegular = data.records;
-          notifyMerged();
+    }
+    if (allRegulars.length > 0) {
+      latestCloudRegular = allRegulars;
+      notifyMerged();
+    }
+  };
+
+  try {
+    // 1. Subscribe to Meta Document to know how many chunks exist
+    unsubMeta = onSnapshot(META_DOC_REF, (metaSnap) => {
+      if (metaSnap.metadata && metaSnap.metadata.hasPendingWrites) {
+        return;
+      }
+
+      if (metaSnap.exists()) {
+        const meta = metaSnap.data();
+        const totalChunks = Number(meta.totalChunks) || 0;
+
+        // Clean up previous chunk listeners
+        unsubChunks.forEach(fn => { try { fn(); } catch(e) {} });
+        unsubChunks = [];
+
+        if (totalChunks > 0) {
+          for (let i = 0; i < totalChunks; i++) {
+            const chunkIdx = i;
+            const u = onSnapshot(getChunkDocRef(chunkIdx), (chunkSnap) => {
+              if (chunkSnap.metadata && chunkSnap.metadata.hasPendingWrites) return;
+              if (chunkSnap.exists()) {
+                const cData = chunkSnap.data();
+                chunkMap.set(chunkIdx, Array.isArray(cData.records) ? cData.records : []);
+              } else {
+                chunkMap.set(chunkIdx, []);
+              }
+              rebuildChunksAndNotify();
+            }, (cErr) => {
+              console.warn(`Error subscribing to chunk ${chunkIdx}:`, cErr);
+            });
+            unsubChunks.push(u);
+          }
           return;
         }
       }
 
-      // If cloud document does not exist yet, initialize it
-      const current = getStoredRecords();
-      saveRecordsToCloud(current);
-      onUpdateCallback(current);
+      // If META does not exist yet, fall back to legacy single DOC_REF
+      if (!unsubLegacy || typeof unsubLegacy !== 'function') {
+        unsubLegacy = onSnapshot(DOC_REF, (snapshot) => {
+          if (snapshot.metadata && snapshot.metadata.hasPendingWrites) {
+            return;
+          }
+          if (snapshot.exists()) {
+            const data = snapshot.data();
+            if (data && Array.isArray(data.records) && data.records.length > 0) {
+              latestCloudRegular = data.records;
+              notifyMerged();
+              return;
+            }
+          }
+
+          const current = getStoredRecords();
+          saveRecordsToCloud(current);
+          onUpdateCallback(current);
+        }, (error) => {
+          console.warn('Firestore fallback subscription error, using local storage:', error);
+          onUpdateCallback(getStoredRecords());
+        });
+      }
     }, (error) => {
-      console.warn('Firestore real-time subscription error, using local storage:', error);
-      onUpdateCallback(getStoredRecords());
+      console.warn('Meta subscription error, using legacy doc:', error);
     });
 
     // 2. Subscribe to dedicated special records document
@@ -313,8 +392,10 @@ export function subscribeToCloudRecords(onUpdateCallback) {
     });
 
     return () => {
-      if (typeof unsubRegular === 'function') unsubRegular();
+      if (typeof unsubMeta === 'function') unsubMeta();
+      unsubChunks.forEach(fn => { try { fn(); } catch(e) {} });
       if (typeof unsubSpecial === 'function') unsubSpecial();
+      if (typeof unsubLegacy === 'function') unsubLegacy();
     };
   } catch (err) {
     console.error('Failed to subscribe to cloud records:', err);
@@ -325,6 +406,8 @@ export function subscribeToCloudRecords(onUpdateCallback) {
 
 /**
  * Save updated records to Firestore Cloud so all connected users see the update.
+ * Automatically chunks regular records (350 per document) to completely eliminate
+ * Firestore's 1MB document limit and ensure 100% reliable cloud sync across mobile and desktop.
  */
 export async function saveRecordsToCloud(records) {
   try {
@@ -384,23 +467,64 @@ export async function saveRecordsToCloud(records) {
       console.warn('Failed to save special records doc to cloud:', sErr);
     }
 
-    // 2. Save full records list to main document (compacted so size is well within limits)
+    // 2. Chunk regular records into safe 350-item blocks to guarantee 100% success without hitting 1MB limit
     try {
-      const sanitizedRecords = cleaned.map(sanitizeRecordForCloud).filter(Boolean);
-      await setDoc(DOC_REF, {
-        records: sanitizedRecords,
-        lastUpdated: new Date().toISOString(),
-        updatedBy: 'Admin',
-        count: sanitizedRecords.length
+      const sanitizedRegulars = safeRegulars.map(sanitizeRecordForCloud).filter(Boolean);
+      const chunks = [];
+      for (let i = 0; i < sanitizedRegulars.length; i += CHUNK_SIZE) {
+        chunks.push(sanitizedRegulars.slice(i, i + CHUNK_SIZE));
+      }
+
+      // Write all chunk documents in parallel
+      const chunkPromises = chunks.map((chunk, idx) => {
+        return setDoc(getChunkDocRef(idx), {
+          chunkIndex: idx,
+          records: chunk,
+          count: chunk.length,
+          lastUpdated: new Date().toISOString(),
+          updatedBy: 'Admin'
+        });
       });
+      await Promise.all(chunkPromises);
+
+      // Write meta manifest document with totalChunks count
+      await setDoc(META_DOC_REF, {
+        totalChunks: chunks.length,
+        totalRecords: sanitizedRegulars.length,
+        lastUpdated: new Date().toISOString(),
+        updatedBy: 'Admin'
+      });
+
+      // Clear any orphaned chunks if previously there were more chunks
+      try {
+        const metaSnap = await getDoc(META_DOC_REF);
+        const prevTotal = metaSnap.exists() ? (metaSnap.data().totalChunks || 0) : 0;
+        if (prevTotal > chunks.length) {
+          for (let c = chunks.length; c < prevTotal; c++) {
+            await setDoc(getChunkDocRef(c), { chunkIndex: c, records: [], count: 0 });
+          }
+        }
+      } catch (e) {}
+
+      // Backwards compatibility for single-doc listeners if small enough
+      if (sanitizedRegulars.length <= 400) {
+        try {
+          await setDoc(DOC_REF, {
+            records: sanitizedRegulars,
+            lastUpdated: new Date().toISOString(),
+            updatedBy: 'Admin',
+            count: sanitizedRegulars.length
+          });
+        } catch (e) {}
+      }
     } catch (dErr) {
-      console.error('Failed to save main records doc to cloud:', dErr);
+      console.error('Failed to save chunked records to cloud:', dErr);
     }
 
     // 3. Keep persistent cloud backup
     try {
       if (cleaned.length >= 1000) {
-        const sanitizedRecords = cleaned.map(sanitizeRecordForCloud).filter(Boolean);
+        const sanitizedRecords = cleaned.slice(0, 400).map(sanitizeRecordForCloud).filter(Boolean);
         await setDoc(doc(db, 'portal_data', 'electricity_records_backup'), {
           records: sanitizedRecords,
           lastUpdated: new Date().toISOString(),

@@ -114,23 +114,23 @@ export function deduplicateRecords(records) {
         const existing = specialMap.get(key);
         const tExist = getRecTime(existing);
         const tNew = getRecTime(r);
-        // If the incoming record is newer, it takes precedence
-        if (tNew > tExist) {
+        // If incoming record is newer or same timestamp, it takes precedence
+        if (tNew >= tExist) {
           const merged = { ...existing, ...r };
           if (r.status === 'IN_PROGRESS') {
-            delete merged.deliveredDate;
-            delete merged.completionDate;
-            delete merged.receiverName;
-            delete merged.deliveredBy;
+            merged.deliveredDate = null;
+            merged.completionDate = null;
+            merged.receiverName = '';
+            merged.deliveredBy = '';
           }
           specialMap.set(key, merged);
-        } else if (tExist > tNew) {
+        } else {
           const merged = { ...r, ...existing };
           if (existing.status === 'IN_PROGRESS') {
-            delete merged.deliveredDate;
-            delete merged.completionDate;
-            delete merged.receiverName;
-            delete merged.deliveredBy;
+            merged.deliveredDate = null;
+            merged.completionDate = null;
+            merged.receiverName = '';
+            merged.deliveredBy = '';
           }
           specialMap.set(key, merged);
         }
@@ -147,23 +147,23 @@ export function deduplicateRecords(records) {
         const existing = regularMap.get(key);
         const tExist = getRecTime(existing);
         const tNew = getRecTime(r);
-        // If incoming record is newer, it takes precedence
-        if (tNew > tExist) {
+        // If incoming record is newer or same timestamp, it takes precedence
+        if (tNew >= tExist) {
           const merged = { ...existing, ...r };
           if (r.status === 'IN_PROGRESS') {
-            delete merged.deliveredDate;
-            delete merged.completionDate;
-            delete merged.receiverName;
-            delete merged.deliveredBy;
+            merged.deliveredDate = null;
+            merged.completionDate = null;
+            merged.receiverName = '';
+            merged.deliveredBy = '';
           }
           regularMap.set(key, merged);
-        } else if (tExist > tNew) {
+        } else {
           const merged = { ...r, ...existing };
           if (existing.status === 'IN_PROGRESS') {
-            delete merged.deliveredDate;
-            delete merged.completionDate;
-            delete merged.receiverName;
-            delete merged.deliveredBy;
+            merged.deliveredDate = null;
+            merged.completionDate = null;
+            merged.receiverName = '';
+            merged.deliveredBy = '';
           }
           regularMap.set(key, merged);
         }

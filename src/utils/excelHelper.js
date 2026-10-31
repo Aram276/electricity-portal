@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx';
 import { STATUS_CONFIG } from '../constants/status';
+import { toLatinDigits } from './dateUtils';
 
 function normalizeHeader(header) {
   if (!header) return '';
@@ -72,21 +73,61 @@ export function detectColumnMapping(headers) {
 }
 
 export function normalizeStatus(val, dateVal, receiveVal) {
-  if (receiveVal || dateVal) {
-    return 'DELIVERED';
-  }
-  if (!val) return 'IN_PROGRESS';
-  const str = String(val).trim().toLowerCase();
+  const str = String(val || '').trim().toLowerCase();
 
-  if (str === 'done' || str.includes('تەواو') || str.includes('complete') || str.includes('ناجح')) {
-    return 'COMPLETED';
-  }
-  if (str === 'not done' || str.includes('چاوەڕێ') || str.includes('progress') || str.includes('قيد')) {
+  // 1. Explicit NOT DONE / IN PROGRESS / پێنەدراوە / وەرنەگیراوەتەوە / لە کاردایە / هاتووەتەوە
+  if (
+    str === 'not done' ||
+    str === 'not_done' ||
+    str.includes('پێنەدراو') ||
+    str.includes('پینەدراو') ||
+    str.includes('وەرنەگیراو') ||
+    str.includes('هاتووەتەوە') ||
+    str.includes('هاتۆتەوە') ||
+    str.includes('لە کاردایە') ||
+    str.includes('لە کاردایه') ||
+    str.includes('چاوەڕێ') ||
+    str.includes('چاوەروان') ||
+    str.includes('progress') ||
+    str.includes('قيد') ||
+    str.includes('قید')
+  ) {
     return 'IN_PROGRESS';
   }
-  if (str.includes('تەسلیم') || str.includes('delivered') || str.includes('مستلم')) {
+
+  // 2. Explicit COMPLETED / تەواوبووە
+  if (
+    str === 'done' ||
+    str.includes('تەواو') ||
+    str.includes('complete') ||
+    str.includes('ناجح') ||
+    str.includes('جاهز')
+  ) {
+    return 'COMPLETED';
+  }
+
+  // 3. Explicit DELIVERED / تەسلیمکراوەتەوە / وەرگیراوەتەوە
+  if (
+    str.includes('تەسلیم') ||
+    str.includes('تسلیم') ||
+    str.includes('delivered') ||
+    str.includes('مستلم') ||
+    str.includes('وەرگیراوەتەوە') ||
+    str.includes('وەرگیراوە')
+  ) {
     return 'DELIVERED';
   }
+
+  // 4. Missing phone / Not contacted
+  if (str.includes('پەیوەندی نەکراو') || str.includes('تەلەفۆن نەکراو') || str.includes('لم يتم الاتصال')) {
+    return 'NOT_CONTACTED';
+  }
+
+  // 5. Inferred from date or receiver name ONLY if status was empty
+  if (!val && (receiveVal || dateVal)) {
+    return 'DELIVERED';
+  }
+
   return 'IN_PROGRESS';
 }
 
@@ -120,24 +161,42 @@ export async function parseExcelFile(file) {
         let index = 1;
 
         for (const row of rawJson) {
-          const fileVal = String(row[mapping.fileNumber] || row['number file'] || row['Number File'] || row['ژمارەی فایل'] || row['File'] || '').trim();
-          const accVal = String(row[mapping.accountNumber] || row['ID'] || row['id'] || row['ژمارەی ئەژمار'] || row['Account'] || '').trim();
-          const phoneVal = String(row[mapping.phoneNumber] || row['Phone Number'] || row['phone number'] || row['ژمارەی مۆبایل'] || row['Phone'] || '').trim();
+          const rawFileStr = String(row[mapping.fileNumber] || row['number file'] || row['Number File'] || row['ژمارەی فایل'] || row['File'] || '').trim();
+          let fileVal = toLatinDigits(rawFileStr).replace(/[\s\-_]+/g, '').trim();
+          if (fileVal.endsWith('.0')) fileVal = fileVal.slice(0, -2);
+
+          const rawAccStr = String(row[mapping.accountNumber] || row['ID'] || row['id'] || row['ژمارەی ئەژمار'] || row['Account'] || '').trim();
+          let accVal = toLatinDigits(rawAccStr).replace(/[\s\-_]+/g, '').trim();
+          if (accVal.endsWith('.0')) accVal = accVal.slice(0, -2);
+          if (accVal.includes('e+') || accVal.includes('E+')) {
+            try { accVal = String(Number(accVal)); } catch(e) {}
+          }
+
+          const rawPhoneStr = String(row[mapping.phoneNumber] || row['Phone Number'] || row['phone number'] || row['ژمارەی مۆبایل'] || row['Phone'] || '').trim();
+          let cleanPhone = toLatinDigits(rawPhoneStr).replace(/[\s\-_]+/g, '').trim();
+          if (cleanPhone.includes('e+') || cleanPhone.includes('E+')) {
+            try { cleanPhone = String(Number(cleanPhone)); } catch(e) {}
+          }
+          if (cleanPhone.endsWith('.0')) cleanPhone = cleanPhone.slice(0, -2);
+          if (!cleanPhone || cleanPhone === '0' || cleanPhone === 'نه' || cleanPhone === 'نیە' || cleanPhone === '-' || cleanPhone === 'null') {
+            cleanPhone = 'نیە';
+          } else {
+            if (cleanPhone.startsWith('00964')) cleanPhone = cleanPhone.slice(5);
+            else if (cleanPhone.startsWith('964')) cleanPhone = cleanPhone.slice(3);
+            if (cleanPhone.startsWith('0')) cleanPhone = cleanPhone.slice(1);
+            if (/^7[5789]\d{8}$/.test(cleanPhone)) {
+              cleanPhone = '0' + cleanPhone;
+            }
+          }
+
           const nameVal = String(row[mapping.citizenName] || row['Name'] || row['name'] || row['ناوی هاووڵاتی'] || row['ناو'] || '').trim();
           const statusRaw = String(row[mapping.status] || row['Status'] || row['status'] || row['دۆخ'] || '').trim();
           const dateVal = String(row[mapping.deliveredDate] || row['date'] || row['Date'] || row['بەروار'] || '').trim();
           const recNameVal = String(row[mapping.receiverName] || row['name of recive'] || row['Name Of Recive'] || row['ناوی وەرگرەوە'] || '').trim();
 
           // Skip empty or month separator rows (like "مانگی 8")
-          if (!fileVal && !accVal && !phoneVal) continue;
-          if ((!fileVal || !accVal) && (nameVal.startsWith('مانگی ') || phoneVal.startsWith('مانگی ') || fileVal.startsWith('مانگی '))) continue;
-
-          let cleanPhone = phoneVal;
-          if (cleanPhone === '0' || cleanPhone === 'نه' || cleanPhone === 'نیە' || cleanPhone === '-' || cleanPhone === 'null') {
-            cleanPhone = 'نیە';
-          } else if (/^7[5789]\d{8}$/.test(cleanPhone)) {
-            cleanPhone = '0' + cleanPhone;
-          }
+          if (!fileVal && !accVal && (!cleanPhone || cleanPhone === 'نیە')) continue;
+          if ((!fileVal || !accVal) && (nameVal.startsWith('مانگی ') || (cleanPhone && cleanPhone.startsWith('مانگی ')) || fileVal.startsWith('مانگی '))) continue;
 
           const hasRealName = Boolean(
             nameVal && 
@@ -189,6 +248,11 @@ export async function parseExcelFile(file) {
             }
           }
 
+          const finalStatus = normalizeStatus(statusRaw, dateVal, recNameVal);
+          const isInProgress = finalStatus === 'IN_PROGRESS';
+          const isCompleted = finalStatus === 'COMPLETED';
+          const isDelivered = finalStatus === 'DELIVERED';
+
           records.push({
             id: 'imp-' + Date.now() + '-' + index,
             fileNumber: fileVal || String(index),
@@ -199,14 +263,15 @@ export async function parseExcelFile(file) {
             fileType: fileType, // 'YELLOW_FOLDER' | 'PAPER'
             department: String(row['department'] || row['فەرمانگە'] || 'بەڕێوەبەرایەتی دابەشکردنی کارەبا (فرۆشیاری وزە ٢)').trim(),
             transactionType: String(row['transactionType'] || row['جۆری مامەڵە'] || 'پڕۆژەی ڕووناکی - پێوەری زیرەک').trim(),
-            status: normalizeStatus(statusRaw, dateVal, recNameVal),
+            status: finalStatus,
             archiveLocation: String(row['archiveLocation'] || row['شوێنی فایل'] || `سندوقی ${fileVal || index}`).trim(),
             submissionDate: String(row['submissionDate'] || '2024-08-01').trim(),
-            completionDate: (statusRaw.toLowerCase() === 'done' || dateVal) ? (dateVal || '2024-08-20') : null,
-            deliveredDate: dateVal || null,
-            receiverName: recNameVal || '',
+            completionDate: isInProgress ? null : (isCompleted ? (dateVal || '2024-08-20') : null),
+            deliveredDate: isDelivered ? (dateVal || null) : null,
+            receiverName: isDelivered ? (recNameVal || '') : '',
             handledBy: 'ژووری ژمارە ١٩',
-            notes: (cleanPhone === 'نیە' ? 'تەلەفۆنی نیە' : '') + (recNameVal ? ' | وەرگیراوەتەوە: ' + recNameVal : '')
+            updatedAt: Date.now(),
+            notes: (cleanPhone === 'نیە' ? 'تەلەفۆنی نیە' : '') + (isDelivered && recNameVal ? ' | وەرگیراوەتەوە: ' + recNameVal : '')
           });
 
           index++;
