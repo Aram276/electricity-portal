@@ -208,7 +208,8 @@ export default function FastCheckoutModal({ isOpen, onClose, records = [], onDel
         handledBy: staffName,
         deliveredBy: staffName,
         isKycDone: true,
-        kycStatus: 'DONE'
+        kycStatus: 'DONE_BY_US',
+        updatedAt: Date.now()
       });
     }
 

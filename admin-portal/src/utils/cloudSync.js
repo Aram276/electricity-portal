@@ -243,9 +243,8 @@ export function combineCloudAndLocal(cloudRegular, cloudSpecial, localFallback) 
   });
 
   // 3. Reconcile with local records:
-  // Add any local records that do NOT exist in cloud yet (e.g. created offline)
-  // OR apply local edits if the local record has a newer timestamp (Last-Write-Wins)
-  let hasNewerLocal = false;
+  // Add any offline-created records that do NOT exist in cloud yet
+  // Cloud records are authoritative; local storage never overwrites delivered status
   (localFallback || []).forEach(localRec => {
     if (!localRec || localRec.isDeleted || isRecordInDeletedSet(localRec, deletedSet)) return;
     const key = getRecordKey(localRec);
@@ -254,33 +253,19 @@ export function combineCloudAndLocal(cloudRegular, cloudSpecial, localFallback) 
     if (!map.has(key)) {
       // Local record created offline or not in cloud yet -> preserve it!
       map.set(key, localRec);
-      hasNewerLocal = true;
     } else {
       const cloudRec = map.get(key);
       const cloudTs = getRecordTimestamp(cloudRec);
       const localTs = getRecordTimestamp(localRec);
-      if (localTs > cloudTs) {
-        // Local edit is newer! Apply local edit
+      // Never downgrade a DELIVERED record from cloud back to IN_PROGRESS via stale local cache
+      if (localTs > cloudTs && cloudRec.status !== 'DELIVERED') {
         const merged = { ...cloudRec, ...localRec };
-        if (localRec.status === 'IN_PROGRESS') {
-          merged.deliveredDate = null;
-          merged.completionDate = null;
-          merged.receiverName = '';
-          merged.deliveredBy = '';
-        }
         map.set(key, merged);
-        hasNewerLocal = true;
       }
     }
   });
 
   const finalRecords = deduplicateRecords(Array.from(map.values())).filter(r => r && !r.isDeleted);
-
-  // If local had new offline records or newer edits not yet in cloud, sync in background
-  if (hasNewerLocal && !isLocalSaving && (cloudRegular || []).length > 0) {
-    saveRecordsToCloud(finalRecords);
-  }
-
   return finalRecords;
 }
 
@@ -295,15 +280,15 @@ export function subscribeToCloudRecords(onUpdateCallback) {
   let unsubLegacy = null;
 
   const chunkMap = new Map();
+  let expectedTotalChunks = 0;
+  let reassembleTimeout = null;
 
   const notifyMerged = () => {
-    if (isLocalSaving) return; // Don't interrupt while a local write is taking place
-
     const localRecords = getStoredRecords();
     try {
       const cleaned = combineCloudAndLocal(latestCloudRegular, latestCloudSpecial, localRecords);
 
-      // Save to local storage
+      // Save to local storage cache
       saveRecords(cleaned);
 
       // Notify React components
@@ -314,18 +299,26 @@ export function subscribeToCloudRecords(onUpdateCallback) {
   };
 
   const rebuildChunksAndNotify = () => {
-    const sortedIndices = Array.from(chunkMap.keys()).sort((a, b) => a - b);
-    const allRegulars = [];
-    for (const idx of sortedIndices) {
-      const arr = chunkMap.get(idx);
-      if (Array.isArray(arr)) {
-        allRegulars.push(...arr);
+    // CRITICAL: If expectedTotalChunks > 0, wait until ALL chunks have been loaded!
+    if (expectedTotalChunks > 0 && chunkMap.size < expectedTotalChunks) {
+      return;
+    }
+
+    if (reassembleTimeout) clearTimeout(reassembleTimeout);
+    reassembleTimeout = setTimeout(() => {
+      const sortedIndices = Array.from(chunkMap.keys()).sort((a, b) => a - b);
+      const allRegulars = [];
+      for (const idx of sortedIndices) {
+        const arr = chunkMap.get(idx);
+        if (Array.isArray(arr)) {
+          allRegulars.push(...arr);
+        }
       }
-    }
-    if (allRegulars.length > 0) {
-      latestCloudRegular = allRegulars;
-      notifyMerged();
-    }
+      if (allRegulars.length > 0) {
+        latestCloudRegular = allRegulars;
+        notifyMerged();
+      }
+    }, 40);
   };
 
   try {
@@ -338,31 +331,35 @@ export function subscribeToCloudRecords(onUpdateCallback) {
       if (metaSnap.exists()) {
         const meta = metaSnap.data();
         const totalChunks = Number(meta.totalChunks) || 0;
-
-        // Clean up previous chunk listeners
-        unsubChunks.forEach(fn => { try { fn(); } catch(e) {} });
-        unsubChunks = [];
+        expectedTotalChunks = totalChunks;
 
         if (totalChunks > 0) {
           if (typeof unsubLegacy === 'function') {
             unsubLegacy();
             unsubLegacy = null;
           }
-          for (let i = 0; i < totalChunks; i++) {
-            const chunkIdx = i;
-            const u = onSnapshot(getChunkDocRef(chunkIdx), (chunkSnap) => {
-              if (chunkSnap.metadata && chunkSnap.metadata.hasPendingWrites) return;
-              if (chunkSnap.exists()) {
-                const cData = chunkSnap.data();
-                chunkMap.set(chunkIdx, Array.isArray(cData.records) ? cData.records : []);
-              } else {
-                chunkMap.set(chunkIdx, []);
-              }
-              rebuildChunksAndNotify();
-            }, (cErr) => {
-              console.warn(`Error subscribing to chunk ${chunkIdx}:`, cErr);
-            });
-            unsubChunks.push(u);
+          // Only re-bind chunk listeners if chunk count changed
+          if (unsubChunks.length !== totalChunks) {
+            unsubChunks.forEach(fn => { try { fn(); } catch(e) {} });
+            unsubChunks = [];
+            chunkMap.clear();
+
+            for (let i = 0; i < totalChunks; i++) {
+              const chunkIdx = i;
+              const u = onSnapshot(getChunkDocRef(chunkIdx), (chunkSnap) => {
+                if (chunkSnap.metadata && chunkSnap.metadata.hasPendingWrites) return;
+                if (chunkSnap.exists()) {
+                  const cData = chunkSnap.data();
+                  chunkMap.set(chunkIdx, Array.isArray(cData.records) ? cData.records : []);
+                } else {
+                  chunkMap.set(chunkIdx, []);
+                }
+                rebuildChunksAndNotify();
+              }, (cErr) => {
+                console.warn(`Error subscribing to chunk ${chunkIdx}:`, cErr);
+              });
+              unsubChunks.push(u);
+            }
           }
           return;
         }
@@ -384,7 +381,6 @@ export function subscribeToCloudRecords(onUpdateCallback) {
           }
 
           const current = getStoredRecords();
-          saveRecordsToCloud(current);
           onUpdateCallback(current);
         }, (error) => {
           console.warn('Firestore fallback subscription error, using local storage:', error);

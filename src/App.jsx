@@ -911,7 +911,7 @@ export default function App() {
     const isTargetSpecial = target ? Boolean(target.isSpecial) : false;
 
     const updated = records.map(r => {
-      const matchId = r.id === targetId;
+      const matchId = String(r.id) === String(targetId);
       const matchFile = targetFile && isValidRealFile(r.fileNumber) && String(r.fileNumber).trim() === targetFile && Boolean(r.isSpecial) === isTargetSpecial;
       if (matchId || matchFile) {
         return {

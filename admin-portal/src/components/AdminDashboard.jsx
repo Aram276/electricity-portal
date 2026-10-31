@@ -488,13 +488,25 @@ export default function AdminDashboard({
     const staffName = activeStaff?.name ? `${activeStaff.name}` : (activeStaff?.username || 'فەرمانبەری ژووری ١٩');
     const nowTime = getKurdistanDateTime(false);
 
-    const updates = { status: newStatus };
-    if (newStatus === 'DELIVERED' || newStatus === 'COMPLETED') {
+    const nowTs = Date.now();
+    const updates = { status: newStatus, updatedAt: nowTs };
+    if (newStatus === 'DELIVERED') {
       updates.deliveredDate = target.deliveredDate || nowTime;
       updates.deliveredBy = target.deliveredBy || staffName;
       updates.handledBy = target.handledBy || staffName;
+      updates.receiverName = target.receiverName || (target.hasRealName ? target.citizenName : 'هاوبەشی کارەبا');
       updates.isKycDone = true;
-      updates.kycStatus = 'DONE';
+      updates.kycStatus = 'DONE_BY_US';
+    } else if (newStatus === 'COMPLETED') {
+      updates.completionDate = target.completionDate || nowTime.slice(0, 10);
+      updates.handledBy = target.handledBy || staffName;
+      updates.isKycDone = true;
+      updates.kycStatus = 'DONE_BY_US';
+    } else if (newStatus === 'IN_PROGRESS') {
+      updates.deliveredDate = null;
+      updates.deliveredBy = '';
+      updates.receiverName = '';
+      updates.completionDate = null;
     }
 
     if (onSaveRecord) {
@@ -2667,7 +2679,7 @@ export default function AdminDashboard({
               <button
                 type="button"
                 onClick={() => {
-                  const updates = {};
+                  const updates = { updatedAt: Date.now() };
                   if (bulkEditForm.status) {
                     updates.status = bulkEditForm.status;
                     if (bulkEditForm.status === 'COMPLETED' || bulkEditForm.status === 'DELIVERED') {

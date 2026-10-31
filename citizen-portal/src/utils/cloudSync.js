@@ -243,9 +243,8 @@ export function combineCloudAndLocal(cloudRegular, cloudSpecial, localFallback) 
   });
 
   // 3. Reconcile with local records:
-  // Add any local records that do NOT exist in cloud yet (e.g. created offline)
-  // OR apply local edits if the local record has a newer timestamp (Last-Write-Wins)
-  let hasNewerLocal = false;
+  // Add any offline-created records that do NOT exist in cloud yet
+  // Cloud records are authoritative; local storage never overwrites delivered status
   (localFallback || []).forEach(localRec => {
     if (!localRec || localRec.isDeleted || isRecordInDeletedSet(localRec, deletedSet)) return;
     const key = getRecordKey(localRec);
@@ -254,33 +253,19 @@ export function combineCloudAndLocal(cloudRegular, cloudSpecial, localFallback) 
     if (!map.has(key)) {
       // Local record created offline or not in cloud yet -> preserve it!
       map.set(key, localRec);
-      hasNewerLocal = true;
     } else {
       const cloudRec = map.get(key);
       const cloudTs = getRecordTimestamp(cloudRec);
       const localTs = getRecordTimestamp(localRec);
-      if (localTs > cloudTs) {
-        // Local edit is newer! Apply local edit
+      // Never downgrade a DELIVERED record from cloud back to IN_PROGRESS via stale local cache
+      if (localTs > cloudTs && cloudRec.status !== 'DELIVERED') {
         const merged = { ...cloudRec, ...localRec };
-        if (localRec.status === 'IN_PROGRESS') {
-          merged.deliveredDate = null;
-          merged.completionDate = null;
-          merged.receiverName = '';
-          merged.deliveredBy = '';
-        }
         map.set(key, merged);
-        hasNewerLocal = true;
       }
     }
   });
 
   const finalRecords = deduplicateRecords(Array.from(map.values())).filter(r => r && !r.isDeleted);
-
-  // If local had new offline records or newer edits not yet in cloud, sync in background
-  if (hasNewerLocal && !isLocalSaving && (cloudRegular || []).length > 0) {
-    saveRecordsToCloud(finalRecords);
-  }
-
   return finalRecords;
 }
 
@@ -295,15 +280,15 @@ export function subscribeToCloudRecords(onUpdateCallback) {
   let unsubLegacy = null;
 
   const chunkMap = new Map();
+  let expectedTotalChunks = 0;
+  let reassembleTimeout = null;
 
   const notifyMerged = () => {
-    if (isLocalSaving) return; // Don't interrupt while a local write is taking place
-
     const localRecords = getStoredRecords();
     try {
       const cleaned = combineCloudAndLocal(latestCloudRegular, latestCloudSpecial, localRecords);
 
-      // Save to local storage
+      // Save to local storage cache
       saveRecords(cleaned);
 
       // Notify React components
@@ -314,18 +299,26 @@ export function subscribeToCloudRecords(onUpdateCallback) {
   };
 
   const rebuildChunksAndNotify = () => {
-    const sortedIndices = Array.from(chunkMap.keys()).sort((a, b) => a - b);
-    const allRegulars = [];
-    for (const idx of sortedIndices) {
-      const arr = chunkMap.get(idx);
-      if (Array.isArray(arr)) {
-        allRegulars.push(...arr);
+    // CRITICAL: If expectedTotalChunks > 0, wait until ALL chunks have been loaded!
+    if (expectedTotalChunks > 0 && chunkMap.size < expectedTotalChunks) {
+      return;
+    }
+
+    if (reassembleTimeout) clearTimeout(reassembleTimeout);
+    reassembleTimeout = setTimeout(() => {
+      const sortedIndices = Array.from(chunkMap.keys()).sort((a, b) => a - b);
+      const allRegulars = [];
+      for (const idx of sortedIndices) {
+        const arr = chunkMap.get(idx);
+        if (Array.isArray(arr)) {
+          allRegulars.push(...arr);
+        }
       }
-    }
-    if (allRegulars.length > 0) {
-      latestCloudRegular = allRegulars;
-      notifyMerged();
-    }
+      if (allRegulars.length > 0) {
+        latestCloudRegular = allRegulars;
+        notifyMerged();
+      }
+    }, 40);
   };
 
   try {
@@ -338,31 +331,35 @@ export function subscribeToCloudRecords(onUpdateCallback) {
       if (metaSnap.exists()) {
         const meta = metaSnap.data();
         const totalChunks = Number(meta.totalChunks) || 0;
-
-        // Clean up previous chunk listeners
-        unsubChunks.forEach(fn => { try { fn(); } catch(e) {} });
-        unsubChunks = [];
+        expectedTotalChunks = totalChunks;
 
         if (totalChunks > 0) {
           if (typeof unsubLegacy === 'function') {
             unsubLegacy();
             unsubLegacy = null;
           }
-          for (let i = 0; i < totalChunks; i++) {
-            const chunkIdx = i;
-            const u = onSnapshot(getChunkDocRef(chunkIdx), (chunkSnap) => {
-              if (chunkSnap.metadata && chunkSnap.metadata.hasPendingWrites) return;
-              if (chunkSnap.exists()) {
-                const cData = chunkSnap.data();
-                chunkMap.set(chunkIdx, Array.isArray(cData.records) ? cData.records : []);
-              } else {
-                chunkMap.set(chunkIdx, []);
-              }
-              rebuildChunksAndNotify();
-            }, (cErr) => {
-              console.warn(`Error subscribing to chunk ${chunkIdx}:`, cErr);
-            });
-            unsubChunks.push(u);
+          // Only re-bind chunk listeners if chunk count changed
+          if (unsubChunks.length !== totalChunks) {
+            unsubChunks.forEach(fn => { try { fn(); } catch(e) {} });
+            unsubChunks = [];
+            chunkMap.clear();
+
+            for (let i = 0; i < totalChunks; i++) {
+              const chunkIdx = i;
+              const u = onSnapshot(getChunkDocRef(chunkIdx), (chunkSnap) => {
+                if (chunkSnap.metadata && chunkSnap.metadata.hasPendingWrites) return;
+                if (chunkSnap.exists()) {
+                  const cData = chunkSnap.data();
+                  chunkMap.set(chunkIdx, Array.isArray(cData.records) ? cData.records : []);
+                } else {
+                  chunkMap.set(chunkIdx, []);
+                }
+                rebuildChunksAndNotify();
+              }, (cErr) => {
+                console.warn(`Error subscribing to chunk ${chunkIdx}:`, cErr);
+              });
+              unsubChunks.push(u);
+            }
           }
           return;
         }
@@ -384,7 +381,6 @@ export function subscribeToCloudRecords(onUpdateCallback) {
           }
 
           const current = getStoredRecords();
-          saveRecordsToCloud(current);
           onUpdateCallback(current);
         }, (error) => {
           console.warn('Firestore fallback subscription error, using local storage:', error);
@@ -425,141 +421,12 @@ export function subscribeToCloudRecords(onUpdateCallback) {
 }
 
 /**
- * Save updated records to Firestore Cloud so all connected users see the update.
- * Automatically chunks regular records (350 per document) to completely eliminate
- * Firestore's 1MB document limit and ensure 100% reliable cloud sync across mobile and desktop.
+ * Save updated records locally. Citizen portal is strictly read-only and never writes to Firestore.
  */
 export async function saveRecordsToCloud(records) {
   try {
-    isLocalSaving = true;
-    const now = Date.now();
-    const cleaned = deduplicateRecords(records)
-      .filter(r => r && !r.isDeleted)
-      .map(r => r.updatedAt ? r : { ...r, updatedAt: now });
-    const safeSpecials = cleaned.filter(r => r && r.isSpecial === true);
-    const safeRegulars = cleaned.filter(r => !r.isSpecial);
-
-    // Unmark all active records from permanently deleted tombstones so they are never filtered out
-    try {
-      const permDeletedSet = getPermanentlyDeletedKeys();
-      let permChanged = false;
-      cleaned.forEach(r => {
-        const f = String(r.fileNumber || '').trim();
-        const id = String(r.id || '').trim();
-        if (f && isValidRealFile(f)) {
-          if (permDeletedSet.delete('sp_file_' + f)) permChanged = true;
-          if (permDeletedSet.delete('reg_file_' + f)) permChanged = true;
-          if (permDeletedSet.delete('file_' + f)) permChanged = true;
-        }
-        if (id) {
-          if (permDeletedSet.delete('sp_id_' + id)) permChanged = true;
-          if (permDeletedSet.delete('reg_id_' + id)) permChanged = true;
-          if (permDeletedSet.delete('id_' + id)) permChanged = true;
-        }
-      });
-      if (permChanged) {
-        localStorage.setItem(PERM_DELETED_STORAGE_KEY, JSON.stringify(Array.from(permDeletedSet)));
-      }
-    } catch (e) {}
-
-    // Immediately sync local in-memory cache so subsequent reads and snapshots are instant
-    latestCloudRegular = safeRegulars;
-    latestCloudSpecial = safeSpecials;
-
-    // Save locally to storage immediately
-    saveRecords(cleaned);
-
-    // Dispatch update event for synchronous UI response across components
-    try {
-      window.dispatchEvent(new CustomEvent('electricity_records_updated', { detail: cleaned }));
-    } catch (e) {}
-
-    // 1. Always save special records to dedicated special collection
-    try {
-      const sanitizedSpecials = safeSpecials.map(sanitizeRecordForCloud).filter(Boolean);
-      await setDoc(SPECIAL_DOC_REF, {
-        records: sanitizedSpecials,
-        lastUpdated: new Date().toISOString(),
-        updatedBy: 'Admin',
-        count: sanitizedSpecials.length
-      });
-    } catch (sErr) {
-      console.warn('Failed to save special records doc to cloud:', sErr);
-    }
-
-    // 2. Chunk regular records into safe 350-item blocks to guarantee 100% success without hitting 1MB limit
-    try {
-      const sanitizedRegulars = safeRegulars.map(sanitizeRecordForCloud).filter(Boolean);
-      const chunks = [];
-      for (let i = 0; i < sanitizedRegulars.length; i += CHUNK_SIZE) {
-        chunks.push(sanitizedRegulars.slice(i, i + CHUNK_SIZE));
-      }
-
-      // Write all chunk documents in parallel
-      const chunkPromises = chunks.map((chunk, idx) => {
-        return setDoc(getChunkDocRef(idx), {
-          chunkIndex: idx,
-          records: chunk,
-          count: chunk.length,
-          lastUpdated: new Date().toISOString(),
-          updatedBy: 'Admin'
-        });
-      });
-      await Promise.all(chunkPromises);
-
-      // Write meta manifest document with totalChunks count
-      await setDoc(META_DOC_REF, {
-        totalChunks: chunks.length,
-        totalRecords: sanitizedRegulars.length,
-        lastUpdated: new Date().toISOString(),
-        updatedBy: 'Admin'
-      });
-
-      // Clear any orphaned chunks if previously there were more chunks
-      try {
-        const metaSnap = await getDoc(META_DOC_REF);
-        const prevTotal = metaSnap.exists() ? (metaSnap.data().totalChunks || 0) : 0;
-        if (prevTotal > chunks.length) {
-          for (let c = chunks.length; c < prevTotal; c++) {
-            await setDoc(getChunkDocRef(c), { chunkIndex: c, records: [], count: 0 });
-          }
-        }
-      } catch (e) {}
-
-      // Backwards compatibility for single-doc listeners if small enough
-      if (sanitizedRegulars.length <= 400) {
-        try {
-          await setDoc(DOC_REF, {
-            records: sanitizedRegulars,
-            lastUpdated: new Date().toISOString(),
-            updatedBy: 'Admin',
-            count: sanitizedRegulars.length
-          });
-        } catch (e) {}
-      }
-    } catch (dErr) {
-      console.error('Failed to save chunked records to cloud:', dErr);
-    }
-
-    // 3. Keep persistent cloud backup
-    try {
-      if (cleaned.length >= 1000) {
-        const sanitizedRecords = cleaned.slice(0, 400).map(sanitizeRecordForCloud).filter(Boolean);
-        await setDoc(doc(db, 'portal_data', 'electricity_records_backup'), {
-          records: sanitizedRecords,
-          lastUpdated: new Date().toISOString(),
-          updatedBy: 'AutoSafetyBackup',
-          count: sanitizedRecords.length
-        });
-      }
-    } catch (bErr) { }
-  } catch (error) {
-    console.error('Failed to save records to Firestore Cloud:', error);
-  } finally {
-    setTimeout(() => {
-      isLocalSaving = false;
-    }, 1500);
-  }
+    saveRecords(records || []);
+  } catch (e) {}
 }
 
 /**
