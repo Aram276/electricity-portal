@@ -20,12 +20,10 @@ const WORKFLOWS = [
   {
     id: 1,
     title: 'هاوبەشی نوێ',
-    subtitle: 'New Subscription',
     categoryBadge: 'بەستنی پێوەری نوێ',
-    color: '#10b981',
-    lightColor: 'rgba(16, 185, 129, 0.15)',
-    borderColor: 'rgba(16, 185, 129, 0.5)',
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>`,
+    color: '#059669', // Emerald
+    lightBg: '#ecfdf5',
+    borderColor: '#10b981',
     steps: [
       { room: 'ژووری ١١', name: 'هۆبەی خزمەتگوزاری' },
       { room: 'ژووری ١٠', name: 'فایل کردنەوە' },
@@ -38,17 +36,15 @@ const WORKFLOWS = [
       { room: 'ژووری ١٨', name: 'تەکنیک' }
     ],
     infoBox: null,
-    resultNote: 'بەستنی پێوەری زیرەک و چالاکبوونی کارەبا'
+    resultNote: 'بەستنی پێوەری زیرەک و کارابوونی کارەبای ٢٤ کاتژمێری'
   },
   {
     id: 2,
     title: 'ناو گۆڕین',
-    subtitle: 'Ownership Transfer',
     categoryBadge: 'گواستنەوەی خاوەندارێتی',
-    color: '#06b6d4',
-    lightColor: 'rgba(6, 182, 212, 0.15)',
-    borderColor: 'rgba(6, 182, 212, 0.5)',
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>`,
+    color: '#0284c7', // Sky / Cyan
+    lightBg: '#f0f9ff',
+    borderColor: '#0ea5e9',
     steps: [
       { room: 'دەستپێک', name: 'نووسینی عەریزە' },
       { room: 'ژووری ٢٣', name: 'بەڕێوەبەر' },
@@ -66,12 +62,10 @@ const WORKFLOWS = [
   {
     id: 3,
     title: 'پێوەر گۆڕین',
-    subtitle: 'Meter Replacement',
-    categoryBadge: 'چاکسازی و گۆڕین',
-    color: '#f59e0b',
-    lightColor: 'rgba(245, 158, 11, 0.15)',
-    borderColor: 'rgba(245, 158, 11, 0.5)',
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>`,
+    categoryBadge: 'چاکسازی و گۆڕینی پێوەر',
+    color: '#d97706', // Amber
+    lightBg: '#fffbeb',
+    borderColor: '#f59e0b',
     steps: [
       { room: 'ژووری ١١', name: 'هۆبەی خزمەتگوزاری' },
       { room: 'ژووری ٢٣', name: 'بەڕێوەبەر' },
@@ -81,9 +75,9 @@ const WORKFLOWS = [
       title: 'بەڵگەنامە پێویستەکان',
       items: [
         'کۆتا پسووڵەی کارەبا',
-        'وێنەی ڕوونی سەر پێوەر',
+        'وێنەی ڕوونی پێوەر',
         'کارتی نیشتمانی / ناسنامە',
-        'کاتی خەمڵێنراو: ٢٤-٤٨ کاتژمێر'
+        'ماوە: ٢٤ بۆ ٤٨ کاتژمێر'
       ]
     },
     resultNote: 'بەستنی پێوەری نوێ لەلایەن تیمی تەکنیک و نوێکردنەوە لە سیستەم'
@@ -91,12 +85,10 @@ const WORKFLOWS = [
   {
     id: 4,
     title: 'بڕینی کۆتایی',
-    subtitle: 'Final Disconnection',
     categoryBadge: 'هەڵوەشاندنەوەی هاوبەشی',
-    color: '#ef4444',
-    lightColor: 'rgba(239, 68, 68, 0.15)',
-    borderColor: 'rgba(239, 68, 68, 0.5)',
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`,
+    color: '#dc2626', // Red
+    lightBg: '#fef2f2',
+    borderColor: '#ef4444',
     steps: [
       { room: 'دەستپێک', name: 'نووسینی عەریزە' },
       { room: 'ژووری ٢٣', name: 'بەڕێوەبەر' },
@@ -115,12 +107,10 @@ const WORKFLOWS = [
   {
     id: 5,
     title: 'جۆر گۆڕین (پۆل)',
-    subtitle: 'Tariff / Category Change',
     categoryBadge: 'گۆڕینی پۆلی بەکارهێنان',
-    color: '#a855f7',
-    lightColor: 'rgba(168, 85, 247, 0.15)',
-    borderColor: 'rgba(168, 85, 247, 0.5)',
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>`,
+    color: '#7c3aed', // Purple
+    lightBg: '#f5f3ff',
+    borderColor: '#8b5cf6',
     steps: [
       { room: 'دەستپێک', name: 'نووسینی عەریزە' },
       { room: 'ژووری ٢٣', name: 'بەڕێوەبەر' },
@@ -137,12 +127,10 @@ const WORKFLOWS = [
   {
     id: 6,
     title: 'ڕێکخستنەوەی پارە',
-    subtitle: 'Rebilling - إلغاء مبلغ',
-    categoryBadge: 'چاکسازی و ڕاستکردنەوە',
-    color: '#f97316',
-    lightColor: 'rgba(249, 115, 22, 0.15)',
-    borderColor: 'rgba(249, 115, 22, 0.5)',
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
+    categoryBadge: 'Rebilling - إلغاء مبلغ',
+    color: '#ea580c', // Orange
+    lightBg: '#fff7ed',
+    borderColor: '#f97316',
     steps: [
       { room: 'ژووری ١١', name: 'هۆبەی خزمەتگوزاری' },
       { room: 'ژووری ٢٣', name: 'بەڕێوەبەر' },
@@ -152,9 +140,9 @@ const WORKFLOWS = [
       title: 'بەڵگەنامە پێویستەکان',
       items: [
         'پسووڵەی گوماناوی / هەڵە',
-        'وێنەی ڕوونی خوێندنەوەی سەر پێوەر',
+        'وێنەی ڕوونی سەر پێوەر',
         'کارتی نیشتمانیی هاوبەش',
-        'کاتی تەواوبوون: لە هەمان ڕۆژدا'
+        'ماوە: لە هەمان ڕۆژدا'
       ]
     },
     resultNote: 'ڕاستکردنەوەی بڕی پسووڵە و لێبڕینی بڕی پارەی زیادە'
@@ -162,12 +150,10 @@ const WORKFLOWS = [
   {
     id: 7,
     title: 'گەڕانەوەی تەزوو',
-    subtitle: 'Power Reconnection',
     categoryBadge: 'بەستنەوە و چالاککردنەوە',
-    color: '#14b8a6',
-    lightColor: 'rgba(20, 184, 166, 0.15)',
-    borderColor: 'rgba(20, 184, 166, 0.5)',
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>`,
+    color: '#0d9488', // Teal
+    lightBg: '#f0fdfa',
+    borderColor: '#14b8a6',
     steps: [
       { room: 'دەستپێک', name: 'نووسینی عەریزە' },
       { room: 'ژووری ٢٣', name: 'بەڕێوەبەر' },
@@ -188,12 +174,10 @@ const WORKFLOWS = [
   {
     id: 8,
     title: 'وزەی خۆر',
-    subtitle: 'Solar PV System',
     categoryBadge: 'پێوەری دووسەرە (Net-Metering)',
-    color: '#eab308',
-    lightColor: 'rgba(234, 179, 8, 0.15)',
-    borderColor: 'rgba(234, 179, 8, 0.5)',
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>`,
+    color: '#ca8a04', // Dark Yellow/Gold
+    lightBg: '#fefce8',
+    borderColor: '#eab308',
     steps: [
       { room: 'ژووری ١٧', name: 'پاکانە' },
       { room: 'ژووری ١١', name: 'هۆبەی خزمەتگوزاری' },
@@ -208,17 +192,15 @@ const WORKFLOWS = [
       { room: 'ژووری ١٥', name: 'بەڕێوەبردنی ئەژمار' }
     ],
     infoBox: null,
-    resultNote: 'بەستنی پێوەری دووسەرەی Net-Metering و بەستنەوە بە تۆڕی نیشتمانی'
+    resultNote: 'بەستنی پێوەری Net-Metering و بەستنەوە بە تۆڕی نیشتمانی'
   },
   {
     id: 9,
     title: 'بڕینی کاتی',
-    subtitle: 'Temporary Disconnection',
     categoryBadge: 'ڕاگرتنی کاتی بەکارهێنان',
-    color: '#ec4899',
-    lightColor: 'rgba(236, 72, 153, 0.15)',
-    borderColor: 'rgba(236, 72, 153, 0.5)',
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+    color: '#db2777', // Pink / Rose
+    lightBg: '#fdf2f8',
+    borderColor: '#ec4899',
     steps: [
       { room: 'دەستپێک', name: 'نووسینی عەریزە' },
       { room: 'ژووری ٢٣', name: 'بەڕێوەبەر' },
@@ -236,8 +218,8 @@ const WORKFLOWS = [
   }
 ];
 
-// Generate Full Ultra-Luxury HTML
-function buildPosterHTML() {
+// Generate Light Luxury HTML
+function buildLightPosterHTML() {
   return `<!DOCTYPE html>
 <html lang="ku" dir="rtl">
 <head>
@@ -269,8 +251,8 @@ function buildPosterHTML() {
       max-height: 297mm;
       overflow: hidden;
       font-family: 'Vazirmatn', 'Segoe UI', Tahoma, Arial, sans-serif;
-      background-color: #060b18;
-      color: #f1f5f9;
+      background-color: #f8fafc;
+      color: #0f172a;
       position: relative;
       direction: rtl;
       text-align: right;
@@ -279,46 +261,33 @@ function buildPosterHTML() {
     .poster-container {
       width: 420mm;
       height: 297mm;
-      padding: 7mm 9mm 5mm 9mm;
+      padding: 5.5mm 7.5mm 4.5mm 7.5mm;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       position: relative;
       background: 
-        radial-gradient(ellipse at 50% 0%, rgba(245, 158, 11, 0.18) 0%, transparent 50%),
-        radial-gradient(ellipse at 10% 100%, rgba(6, 182, 212, 0.15) 0%, transparent 45%),
-        radial-gradient(ellipse at 90% 100%, rgba(245, 158, 11, 0.14) 0%, transparent 45%),
-        linear-gradient(180deg, #070d1e 0%, #050914 100%);
+        radial-gradient(ellipse at 50% 0%, rgba(245, 158, 11, 0.08) 0%, transparent 60%),
+        radial-gradient(ellipse at 10% 100%, rgba(6, 182, 212, 0.06) 0%, transparent 50%),
+        linear-gradient(180deg, #ffffff 0%, #f8fafc 40%, #f1f5f9 100%);
     }
 
-    /* Ambient Circuit & Grid lines */
-    .bg-grid {
-      position: absolute;
-      inset: 0;
-      background-image: 
-        linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-      background-size: 14mm 14mm;
-      pointer-events: none;
-      z-index: 1;
-    }
-
-    /* Royal Golden Outer Frame Border */
+    /* Elegant Subtle Border Frame */
     .outer-frame {
       position: absolute;
-      inset: 3.5mm;
-      border: 1.5px solid rgba(245, 158, 11, 0.45);
-      border-radius: 4.5mm;
+      inset: 3mm;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 4mm;
       pointer-events: none;
       z-index: 2;
-      box-shadow: inset 0 0 30px rgba(245, 158, 11, 0.06), 0 0 35px rgba(0, 0, 0, 0.85);
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.04);
     }
     .outer-frame::before {
       content: '';
       position: absolute;
       inset: 1.5mm;
-      border: 1px dashed rgba(245, 158, 11, 0.25);
-      border-radius: 3.5mm;
+      border: 1px dashed rgba(245, 158, 11, 0.4);
+      border-radius: 3mm;
       pointer-events: none;
     }
 
@@ -332,77 +301,61 @@ function buildPosterHTML() {
     }
 
     /* ============================================================== */
-    /* 1. HEADER SECTION                                             */
+    /* 1. HEADER SECTION (LIGHT THEME)                                */
     /* ============================================================== */
     .header-banner {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 3mm 6mm;
-      background: rgba(15, 23, 42, 0.85);
-      border: 1.2px solid rgba(245, 158, 11, 0.45);
-      border-radius: 3.8mm;
-      backdrop-filter: blur(14px);
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-      margin-bottom: 3mm;
+      padding: 2.8mm 5.5mm;
+      background: #ffffff;
+      border: 1.5px solid #fbbf24;
+      border-radius: 3.5mm;
+      box-shadow: 0 4px 15px rgba(245, 158, 11, 0.12), 0 1px 3px rgba(0, 0, 0, 0.05);
+      margin-bottom: 2.5mm;
     }
 
     .header-right {
       display: flex;
       align-items: center;
-      gap: 4mm;
-    }
-    .logo-container {
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .logo-glow {
-      position: absolute;
-      inset: -5mm;
-      background: radial-gradient(circle, rgba(245, 158, 11, 0.4) 0%, transparent 70%);
-      border-radius: 50%;
-      filter: blur(10px);
+      gap: 3.5mm;
     }
     .logo-img {
-      height: 19mm;
+      height: 17.5mm;
       width: auto;
       object-fit: contain;
-      position: relative;
-      z-index: 2;
-      filter: drop-shadow(0 0 14px rgba(245, 158, 11, 0.7));
+      filter: drop-shadow(0 2px 8px rgba(245, 158, 11, 0.35));
     }
 
     .header-titles {
       display: flex;
       flex-direction: column;
-      gap: 0.6mm;
+      gap: 0.5mm;
     }
     .header-titles h1 {
-      font-size: 7.2mm;
+      font-size: 7mm;
       font-weight: 900;
       line-height: 1.15;
-      background: linear-gradient(135deg, #ffffff 15%, #fef08a 60%, #f59e0b 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      text-shadow: 0 0 25px rgba(245, 158, 11, 0.25);
+      color: #0f172a;
+    }
+    .header-titles h1 span.gold-highlight {
+      color: #d97706;
     }
     .header-titles .sub-title {
-      font-size: 3.1mm;
+      font-size: 3mm;
       font-weight: 600;
-      color: #94a3b8;
+      color: #475569;
       display: flex;
       align-items: center;
-      gap: 2.2mm;
+      gap: 2mm;
     }
     .badge-gold {
-      background: linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(217, 119, 6, 0.15));
-      color: #fbbf24;
-      border: 1px solid rgba(245, 158, 11, 0.45);
-      padding: 0.6mm 2.4mm;
-      border-radius: 2mm;
-      font-size: 2.8mm;
+      background: #fffbeb;
+      color: #b45309;
+      border: 1px solid #fde68a;
+      padding: 0.4mm 2.2mm;
+      border-radius: 1.8mm;
+      font-size: 2.7mm;
       font-weight: 800;
     }
 
@@ -410,30 +363,30 @@ function buildPosterHTML() {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 0.8mm;
+      gap: 0.6mm;
       text-align: center;
     }
     .gov-badge {
       display: inline-flex;
       align-items: center;
-      gap: 2mm;
-      font-size: 2.8mm;
+      gap: 1.8mm;
+      font-size: 2.7mm;
       font-weight: 700;
-      color: #e2e8f0;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      padding: 0.8mm 3.2mm;
-      border-radius: 3mm;
+      color: #334155;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      padding: 0.6mm 3mm;
+      border-radius: 2.5mm;
     }
     .directorate-title {
-      font-size: 3.8mm;
+      font-size: 3.7mm;
       font-weight: 900;
-      color: #f59e0b;
+      color: #b45309;
     }
     .division-tag {
-      font-size: 2.8mm;
+      font-size: 2.7mm;
       font-weight: 700;
-      color: #38bdf8;
+      color: #0284c7;
     }
 
     .header-left {
@@ -446,18 +399,18 @@ function buildPosterHTML() {
       display: inline-flex;
       align-items: center;
       gap: 1.8mm;
-      padding: 1.2mm 3.2mm;
-      border-radius: 3mm;
-      background: rgba(16, 185, 129, 0.18);
-      border: 1px solid rgba(16, 185, 129, 0.45);
-      color: #34d399;
-      font-size: 2.9mm;
+      padding: 0.9mm 3mm;
+      border-radius: 2.5mm;
+      background: #ecfdf5;
+      border: 1.2px solid #a7f3d0;
+      color: #047857;
+      font-size: 2.8mm;
       font-weight: 800;
-      box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+      box-shadow: 0 1px 4px rgba(16, 185, 129, 0.15);
     }
     .official-seal {
-      font-size: 2.6mm;
-      color: #94a3b8;
+      font-size: 2.5mm;
+      color: #64748b;
       font-weight: 600;
       display: flex;
       align-items: center;
@@ -465,104 +418,113 @@ function buildPosterHTML() {
     }
 
     /* ============================================================== */
-    /* 2. NINE FLOW COLUMNS GRID                                      */
+    /* 2. NINE FLOW COLUMNS (CLEAN LIGHT DESIGN - NO ICONS)            */
     /* ============================================================== */
     .columns-grid {
       display: grid;
       grid-template-columns: repeat(9, 1fr);
-      gap: 2.8mm;
+      gap: 2.4mm;
       flex: 1;
-      height: 232mm;
-      max-height: 232mm;
+      height: 240mm;
+      max-height: 240mm;
     }
 
     .flow-column {
       display: flex;
       flex-direction: column;
-      background: rgba(15, 23, 42, 0.74);
-      border-radius: 3.5mm;
-      border: 1.2px solid rgba(255, 255, 255, 0.08);
-      padding: 2.2mm 1.8mm;
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+      background: #ffffff;
+      border-radius: 3mm;
+      border: 1.4px solid #e2e8f0;
+      padding: 1.8mm 1.6mm;
+      box-shadow: 0 2px 7px rgba(0, 0, 0, 0.04);
       position: relative;
       overflow: hidden;
       justify-content: space-between;
     }
+    /* Distinct colored top bar */
     .flow-column::before {
       content: '';
       position: absolute;
       top: 0;
       left: 0;
       right: 0;
-      height: 3px;
-      background: var(--col-color, #f59e0b);
-      box-shadow: 0 0 12px var(--col-color, #f59e0b);
+      height: 4px;
+      background: var(--col-color, #0284c7);
     }
 
-    /* Column Header */
+    /* Responsive, Clean Column Header (Stacked, No collisions, No icons) */
     .col-header {
       text-align: center;
-      padding-bottom: 1.8mm;
-      margin-bottom: 1.8mm;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding-top: 0.8mm;
+      padding-bottom: 1.6mm;
+      margin-bottom: 1.4mm;
+      border-bottom: 1.2px solid #f1f5f9;
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 0.8mm;
       shrink: 0;
+      width: 100%;
     }
-    .col-icon-wrapper {
-      width: 7.6mm;
-      height: 7.6mm;
-      border-radius: 2.2mm;
+    
+    .col-top-indicator {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: var(--col-light);
-      color: var(--col-color);
-      border: 1.2px solid var(--col-border);
-      box-shadow: 0 0 12px var(--col-light);
+      gap: 1.4mm;
+      width: 100%;
     }
-    .col-icon-wrapper svg {
-      width: 4.5mm;
-      height: 4.5mm;
-    }
-    .col-title {
-      font-size: 3.4mm;
-      font-weight: 900;
-      color: #ffffff;
-      line-height: 1.15;
-    }
-    .col-meta-row {
-      display: flex;
-      align-items: center;
-      gap: 1.2mm;
-    }
-    .col-badge {
-      font-size: 2.1mm;
-      font-weight: 700;
-      color: var(--col-color);
-      background: var(--col-light);
-      padding: 0.3mm 1.8mm;
-      border-radius: 1.5mm;
-      border: 0.8px solid var(--col-border);
-      white-space: nowrap;
-    }
-    .col-count {
+    .col-id-badge {
       font-size: 2.1mm;
       font-weight: 800;
-      color: #cbd5e1;
-      background: rgba(255, 255, 255, 0.08);
+      color: #64748b;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
       padding: 0.3mm 1.6mm;
       border-radius: 1.5mm;
+    }
+    .col-steps-pill {
+      font-size: 2.1mm;
+      font-weight: 800;
+      color: var(--col-color);
+      background: var(--col-light);
+      border: 1px solid var(--col-border);
+      padding: 0.3mm 2mm;
+      border-radius: 1.5mm;
+    }
+
+    .col-title {
+      font-size: 3.5mm;
+      font-weight: 900;
+      color: #0f172a;
+      line-height: 1.15;
+      margin-top: 0.4mm;
+      width: 100%;
+      text-align: center;
+    }
+
+    .col-category-tag {
+      font-size: 2mm;
+      font-weight: 700;
+      color: #475569;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      padding: 0.4mm 1.5mm;
+      border-radius: 1.5mm;
+      width: 100%;
+      text-align: center;
+      line-height: 1.2;
+      white-space: normal;
+      word-break: break-word;
     }
 
     /* Steps List Container */
     .steps-list {
       display: flex;
       flex-direction: column;
-      gap: 1mm;
+      gap: 0.7mm;
       justify-content: flex-start;
+      flex: 1;
     }
 
     /* Step Item & Card */
@@ -575,14 +537,14 @@ function buildPosterHTML() {
 
     .step-card {
       width: 100%;
-      background: rgba(30, 41, 59, 0.82);
-      border: 1px solid rgba(255, 255, 255, 0.09);
-      border-radius: 2.2mm;
-      padding: 1.2mm 1.6mm;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 1.8mm;
+      padding: 1.1mm 1.5mm;
       display: flex;
       align-items: center;
       gap: 1.5mm;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
       position: relative;
     }
 
@@ -590,15 +552,16 @@ function buildPosterHTML() {
       width: 4.2mm;
       height: 4.2mm;
       border-radius: 50%;
-      background: rgba(255, 255, 255, 0.08);
-      color: #94a3b8;
+      background: #ffffff;
+      color: #475569;
       font-size: 2.1mm;
       font-weight: 800;
       display: flex;
       align-items: center;
       justify-content: center;
       shrink: 0;
-      border: 0.8px solid rgba(255, 255, 255, 0.15);
+      border: 1px solid #cbd5e1;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
     }
 
     .step-body {
@@ -610,74 +573,78 @@ function buildPosterHTML() {
     }
 
     .room-tag {
-      font-size: 2.15mm;
-      font-weight: 900;
-      color: #fbbf24;
+      font-size: 2.05mm;
+      font-weight: 800;
+      color: #b45309;
       line-height: 1;
     }
     .step-name {
-      font-size: 2.5mm;
+      font-size: 2.4mm;
       font-weight: 700;
-      color: #ffffff;
+      color: #0f172a;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
       line-height: 1.25;
-      margin-top: 0.3mm;
+      margin-top: 0.25mm;
     }
 
-    /* Minimal Step Arrow */
+    /* Downward Flow Arrow */
     .step-arrow {
-      height: 2.2mm;
+      height: 1.8mm;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: rgba(255, 255, 255, 0.22);
+      color: #94a3b8;
     }
     .step-arrow svg {
-      width: 2.4mm;
-      height: 2.4mm;
+      width: 2.2mm;
+      height: 2.2mm;
       stroke-width: 2.4;
     }
 
-    /* Final Step Success Highlight */
+    /* Final Step Highlight */
     .step-card.final-step {
-      background: linear-gradient(135deg, rgba(16, 185, 129, 0.25) 0%, rgba(6, 78, 59, 0.45) 100%);
-      border: 1.2px solid rgba(16, 185, 129, 0.6);
-      box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+      background: #ecfdf5;
+      border: 1.3px solid #10b981;
+      box-shadow: 0 1px 5px rgba(16, 185, 129, 0.15);
     }
     .step-card.final-step .step-num-badge {
       background: #10b981;
-      color: #064e3b;
+      color: #ffffff;
       font-weight: 900;
       border: none;
     }
     .step-card.final-step .room-tag {
-      color: #34d399;
+      color: #047857;
+    }
+    .step-card.final-step .step-name {
+      color: #064e3b;
+      font-weight: 800;
     }
 
     /* Info Box for shorter columns to balance layout */
     .col-info-card {
-      margin-top: 2mm;
-      margin-bottom: 2mm;
-      background: rgba(30, 41, 59, 0.65);
+      margin-top: 1.2mm;
+      margin-bottom: 1.2mm;
+      background: #f8fafc;
       border: 1px dashed var(--col-border);
-      border-radius: 2.2mm;
-      padding: 1.8mm 2mm;
-      font-size: 2mm;
-      line-height: 1.35;
-      color: #e2e8f0;
+      border-radius: 1.8mm;
+      padding: 1.4mm 1.6mm;
+      font-size: 1.95mm;
+      line-height: 1.3;
+      color: #334155;
     }
     .col-info-card .info-title {
-      font-size: 2.1mm;
+      font-size: 2mm;
       font-weight: 800;
       color: var(--col-color);
       display: flex;
       align-items: center;
       gap: 1mm;
-      margin-bottom: 1mm;
-      border-bottom: 0.8px solid rgba(255, 255, 255, 0.08);
-      padding-bottom: 0.6mm;
+      margin-bottom: 0.6mm;
+      border-bottom: 0.8px solid #e2e8f0;
+      padding-bottom: 0.4mm;
     }
     .col-info-card ul {
       list-style: none;
@@ -685,12 +652,12 @@ function buildPosterHTML() {
       margin: 0;
       display: flex;
       flex-direction: column;
-      gap: 0.8mm;
+      gap: 0.6mm;
     }
     .col-info-card li {
       display: flex;
       align-items: center;
-      gap: 1.2mm;
+      gap: 1mm;
     }
     .col-info-card li::before {
       content: '•';
@@ -701,78 +668,76 @@ function buildPosterHTML() {
     /* Column Outcome Result Card at bottom */
     .col-outcome-card {
       margin-top: auto;
-      background: rgba(15, 23, 42, 0.88);
+      background: var(--col-light);
       border: 1px solid var(--col-border);
-      border-radius: 2.2mm;
-      padding: 1.5mm 1.8mm;
-      font-size: 1.95mm;
-      line-height: 1.3;
-      color: #cbd5e1;
+      border-radius: 1.8mm;
+      padding: 1.3mm 1.6mm;
+      font-size: 1.9mm;
+      line-height: 1.25;
+      color: #1e293b;
       text-align: center;
-      box-shadow: inset 0 0 8px var(--col-light);
     }
     .col-outcome-card .outcome-title {
       font-weight: 800;
       color: var(--col-color);
-      font-size: 2.05mm;
+      font-size: 2mm;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 1mm;
-      margin-bottom: 0.5mm;
+      margin-bottom: 0.3mm;
     }
 
     /* ============================================================== */
-    /* 3. FOOTER SECTION                                              */
+    /* 3. FOOTER SECTION (LIGHT THEME)                                */
     /* ============================================================== */
     .footer-bar {
-      margin-top: 3mm;
-      padding: 2.6mm 6mm;
-      background: rgba(15, 23, 42, 0.85);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 3.5mm;
+      margin-top: 2.5mm;
+      padding: 2.2mm 5.5mm;
+      background: #ffffff;
+      border: 1.2px solid #e2e8f0;
+      border-radius: 2.8mm;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      backdrop-filter: blur(12px);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
     }
 
     .footer-item-pill {
       display: inline-flex;
       align-items: center;
-      gap: 1.6mm;
-      padding: 1mm 2.8mm;
-      border-radius: 2mm;
-      background: rgba(245, 158, 11, 0.14);
-      border: 1px solid rgba(245, 158, 11, 0.35);
-      color: #fbbf24;
-      font-size: 2.8mm;
+      gap: 1.5mm;
+      padding: 0.7mm 2.4mm;
+      border-radius: 1.6mm;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      color: #b45309;
+      font-size: 2.7mm;
       font-weight: 800;
     }
 
     .footer-text {
-      font-size: 2.8mm;
+      font-size: 2.7mm;
       font-weight: 700;
-      color: #cbd5e1;
+      color: #334155;
     }
     .footer-sub {
-      font-size: 2.7mm;
+      font-size: 2.6mm;
       font-weight: 600;
-      color: #94a3b8;
+      color: #64748b;
     }
     .footer-link {
-      font-size: 2.8mm;
+      font-size: 2.7mm;
       font-weight: 800;
-      color: #38bdf8;
+      color: #0284c7;
       display: flex;
       align-items: center;
-      gap: 1.8mm;
+      gap: 1.6mm;
     }
   </style>
 </head>
 <body>
   <div class="poster-container">
-    <div class="bg-grid"></div>
     <div class="outer-frame"></div>
 
     <div class="content-layer">
@@ -781,12 +746,11 @@ function buildPosterHTML() {
         <div class="header-right">
           ${logoBase64 ? `
             <div class="logo-container">
-              <div class="logo-glow"></div>
               <img src="${logoBase64}" class="logo-img" alt="ڕووناکی">
             </div>
           ` : ''}
           <div class="header-titles">
-            <h1>نەخشەی پرۆسەی ڕێڕەوی کاروباری هاوبەشان</h1>
+            <h1>نەخشەی پرۆسەی ڕێڕەوی <span class="gold-highlight">کاروباری هاوبەشان</span></h1>
             <div class="sub-title">
               <span class="badge-gold">پڕۆژەی نیشتمانیی ڕووناکی</span>
               <span>Customer Account Process Flowchart • بەشی خزمەتگوزاری هاوبەشان</span>
@@ -818,20 +782,18 @@ function buildPosterHTML() {
         </div>
       </header>
 
-      <!-- 2. NINE FLOW COLUMNS -->
+      <!-- 2. NINE FLOW COLUMNS (LIGHT THEME, NO ICONS, FULLY RESPONSIVE) -->
       <main class="columns-grid">
         ${WORKFLOWS.map((wf) => `
-          <div class="flow-column" style="--col-color: ${wf.color}; --col-light: ${wf.lightColor}; --col-border: ${wf.borderColor};">
-            <!-- Column Header -->
+          <div class="flow-column" style="--col-color: ${wf.color}; --col-light: ${wf.lightBg}; --col-border: ${wf.borderColor};">
+            <!-- Clean Header without icons -->
             <div class="col-header">
-              <div class="col-icon-wrapper">
-                ${wf.icon}
+              <div class="col-top-indicator">
+                <span class="col-id-badge">مامەڵەی ${toKurdishNum(wf.id)}</span>
+                <span class="col-steps-pill">${toKurdishNum(wf.steps.length)} قۆناغ</span>
               </div>
               <div class="col-title">${wf.title}</div>
-              <div class="col-meta-row">
-                <span class="col-badge">${wf.categoryBadge}</span>
-                <span class="col-count">${toKurdishNum(wf.steps.length)} قۆناغ</span>
-              </div>
+              <div class="col-category-tag">${wf.categoryBadge}</div>
             </div>
 
             <!-- Steps List -->
@@ -911,8 +873,8 @@ function buildPosterHTML() {
 
 // 2. Export HTML, PDF, and PNG
 async function run() {
-  console.log('Generating Flowchart Poster HTML...');
-  const htmlContent = buildPosterHTML();
+  console.log('Generating Flowchart Poster HTML (Light Mode)...');
+  const htmlContent = buildLightPosterHTML();
   const htmlOutPath = path.resolve('C:/Prject/ubereats-clone-main/runaki-account-process-flowchart.html');
   fs.writeFileSync(htmlOutPath, htmlContent, 'utf8');
   console.log('Saved HTML to:', htmlOutPath);
@@ -957,6 +919,13 @@ async function run() {
     type: 'png'
   });
   console.log('Generated PNG at:', pngOutPath);
+
+  // Also copy to artifact directory
+  const artifactPngPath = 'C:/Users/LEDS GAMING/.gemini/antigravity/brain/4ed3a3ca-1935-4789-bcdd-f4b3ffd52478/runaki-account-process-flowchart.png';
+  try {
+    fs.copyFileSync(pngOutPath, artifactPngPath);
+    console.log('Copied PNG to artifact directory');
+  } catch(e) {}
 
   await browser.close();
   console.log('SUCCESS: All files generated flawlessly!');
